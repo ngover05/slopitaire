@@ -1,6 +1,13 @@
 'use strict';
 
-const DIFFICULTIES = ['easy', 'medium', 'hard', 'auto'];
+// Stats are kept per game variant and difficulty. Klondike keeps the bare difficulty keys it always had;
+// the other variants use '<variant>_<difficulty>' (e.g. 'spider_hard'). Must match statKey() in js/game.js.
+const BASE_DIFFICULTIES = ['easy', 'medium', 'hard', 'auto'];
+const VARIANTS = ['spider', 'freecell', 'pyramid', 'tripeaks'];
+const DIFFICULTIES = [
+  ...BASE_DIFFICULTIES,
+  ...VARIANTS.flatMap((v) => BASE_DIFFICULTIES.map((d) => `${v}_${d}`)),
+];
 const MAX_DELTA_IDS = 32;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -53,12 +60,7 @@ function baseDiffStats() {
 }
 
 function emptyStats() {
-  return {
-    easy: baseDiffStats(),
-    medium: baseDiffStats(),
-    hard: baseDiffStats(),
-    auto: baseDiffStats(),
-  };
+  return Object.fromEntries(DIFFICULTIES.map((d) => [d, baseDiffStats()]));
 }
 
 function sanitizeDiffStats(raw) {

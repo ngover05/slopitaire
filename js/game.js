@@ -25,7 +25,7 @@
     },
     recordGuestStat(diff, field) {
       if (window.Account?.isSignedIn?.()) return;
-      if (!DIFF[diff] || (field !== 'played' && field !== 'won')) return;
+      if (!STAT_KEY_SET.has(diff) || (field !== 'played' && field !== 'won')) return;
       const meta = Store.getMeta();
       if (!meta.deltaId) meta.deltaId = newDeltaId();
       if (!meta.guestDelta || typeof meta.guestDelta !== 'object') meta.guestDelta = {};
@@ -72,7 +72,62 @@
       desc: 'AI autopilot plays a winnable deal at a steady pace ◈',
     },
   };
+  // ---------------------------------------------------------------- game variants
+  // Every variant shares the combo engine, pop-ups, companions, saves and the four difficulties. Difficulty keeps its
+  // meaning everywhere (undo / hints / score ×, and verified deals on Easy, Hard and Auto); each variant adds its own
+  // rule knobs on top (Spider's suit count, Pyramid's redeal passes).
+  const VARIANTS = {
+    klondike: { label: 'Klondike', icon: '♠', deck: 52, cols: 7, hdiv: 5.5, tagline: 'Build down in alternating colours and send every suit home.' },
+    spider: { label: 'Spider', icon: '🕷', deck: 104, cols: 10, hdiv: 5.5, tagline: 'Build King-to-Ace runs of one suit to lift them off the table.' },
+    freecell: { label: 'FreeCell', icon: '❄', deck: 52, cols: 8, hdiv: 5.5, tagline: 'Every card face up, four free cells: pure strategy.' },
+    pyramid: { label: 'Pyramid', icon: '🔺', deck: 52, cols: 7, hdiv: 6.0, tagline: 'Pair cards that add up to 13 (Kings go alone) to dismantle the pyramid.' },
+    tripeaks: { label: 'TriPeaks', icon: '⛰', deck: 52, cols: 10, hdiv: 5.4, tagline: 'Play cards one higher or lower than the waste and chain long runs.' },
+  };
+  const VARIANT_KEYS = Object.keys(VARIANTS);
+  const DIFF_DESC = {
+    spider: {
+      easy: 'Gentle verified deals (1–2 suits) ♡ Unlimited undo & hints.',
+      medium: 'Random deals. Undo costs 10 pts, 3 hints.',
+      hard: 'Tricky verified deals (1–2 suits), no undo, no hints.',
+      auto: 'AI autopilot weaves the web for you ◈',
+    },
+    freecell: {
+      easy: 'Gentle, always-winnable deals ♡ Unlimited undo & hints.',
+      medium: 'Random deals. Undo costs 10 pts, 3 hints.',
+      hard: 'Tricky winnable deals, no undo, no hints.',
+      auto: 'AI autopilot solves a winnable deal ◈',
+    },
+    pyramid: {
+      easy: 'Winnable deals, unlimited redeals ♡ Unlimited undo & hints.',
+      medium: 'Random deals, 3 passes. Undo costs 10 pts, 3 hints.',
+      hard: 'Winnable in 2 passes, no undo, no hints.',
+      auto: 'AI autopilot pairs off a winnable pyramid ◈',
+    },
+    tripeaks: {
+      easy: 'Gentle winnable deals ♡ Unlimited undo & hints.',
+      medium: 'Random deals. Undo costs 10 pts, 3 hints.',
+      hard: 'Tricky winnable deals, no undo, no hints.',
+      auto: 'AI autopilot climbs a winnable deal ◈',
+    },
+  };
+  const diffDesc = (variant, diff) => DIFF_DESC[variant]?.[diff] || DIFF[diff].desc;
+  // Pyramid redeal passes per difficulty (Klondike's live in DIFF.passes; TriPeaks never redeals)
+  const PYRAMID_PASSES = { easy: Infinity, medium: 3, hard: 2, auto: Infinity };
+  // Solver effort (positions searched) that splits gentle / ordinary / tricky deals, calibrated per variant
+  const DEAL_NODES = {
+    freecell: { gentle: 200, tricky: 1500 },
+    tripeaks: { gentle: 70, tricky: 400 },
+    pyramid: { gentle: 80, tricky: 300 },
+    spider1: { gentle: 160, tricky: 800 },
+    spider2: { gentle: 1500, tricky: 6000 },
+  };
+  // stats are kept per variant and difficulty; Klondike keeps the bare difficulty keys it always had
+  const statKey = (variant, diff) => (variant === 'klondike' ? diff : `${variant}_${diff}`);
+  const STAT_KEYS = VARIANT_KEYS.flatMap((v) => Object.keys(DIFF).map((d) => statKey(v, d)));
+  const STAT_KEY_SET = new Set(STAT_KEYS);
+
   const DEFAULTS = {
+    variant: 'klondike', spiderSuits: 1,
     difficulty: 'medium', draw: 1,
     tapMove: true, autoFound: false, autoFinish: true, dropGuides: true, showStats: true, leftHanded: false,
     theme: 'prism', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', mascot: true,
@@ -90,6 +145,8 @@
     const next = Object.assign({}, DEFAULTS, (raw && typeof raw === 'object') ? raw : {});
     if (!DIFF[next.difficulty]) next.difficulty = 'medium';
     if (next.draw !== 1 && next.draw !== 3) next.draw = 1;
+    if (!VARIANTS[next.variant]) next.variant = 'klondike';
+    if (![1, 2, 4].includes(next.spiderSuits)) next.spiderSuits = 1;
     if (!next.voiceNames || typeof next.voiceNames !== 'object') next.voiceNames = {};
     if (next.spriteMode !== 'corner' && next.spriteMode !== 'full') next.spriteMode = 'corner';
     delete next.voiceName;
@@ -146,17 +203,25 @@
     chain30: [4, 'hype'],
     start: [4, 'happy'], startEasy: [4, 'wink'], restart: [4, 'wink'], welcome: [4, 'happy'],
     win: [4, 'cheer'], hello: [4, 'wink'], lost: [4, 'sad'],
+    // variant events
+    startSpider: [4, 'happy'], startFreecell: [4, 'thinking'], startPyramid: [4, 'happy'], startTripeaks: [4, 'cheer'],
+    pairMatch: [1, 'happy'], spiderDeal: [2, 'normal'], wrapPlay: [2, 'wink'],
+    dealBlocked: [2, 'oops'], cellsFull: [2, 'shock'], cellsClear: [2, 'smug'], supermove: [2, 'hype'],
+    kingSolo: [2, 'smug'], runBanked: [2, 'smug'],
+    spiderRun: [3, 'cheer'], rowClear: [3, 'cheer'], peakClear: [3, 'cheer'],
   };
+  const START_EV = { spider: 'startSpider', freecell: 'startFreecell', pyramid: 'startPyramid', tripeaks: 'startTripeaks' };
 
   // ---------------------------------------------------------------- cards & slots
   const SUIT_NAMES = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
   const SUIT_SYMS = ['♥', '♦', '♣', '♠'];
-  const cards = Array.from({ length: 52 }, (_, id) => ({
-    id, suit: (id / 13) | 0, rank: (id % 13) + 1, red: ((id / 13) | 0) < 2,
+  // 104 cards so Spider's two decks fit; 52-card variants use ids 0..51 and hide the rest.
+  const cards = Array.from({ length: 104 }, (_, id) => ({
+    id, suit: ((id % 52) / 13) | 0, rank: (id % 13) + 1, red: (((id % 52) / 13) | 0) < 2,
     up: false, el: null, x: null, y: null, z: 0, zt: null, pile: null, idx: 0,
     _rx: null, _ry: null, _rz: null, _rup: false,
   }));
-  const slots = { stock: null, waste: null, found: [], tab: [] };
+  const slots = { stock: null, waste: null, found: [], tab: [], cell: [] };
   const DOM = {
     comboHud: $('#comboHud'),
     comboCount: $('#comboCount'),
@@ -168,6 +233,8 @@
     moves: $('#moves'),
     score: $('#score'),
     passes: $('#passes'),
+    passesIc: $('#passesIc'),
+    chipPasses: $('#chipPasses'),
     chipDeal: $('#chipDeal'),
     time: $('#time'),
     btnUndo: $('#btnUndo'),
@@ -222,11 +289,40 @@
     board.appendChild(s);
     return s;
   }
+  // the empty-pile outlines each variant needs; rebuilt whenever the variant changes
+  let slotVariant = '';
+  function buildSlots(variant) {
+    if (slotVariant === variant) return;
+    slotVariant = variant;
+    board.querySelectorAll('.slot').forEach((el) => el.remove());
+    slots.stock = null; slots.waste = null; slots.found = []; slots.tab = []; slots.cell = [];
+    const first = board.firstChild;
+    const add = (kind, i, label) => { const el = mkSlot(kind, i, label); board.insertBefore(el, first); return el; };
+    if (variant === 'spider') {
+      slots.stock = add('stock', 0, '↻');
+      for (let i = 0; i < 8; i++) slots.found.push(add('found', i, 'K'));
+      for (let i = 0; i < 10; i++) slots.tab.push(add('tab', i, ''));
+    } else if (variant === 'freecell') {
+      for (let i = 0; i < 4; i++) slots.cell.push(add('cell', i, '◇'));
+      for (let i = 0; i < 4; i++) slots.found.push(add('found', i, 'A'));
+      for (let i = 0; i < 8; i++) slots.tab.push(add('tab', i, ''));
+    } else if (variant === 'pyramid') {
+      slots.stock = add('stock', 0, '↻');
+      slots.waste = add('waste', 0, '');
+      slots.found.push(add('found', 0, '13'));
+    } else if (variant === 'tripeaks') {
+      slots.stock = add('stock', 0, '✕');
+      slots.waste = add('waste', 0, '');
+    } else {
+      slots.stock = add('stock', 0, '↻');
+      slots.waste = add('waste', 0, '');
+      for (let i = 0; i < 4; i++) slots.found.push(add('found', i, 'A'));
+      for (let i = 0; i < 7; i++) slots.tab.push(add('tab', i, 'K'));
+    }
+    board.dataset.variant = variant;
+    slotsDirty = true;
+  }
   function buildTable() {
-    slots.stock = mkSlot('stock', 0, '↻');
-    slots.waste = mkSlot('waste', 0, '');
-    for (let i = 0; i < 4; i++) slots.found.push(mkSlot('found', i, 'A'));
-    for (let i = 0; i < 7; i++) slots.tab.push(mkSlot('tab', i, 'K'));
     cards.forEach((c) => {
       const el = document.createElement('div');
       el.className = 'card'; el.dataset.id = c.id;
@@ -234,7 +330,25 @@
       el.innerHTML = `<div class="card-inner"><div class="card-face front">${Art.cardFace(c)}</div><div class="card-face back"></div></div>`;
       board.appendChild(el);
       c.el = el;
+      c.front = el.querySelector('.front');
     });
+    buildSlots('klondike');
+  }
+  // Spider re-skins its 104 cards into 1, 2 or 4 suits; everything else uses the standard id → suit mapping.
+  let faceMode = 'std', useCount = 104;
+  function applyFaces(variant, suits) {
+    const mode = variant === 'spider' ? 'spider' + suits : 'std';
+    useCount = VARIANTS[variant].deck;
+    for (const c of cards) c.el.classList.toggle('unused', c.id >= useCount);
+    if (mode === faceMode) return;
+    faceMode = mode;
+    for (const c of cards) {
+      const suit = variant === 'spider' ? VSolver.spiderSuit(c.id, suits) : ((c.id % 52) / 13) | 0;
+      if (suit === c.suit) continue;
+      c.suit = suit; c.red = suit < 2;
+      c.front.innerHTML = Art.cardFace(c);
+      c.el.setAttribute('aria-label', Art.RANKS[c.rank - 1] + ' of ' + SUIT_NAMES[c.suit]);
+    }
   }
 
   // ---------------------------------------------------------------- deck / rng
@@ -248,14 +362,15 @@
     };
   }
   const randSeed = () => (1 + Math.random() * 999998) | 0;
-  function shuffledDeck(seed) {
-    const r = rng(seed), d = [...Array(52).keys()];
-    for (let i = 51; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+  function shuffledDeck(seed, n = 52) {
+    const r = rng(seed), d = [...Array(n).keys()];
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
     return d;
   }
 
   // ---------------------------------------------------------------- state
   let G = null;          // current game
+  let pyrSel = null;     // Pyramid: the card picked first when pairing by taps
   let StageBG = null;    // dynamic Prism stage renderer
   let PopupFX = null;    // 4-layer Hyper Pop-Up FX engine
   let busy = false;      // dealing / auto-finishing
@@ -266,19 +381,32 @@
   let autoStepT = null, autoQueue = [], autoPaused = false, gameStepSeq = 0, autoLastSeq = 0;
   const autoVisited = new Set();
 
-  function newState(difficulty, draw, deck, seed, verified) {
-    const prevBest = (Store.get('stats', {})?.[difficulty]?.bestScore) || 0;
+  const PILE_COUNTS = {
+    klondike: { found: 4, tab: 7, cell: 0, pyr: 0 },
+    spider: { found: 8, tab: 10, cell: 0, pyr: 0 },
+    freecell: { found: 4, tab: 8, cell: 4, pyr: 0 },
+    pyramid: { found: 1, tab: 0, cell: 0, pyr: 28 },
+    tripeaks: { found: 0, tab: 0, cell: 0, pyr: 28 },
+  };
+  const piles = (n) => Array.from({ length: n }, () => []);
+  function newState(difficulty, draw, deck, seed, verified, variant = 'klondike', suits = 1) {
+    const prevBest = (Store.get('stats', {})?.[statKey(variant, difficulty)]?.bestScore) || 0;
+    const pc = PILE_COUNTS[variant];
     return {
-      difficulty, draw, deck, seed, verified,
-      stock: [], waste: [], found: [[], [], [], []], tab: [[], [], [], [], [], [], []],
+      variant, suits, difficulty, draw, deck, seed, verified,
+      stock: [], waste: [], found: piles(pc.found), tab: piles(pc.tab), cells: piles(pc.cell), pyr: piles(pc.pyr),
       wasteFan: 0, score: 0, moves: 0, passes: 1, elapsed: 0, started: false, won: false,
       history: [], hintsLeft: DIFF[difficulty].hints, hintIdx: 0,
       chain: 0, maxChain: 0, chainUntil: 0, chainDur: 9500, lastMoveAt: 0,
       warnedChain: false, halfwaySaid: false, almostSaid: false, combo: 0, lastFoundT: 0, swaps: {},
       medals: new Set(), dealFirstMoveAt: 0, openerMoves: 0, prevBestScore: prevBest,
       homed: new Set(),  // cards that already scored a foundation placement this deal
+      linked: new Set(), // Spider: cards that already scored a same-suit link this deal
+      cellPeak: 0, homedSincePeak: 0, lastRunAt: 0, bestRun: 0,
     };
   }
+  const SK = () => statKey(G.variant, G.difficulty);
+  const V = () => VARIANTS[G ? G.variant : settings.variant];
 
   function tierOf(combo) {
     if (combo >= 30) return { tier: 4, label: 'APEX!', mult: 3.0 };
@@ -337,6 +465,11 @@
       clearTimeout(breakT);
       breakT = setTimeout(() => hud.classList.remove('break'), 520);
     }
+    // TriPeaks: a run that ends by drawing (or by running out the clock) is cashed in, not lost
+    if (G.variant === 'tripeaks' && reason !== 'miss' && reason !== 'swap') {
+      bankRun(old, reason);
+      return reason;
+    }
     if (old >= 4) {
       PopupFX?.pill('✕', 'COMBO RESET', `LOST ×${old} STREAK`, 'danger');
     }
@@ -354,29 +487,41 @@
       case 'stock': return G.stock;
       case 'waste': return G.waste;
       case 'found': return G.found[ref.i];
+      case 'cell': return G.cells[ref.i];
+      case 'pyr': return G.pyr[ref.i];
       default: return G.tab[ref.i];
     }
   }
-  const passLimit = () => DIFF[G.difficulty].passes[G.draw];
-  const canRecycle = () => G.passes < passLimit();
+  function passLimit() {
+    if (G.variant === 'klondike') return DIFF[G.difficulty].passes[G.draw];
+    if (G.variant === 'pyramid') return PYRAMID_PASSES[G.difficulty];
+    return 1;
+  }
+  const canRecycle = () => G.variant !== 'tripeaks' && G.variant !== 'spider' && G.passes < passLimit();
 
   function snap() {
     const ids = (p) => p.map((c) => c.id);
     return {
       stock: ids(G.stock), waste: ids(G.waste), found: G.found.map(ids), tab: G.tab.map(ids),
-      up: cards.filter((c) => c.up).map((c) => c.id),
+      cells: G.cells.map(ids), pyr: G.pyr.map(ids),
+      up: cards.filter((c) => c.up && c.id < useCount).map((c) => c.id),
       score: G.score, moves: G.moves, passes: G.passes, wasteFan: G.wasteFan,
-      homed: [...G.homed],
+      homed: [...G.homed], linked: [...G.linked],
     };
   }
   function restore(s) {
     const cs = (a) => a.map((id) => cards[id]);
+    const pc = PILE_COUNTS[G.variant];
     G.stock = cs(s.stock); G.waste = cs(s.waste); G.found = s.found.map(cs); G.tab = s.tab.map(cs);
-    cards.forEach((c) => { c.up = false; });
+    G.cells = Array.isArray(s.cells) ? s.cells.map(cs) : piles(pc.cell);
+    G.pyr = Array.isArray(s.pyr) ? s.pyr.map(cs) : piles(pc.pyr);
+    cards.forEach((c) => { c.up = false; c.pile = null; });
     s.up.forEach((id) => { cards[id].up = true; });
     G.score = s.score; G.moves = s.moves; G.passes = s.passes; G.wasteFan = s.wasteFan;
     // older saves have no list: every card currently on a foundation has scored
     G.homed = new Set(Array.isArray(s.homed) ? s.homed : s.found.flat());
+    G.linked = new Set(Array.isArray(s.linked) ? s.linked : []);
+    pyrSel = null;
   }
   function pushHistory() {
     G.history.push(snap());
@@ -390,22 +535,25 @@
     const W = board.clientWidth, H = board.clientHeight;
     layoutDirty = false;
     const br = board.getBoundingClientRect();
-    if (W === lastMeasW && H === lastMeasH && M.cw) {
+    const variant = G ? G.variant : settings.variant;
+    if (W === lastMeasW && H === lastMeasH && M.cw && M.variant === variant) {
       M.boardLeft = br.left;
       M.boardTop = br.top;
       return false;
     }
     lastMeasW = W; lastMeasH = H;
+    const { cols, hdiv } = VARIANTS[variant];
     const narrow = W < 600, gr = narrow ? 0.08 : 0.14;
-    let cw = Math.min(W / (7 + 8 * gr), H / 5.5, 116);
-    cw = Math.max(cw, 28);
+    let cw = Math.min(W / (cols + (cols + 1) * gr), H / hdiv, 116);
+    cw = Math.max(cw, 24);
     const ch = cw * 1.4, gap = cw * gr;
     const tall = H > W * 1.2;
     const topY = Math.max(gap, 6);
     const tabY = topY + ch + Math.max(gap * 1.8, 10);
-    const upF = tall ? 0.32 : 0.27;
+    // FreeCell columns start 7 cards deep and every card is face up, so they fan tighter
+    const upF = variant === 'freecell' ? (tall ? 0.27 : 0.23) : (tall ? 0.32 : 0.27);
     M = {
-      W, H, cw, ch, gap, offX: (W - (7 * cw + 6 * gap)) / 2, topY, tabY, upF,
+      W, H, cw, ch, gap, offX: (W - (cols * cw + (cols - 1) * gap)) / 2, topY, tabY, upF, cols, variant,
       downGap: ch * 0.11, upGap: ch * upF, cardH: ch,
       boardLeft: br.left, boardTop: br.top,
     };
@@ -429,7 +577,9 @@
   function slotEl(ref) {
     if (ref.t === 'found') return slots.found[ref.i];
     if (ref.t === 'tab') return slots.tab[ref.i];
-    return slots[ref.t];
+    if (ref.t === 'cell') return slots.cell[ref.i];
+    if (ref.t === 'pyr') return G.pyr[ref.i]?.[0]?.el || board;
+    return slots[ref.t] || board;
   }
   function placeSlot(el, x, y) {
     if (el._rx === x && el._ry === y) return;
@@ -474,6 +624,13 @@
     measure(!!opts.remeasure);
     const inst = !!opts.instant;
     if (inst) board.classList.add('no-anim');
+    if (G.variant !== 'klondike') {
+      LAYOUTS[G.variant](inst);
+      if (inst) { void board.offsetHeight; board.classList.remove('no-anim'); }
+      updateStockSlot();
+      updatePeek();
+      return;
+    }
     const { cw, ch, topY, tabY, gap, H } = M;
 
     const sx = colX(slotCol('stock')), wx = colX(slotCol('waste'));
@@ -520,15 +677,175 @@
   }
 
   function updateStockSlot() {
-    if (!G) return;
+    if (!G || !slots.stock) return;
     const dead = !G.stock.length && !canRecycle();
     slots.stock.classList.toggle('dead', dead);
     slots.stock.firstChild.textContent = dead ? '✕' : '↻';
   }
 
+  // ---------------------------------------------------------------- variant layouts
+  const SP_ = VSolver;   // shared cover maps for Pyramid & TriPeaks
+  // a fanned tableau column, squeezed when it would run off the bottom of the board
+  function layoutColumn(p, i, x, y0, inst) {
+    const { ch, gap, H } = M, downOff = ch * 0.11, upOff = ch * M.upF;
+    let total = 0;
+    for (let j = 0; j < p.length - 1; j++) total += p[j].up ? upOff : downOff;
+    const avail = H - y0 - gap - ch;
+    const s = total > avail && total > 0 ? Math.max(0.12, avail / total) : 1;
+    let y = y0;
+    p.forEach((c, j) => {
+      place(c, x, y, 200 + j, { t: 'tab', i }, j, inst);
+      y += (c.up ? upOff : downOff) * s;
+    });
+  }
+  const unitX = (u) => M.offX + u * (M.cw + M.gap);
+  function placeSlots(fn) {
+    if (!slotsDirty && lastLeftHanded === settings.leftHanded) return;
+    lastLeftHanded = settings.leftHanded;
+    slotsDirty = false;
+    fn();
+  }
+  const LAYOUTS = {
+    spider(inst) {
+      const L = settings.leftHanded, { cw, topY, tabY } = M;
+      const stockCol = L ? 0 : 9, foundCol = (k) => (L ? 2 + k : k);
+      placeSlots(() => {
+        placeSlot(slots.stock, colX(stockCol), topY);
+        slots.found.forEach((el, k) => placeSlot(el, colX(foundCol(k)), topY));
+        slots.tab.forEach((el, i) => placeSlot(el, colX(i), tabY));
+      });
+      // the stock shows one fanned card back per deal left, like a hand of rows waiting to be dealt
+      const rows = Math.ceil(G.stock.length / 10), step = cw * 0.16 * (L ? 1 : -1);
+      G.stock.forEach((c, j) => {
+        const g = (j / 10) | 0;
+        place(c, colX(stockCol) + (rows - 1 - g) * step, topY, 10 + j, { t: 'stock', i: 0 }, j, inst);
+      });
+      G.found.forEach((p, k) => p.forEach((c, j) => place(c, colX(foundCol(k)), topY, 120 + j, { t: 'found', i: k }, j, inst)));
+      G.tab.forEach((p, i) => layoutColumn(p, i, colX(i), tabY, inst));
+    },
+    freecell(inst) {
+      const L = settings.leftHanded, { topY, tabY } = M;
+      const cellCol = (k) => (L ? 4 + k : k), foundCol = (k) => (L ? k : 4 + k);
+      placeSlots(() => {
+        slots.cell.forEach((el, k) => placeSlot(el, colX(cellCol(k)), topY));
+        slots.found.forEach((el, k) => placeSlot(el, colX(foundCol(k)), topY));
+        slots.tab.forEach((el, i) => placeSlot(el, colX(i), tabY));
+      });
+      G.cells.forEach((p, k) => p.forEach((c, j) => place(c, colX(cellCol(k)), topY, 140 + j, { t: 'cell', i: k }, j, inst)));
+      G.found.forEach((p, k) => p.forEach((c, j) => place(c, colX(foundCol(k)), topY, 120 + j, { t: 'found', i: k }, j, inst)));
+      G.tab.forEach((p, i) => layoutColumn(p, i, colX(i), tabY, inst));
+    },
+    pyramid(inst) {
+      const L = settings.leftHanded, { ch, topY } = M;
+      const sCol = L ? 6 : 0, wCol = L ? 5 : 1, dCol = L ? 0 : 6;
+      placeSlots(() => {
+        placeSlot(slots.stock, colX(sCol), topY);
+        placeSlot(slots.waste, colX(wCol), topY);
+        placeSlot(slots.found[0], colX(dCol), topY);
+      });
+      const thick = (j) => Math.floor(j / 8) * 0.8;
+      G.stock.forEach((c, j) => place(c, colX(sCol) - thick(j), topY - thick(j), 10 + j, { t: 'stock', i: 0 }, j, inst));
+      G.waste.forEach((c, j) => place(c, colX(wCol), topY, 60 + j, { t: 'waste', i: 0 }, j, inst));
+      G.found[0].forEach((c, j) => place(c, colX(dCol) - thick(j) * 0.5, topY - thick(j) * 0.5, 120 + j, { t: 'found', i: 0 }, j, inst));
+      G.pyr.forEach((p, i) => {
+        const c = p[0];
+        if (!c) return;
+        const r = SP_.PYR_ROW[i], j = i - (r * (r + 1)) / 2;
+        place(c, unitX(3 + j - r / 2), topY + r * ch * 0.5, 300 + i, { t: 'pyr', i }, 0, inst);
+        c.el.classList.toggle('covered', !pyrExposed(i));
+      });
+    },
+    tripeaks(inst) {
+      const { cw, ch, gap, topY } = M;
+      const sU = 3.6, wU = 5.4, rowY = topY + ch * 1.5 + ch + Math.max(gap * 2, 14);
+      placeSlots(() => {
+        placeSlot(slots.stock, unitX(sU), rowY);
+        placeSlot(slots.waste, unitX(wU), rowY);
+      });
+      // the stock fans to the left so you can see how many draws are left
+      const n = G.stock.length, fan = Math.min(cw * 0.07, (cw * 2.2) / Math.max(1, n));
+      G.stock.forEach((c, j) => place(c, unitX(sU) - (n - 1 - j) * fan, rowY, 10 + j, { t: 'stock', i: 0 }, j, inst));
+      G.waste.forEach((c, j) => place(c, unitX(wU), rowY, 60 + j, { t: 'waste', i: 0 }, j, inst));
+      G.pyr.forEach((p, i) => {
+        const c = p[0];
+        if (!c) return;
+        const r = SP_.TP_ROW[i];
+        let u;
+        if (r === 0) u = 3 * i + 1.5;
+        else if (r === 1) { const j = i - 3; u = 3 * (j >> 1) + (j & 1) + 1; }
+        else if (r === 2) u = i - 9 + 0.5;
+        else u = i - 18;
+        place(c, unitX(u), topY + r * ch * 0.5, 300 + i, { t: 'pyr', i }, 0, inst);
+      });
+    },
+  };
+
+  // ---------------------------------------------------------------- Pyramid & TriPeaks cover rules
+  const coverOf = (i) => (G.variant === 'pyramid' ? SP_.PYR_COVER : SP_.TP_COVER)[i];
+  function pyrExposed(i) {
+    if (!G.pyr[i] || !G.pyr[i].length) return false;
+    const cv = coverOf(i);
+    return !cv.length || (!G.pyr[cv[0]].length && !G.pyr[cv[1]].length);
+  }
+  const pyrLeft = () => G.pyr.reduce((s, p) => s + p.length, 0);
+  // Pyramid: every card that can be paired right now (exposed pyramid cards and the waste top)
+  function pyrAvail() {
+    const out = [];
+    for (let i = 0; i < 28; i++) if (pyrExposed(i)) out.push({ ref: { t: 'pyr', i }, c: G.pyr[i][0] });
+    if (G.waste.length) out.push({ ref: { t: 'waste', i: 0 }, c: G.waste[G.waste.length - 1] });
+    return out;
+  }
+  function pyrAvailable(c) {
+    if (!c.pile) return false;
+    if (c.pile.t === 'pyr') return pyrExposed(c.pile.i);
+    return c.pile.t === 'waste' && c.idx === G.waste.length - 1;
+  }
+  const tpAdjacent = (a, b) => { const d = Math.abs(a.rank - b.rank); return d === 1 || d === 12; };
+  const rowCleared = (r) => G.pyr.every((p, i) => SP_.PYR_ROW[i] !== r || !p.length);
+  // FreeCell: the longest sequence that can move at once (free cells + 1, doubled for each empty column)
+  function fcCapacity(toEmpty) {
+    const free = G.cells.filter((p) => !p.length).length;
+    const empty = G.tab.filter((p) => !p.length).length - (toEmpty ? 1 : 0);
+    return (free + 1) * (1 << Math.max(0, empty));
+  }
+  const freeCells = () => G.cells.filter((p) => !p.length).length;
+
   // ---------------------------------------------------------------- rules
   function canDrop(mov, ref) {
     const c = mov[0];
+    switch (G.variant) {
+      case 'spider': {
+        if (ref.t !== 'tab') return false;
+        const p = G.tab[ref.i];
+        if (!p.length) return true;
+        const top = p[p.length - 1];
+        return top.up && top.rank === c.rank + 1;
+      }
+      case 'freecell': {
+        if (ref.t === 'cell') return mov.length === 1 && !G.cells[ref.i].length;
+        if (ref.t === 'tab') {
+          const p = G.tab[ref.i];
+          if (mov.length > fcCapacity(!p.length)) return false;
+          if (!p.length) return true;
+          const top = p[p.length - 1];
+          return top.red !== c.red && top.rank === c.rank + 1;
+        }
+        break;
+      }
+      case 'pyramid': {
+        // "dropping" pairs the card with whatever it lands on; Kings are dropped on the discard pile
+        if (mov.length !== 1 || !pyrAvailable(c)) return false;
+        if (ref.t === 'found') return c.rank === 13;
+        const p = pileOf(ref), o = p[p.length - 1];
+        return !!o && o !== c && pyrAvailable(o) && o.rank + c.rank === 13;
+      }
+      case 'tripeaks': {
+        if (ref.t !== 'waste' || mov.length !== 1) return false;
+        const top = G.waste[G.waste.length - 1];
+        return !!top && c.pile?.t === 'pyr' && c.up && pyrExposed(c.pile.i) && tpAdjacent(c, top);
+      }
+      default: break;
+    }
     if (ref.t === 'found') {
       if (mov.length !== 1) return false;
       const p = G.found[ref.i];
@@ -547,6 +864,28 @@
   function movableFrom(c) {
     const ref = c.pile; if (!ref || !c.up) return null;
     const p = pileOf(ref);
+    switch (G.variant) {
+      case 'spider': {
+        if (ref.t !== 'tab') return null;
+        const seq = p.slice(c.idx);
+        for (let k = 1; k < seq.length; k++) {
+          if (!seq[k].up || seq[k].suit !== seq[k - 1].suit || seq[k].rank !== seq[k - 1].rank - 1) return null;
+        }
+        return seq;
+      }
+      case 'freecell': {
+        if (ref.t === 'cell') return [c];
+        if (ref.t !== 'tab') return null;
+        const seq = p.slice(c.idx);
+        for (let k = 1; k < seq.length; k++) {
+          if (seq[k].red === seq[k - 1].red || seq[k].rank !== seq[k - 1].rank - 1) return null;
+        }
+        return seq.length <= fcCapacity(false) ? seq : null;
+      }
+      case 'pyramid': return pyrAvailable(c) ? [c] : null;
+      case 'tripeaks': return ref.t === 'pyr' && pyrExposed(ref.i) ? [c] : null;
+      default: break;
+    }
     if (ref.t === 'tab') {
       const seq = p.slice(c.idx);
       for (let k = 1; k < seq.length; k++) {
@@ -558,10 +897,43 @@
     return null;
   }
   function foundTarget(c) {
+    if (G.variant !== 'klondike' && G.variant !== 'freecell') return null;
     for (let i = 0; i < 4; i++) if (canDrop([c], { t: 'found', i })) return { t: 'found', i };
     return null;
   }
   function bestTarget(mov, src) {
+    if (G.variant === 'spider') {
+      // same suit first (it keeps the run movable), then any suit, then an empty column
+      let any = null, empty = null;
+      const c = mov[0];
+      for (let i = 0; i < G.tab.length; i++) {
+        if (src.t === 'tab' && src.i === i) continue;
+        const p = G.tab[i];
+        if (!canDrop(mov, { t: 'tab', i })) continue;
+        if (!p.length) { if (empty === null) empty = i; continue; }
+        if (p[p.length - 1].suit === c.suit) return { t: 'tab', i };
+        if (any === null) any = i;
+      }
+      if (any !== null) return { t: 'tab', i: any };
+      if (empty !== null && !(src.t === 'tab' && mov[0].idx === 0)) return { t: 'tab', i: empty };
+      return null;
+    }
+    if (G.variant === 'freecell') {
+      if (mov.length === 1) { const f = foundTarget(mov[0]); if (f) return f; }
+      let empty = null;
+      for (let i = 0; i < G.tab.length; i++) {
+        if (src.t === 'tab' && src.i === i) continue;
+        if (!canDrop(mov, { t: 'tab', i })) continue;
+        if (G.tab[i].length) return { t: 'tab', i };
+        if (empty === null) empty = i;
+      }
+      if (empty !== null && !(src.t === 'tab' && mov[0].idx === 0)) return { t: 'tab', i: empty };
+      if (mov.length === 1 && src.t === 'tab') {
+        const k = G.cells.findIndex((p) => !p.length);
+        if (k >= 0) return { t: 'cell', i: k };
+      }
+      return null;
+    }
     if (mov.length === 1 && src.t !== 'found') { const f = foundTarget(mov[0]); if (f) return f; }
     let empty = null;
     for (let i = 0; i < 7; i++) {
@@ -583,9 +955,11 @@
     return opp.every((s) => foundRankOfSuit(s) >= c.rank - 1);
   }
   function autoFoundStep(onlySafe) {
+    if (G.variant !== 'klondike' && G.variant !== 'freecell') return null;
     const cand = [];
     if (G.waste.length) cand.push({ c: G.waste[G.waste.length - 1], src: { t: 'waste', i: 0 }, idx: G.waste.length - 1 });
     G.tab.forEach((p, i) => { if (p.length) cand.push({ c: p[p.length - 1], src: { t: 'tab', i }, idx: p.length - 1 }); });
+    G.cells.forEach((p, i) => { if (p.length) cand.push({ c: p[0], src: { t: 'cell', i }, idx: 0 }); });
     cand.sort((a, b) => a.c.rank - b.c.rank);
     for (const k of cand) {
       if (onlySafe && !safeToFound(k.c)) continue;
@@ -599,9 +973,137 @@
   function startClock() {
     if (G.started) return;
     G.started = true;
-    const st = getStats(); st[G.difficulty].played++;
-    Store.recordGuestStat(G.difficulty, 'played');
+    const st = getStats(); st[SK()].played++;
+    Store.recordGuestStat(SK(), 'played');
     Store.set('stats', st);
+  }
+
+  // ---------------------------------------------------------------- shared combo engine (every variant)
+  // chainCtx() snapshots the combo timing before a move; stepChain() then counts the move into the combo.
+  function chainCtx(now) {
+    return {
+      now, prevChain: G.chain, dtPrev: G.lastMoveAt > 0 ? now - G.lastMoveAt : 0,
+      remRatio: 0, wasClutch: false, wasClutchPop: false, wasFast: false, stepped: false,
+    };
+  }
+  function stepChain(x, gain = 1) {
+    const now = x.now;
+    x.remRatio = G.chain > 0 && G.chainDur > 0 ? (G.chainUntil - now) / G.chainDur : 0;
+    x.wasClutch = G.chain >= 5 && x.remRatio > 0 && x.remRatio < 0.22;
+    x.wasClutchPop = x.prevChain >= 3 && x.remRatio > 0 && x.remRatio < 0.28;
+    x.wasFast = x.dtPrev > 0 && x.dtPrev < 1450 && G.chain >= 2;
+    G.chain += gain;
+    if (G.chain > G.maxChain) G.maxChain = G.chain;
+    G.chainDur = Math.max(5500, 9500 - Math.min(G.chain, 30) * 100);
+    G.chainUntil = now + G.chainDur;
+    G.warnedChain = false;
+    G.lastMoveAt = now;
+    if (!G.dealFirstMoveAt) G.dealFirstMoveAt = now;
+    G.openerMoves = (G.openerMoves || 0) + 1;
+    syncComboHud(true);
+    Sound.sfx.comboTick?.(G.chain);
+    if (x.wasClutch || x.wasClutchPop) Sound.sfx.comboSave?.();
+    x.stepped = true;
+    return x;
+  }
+  // drawing / dealing keeps a live combo going a little longer instead of counting toward it
+  function extendChain(ms = 2400) {
+    if (G.chain <= 0) return;
+    const now = Date.now();
+    G.chainUntil = Math.min(now + G.chainDur, G.chainUntil + ms);
+    if (G.chainDur > 0 && (G.chainUntil - now) / G.chainDur >= 0.22) {
+      G.warnedChain = false;
+      DOM.comboHud?.classList.remove('danger');
+    }
+    syncComboHud(false);
+  }
+  // SURGE / BOOST / BLITZ / APEX promotions: sfx, stage pulse, ticker pill, companion line and cut-in
+  function comboMilestones(prevChain, willWin, fire = true) {
+    const crossed = (m) => prevChain < m && G.chain >= m;
+    const crossedHigh = G.chain >= 30 && (crossed(30) || (prevChain >= 30 && Math.floor((G.chain - 30) / 15) > Math.floor((prevChain - 30) / 15)));
+    let milestoneFired = false;
+    if (fire) {
+      if (crossedHigh) {
+        milestoneFired = true;
+        (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(4);
+        StageBG?.pulse('#ffe169', 1.2);
+        PopupFX?.pill('★', 'APEX! ×3.0', `${G.chain} HIT STREAK`, 'gold', { medal: true });
+        if (!willWin) { Companion.react('chain30'); cutIn(`APEX COMBO ×${G.chain}!!`); }
+      } else if (crossed(25)) {
+        PopupFX?.pill('🔥', '25 HIT STREAK', 'APPROACHING APEX', 'gold', { medal: true });
+      } else if (crossed(20)) {
+        milestoneFired = true;
+        (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(3);
+        StageBG?.pulse('#ffb638', 1.0);
+        PopupFX?.pill('🔥', 'BLITZ ×2.0', '20 HIT STREAK', 'gold', { medal: true });
+        if (!willWin) { Companion.react('chain20'); cutIn(`BLITZ ×${G.chain}!`); }
+      } else if (crossed(15)) {
+        PopupFX?.pill('⚡', '15 HIT STREAK', 'BOOST SUSTAINED', 'amber', { medal: true });
+      } else if (crossed(10)) {
+        milestoneFired = true;
+        (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(2);
+        StageBG?.pulse('#2ce8a2', 0.9);
+        PopupFX?.pill('⚡', 'BOOST ×1.5', '10 HIT STREAK', 'amber', { medal: true });
+        if (!willWin) { Companion.react('chain10'); cutIn(`BOOST ×${G.chain}!`); }
+      } else if (crossed(5)) {
+        milestoneFired = true;
+        (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(1);
+        StageBG?.pulse('#2ce8a2', 0.7);
+        PopupFX?.pill('◈', 'SURGE ×1.2', '5 HIT STREAK', 'emerald', { medal: true });
+        if (!willWin) Companion.react('chain5');
+      }
+    }
+    return { crossed, crossedHigh, milestoneFired };
+  }
+  // clutch save (played with the gauge nearly empty) or a quick follow-up move
+  function tempoFloat(dstEl, x) {
+    if (x.wasClutchPop) {
+      PopupFX?.float(dstEl, '🔥 CLUTCH SAVE!', { kind: 'clutch', tag: `${Math.max(1, Math.round(x.remRatio * 100))}% LEFT`, important: true });
+    } else if (x.dtPrev > 0 && x.dtPrev < 1800 && G.chain >= 2) {
+      const spLbl = x.dtPrev < 650 ? '⚡ BLITZ SPEED!' : x.dtPrev < 1150 ? '⚡ SNAP!' : '⚡ QUICK!';
+      PopupFX?.float(dstEl, spLbl, { kind: 'speed', tag: `${(x.dtPrev / 1000).toFixed(1)}s`, important: x.dtPrev < 950 });
+    }
+  }
+  // the combo part of the sub-HUD banner; true when it showed something
+  function comboBanner(ms) {
+    if (ms.crossedHigh) PopupFX?.banner('APEX MULTIPLIER ×3.0', `${G.chain}x COMBO`, 'gold', true);
+    else if (ms.crossed(20)) PopupFX?.banner('BLITZ MULTIPLIER ×2.0', '20x COMBO', 'gold', true);
+    else if (ms.crossed(15)) PopupFX?.banner('BOOST SUSTAINED', '15x COMBO', 'amber', false);
+    else if (ms.crossed(10)) PopupFX?.banner('BOOST MULTIPLIER ×1.5', '10x COMBO', 'amber', true);
+    else if (ms.crossed(5)) PopupFX?.banner('SURGE MULTIPLIER ×1.2', '5x COMBO', 'emerald', false);
+    else return false;
+    return true;
+  }
+  function scoreFloat(el, pts, mult, tag, important) {
+    if (pts <= 0) return;
+    PopupFX?.float(el, mult > 1 ? `+${pts} ×${mult.toFixed(1)}` : `+${pts}`, { kind: 'score', tag, important, mult });
+  }
+  function scoreAwards() {
+    for (const ms of [250, 500, 1000, 2500, 5000]) {
+      if (G.score >= ms) PopupFX?.award('score_' + ms, '★', 'SCORE MILESTONE', `${ms.toLocaleString()} PTS`, ms >= 1000 ? 'gold' : 'amber');
+    }
+    if (G.prevBestScore > 0 && G.score > G.prevBestScore) {
+      PopupFX?.award('newBest', '👑', 'NEW BEST SCORE!', `${G.score} PTS RECORD`, 'gold');
+    }
+  }
+  // the deal's completion share drives the HALFWAY / FINAL STRETCH callouts in every variant
+  function progressOf() {
+    switch (G.variant) {
+      case 'spider': { const d = G.found.reduce((s, p) => s + p.length, 0); return { done: d, total: 104, label: 'RUNS CLEARED', unit: 'Cards Home' }; }
+      case 'pyramid': return { done: 28 - pyrLeft(), total: 28, label: 'PYRAMID CLEARED', unit: 'Cards Cleared' };
+      case 'tripeaks': return { done: 28 - pyrLeft(), total: 28, label: 'PEAKS CLEARED', unit: 'Cards Cleared' };
+      default: { const d = G.found.reduce((s, p) => s + p.length, 0); return { done: d, total: 52, label: 'FOUNDATION PROGRESS', unit: 'Cards Home' }; }
+    }
+  }
+  // halfway (50%) and almost-won (85%) moments, said once per deal; returns which one fired
+  function progressMoments(willWin) {
+    if (willWin) return { hitHalfway: false, hitAlmost: false };
+    const { done, total } = progressOf();
+    const hitAlmost = done >= Math.ceil(total * 0.85) && !G.almostSaid;
+    const hitHalfway = !hitAlmost && done >= total / 2 && !G.halfwaySaid;
+    if (hitAlmost) { G.almostSaid = true; G.halfwaySaid = true; Sound.sfx.almostWon?.(); }
+    else if (hitHalfway) { G.halfwaySaid = true; Sound.sfx.halfway?.(); }
+    return { hitHalfway, hitAlmost };
   }
 
   function moveCards(src, idx, dst, opts = {}) {
@@ -618,8 +1120,8 @@
     // A card pulled back off a foundation and sent home again already scored once. Without this, the round trip
     // (-15, then +10 × combo multiplier) gains points at ×2.0 and above and pumps the combo for free.
     const reHome = dst.t === 'found' && src.t !== 'found' && G.homed.has(mov[0].id);
-    const prevChain = G.chain;
-    const dtPrev = G.lastMoveAt > 0 ? now - G.lastMoveAt : 0;
+    const cx = chainCtx(now);
+    const { prevChain, dtPrev } = cx;
     // Anti-farming: shuffling a card between tableau piles without turning anything face-up would pump the combo
     // for free. Each such move is counted per card; past SWAP_LIMIT the combo dies and further shuffles add nothing.
     // Real progress (a face-down card turned up, or a card sent home) clears the counts.
@@ -632,28 +1134,13 @@
         swapSpam = n > SWAP_LIMIT;
       }
     } else if (dst.t === 'found' && !retreating && !reHome) G.swaps = {};
-    let remRatio = 0, wasClutch = false, wasClutchPop = false, wasFast = false;
     if (swapSpam) {
       if (G.chain > 0) breakChain('swap');
       PopupFX?.float(mov[0].el, '✕ CARD SHUFFLE', { kind: 'warn', tag: 'NO COMBO', important: true });
     } else if (!opts.auto && !retreating && !reHome) {
-      remRatio = G.chain > 0 && G.chainDur > 0 ? (G.chainUntil - now) / G.chainDur : 0;
-      wasClutch = G.chain >= 5 && remRatio > 0 && remRatio < 0.22;
-      wasClutchPop = prevChain >= 3 && remRatio > 0 && remRatio < 0.28;
-      wasFast = dtPrev > 0 && dtPrev < 1450 && G.chain >= 2;
-      const gain = dst.t === 'found' && mov[0].rank === 13 ? 2 : 1;
-      G.chain += gain;
-      if (G.chain > G.maxChain) G.maxChain = G.chain;
-      G.chainDur = Math.max(5500, 9500 - Math.min(G.chain, 30) * 100);
-      G.chainUntil = now + G.chainDur;
-      G.warnedChain = false;
-      G.lastMoveAt = now;
-      if (!G.dealFirstMoveAt) G.dealFirstMoveAt = now;
-      G.openerMoves = (G.openerMoves || 0) + 1;
-      syncComboHud(true);
-      Sound.sfx.comboTick?.(G.chain);
-      if (wasClutch || wasClutchPop) Sound.sfx.comboSave?.();
+      stepChain(cx, dst.t === 'found' && mov[0].rank === 13 ? 2 : 1);
     }
+    const { remRatio, wasClutch, wasClutchPop, wasFast } = cx;
 
     const { mult } = tierOf(G.chain);
     let movePts = 0, flipPts = 0;
@@ -733,12 +1220,7 @@
         PopupFX?.float(srcEl, fMain, { kind: 'flip', tag: fTag, important: true });
       }
       if (clearedCol) PopupFX?.float(slotEl(src), '⚡ COLUMN CLEAR!', { kind: 'clear', tag: 'OPEN LANE', important: true });
-      if (wasClutchPop) {
-        PopupFX?.float(dstEl, '🔥 CLUTCH SAVE!', { kind: 'clutch', tag: `${Math.max(1, Math.round(remRatio * 100))}% LEFT`, important: true });
-      } else if (!retreating && dtPrev > 0 && dtPrev < 1800 && G.chain >= 2) {
-        const spLbl = dtPrev < 650 ? '⚡ BLITZ SPEED!' : dtPrev < 1150 ? '⚡ SNAP!' : '⚡ QUICK!';
-        PopupFX?.float(dstEl, spLbl, { kind: 'speed', tag: `${(dtPrev / 1000).toFixed(1)}s`, important: dtPrev < 950 });
-      }
+      if (wasClutchPop || !retreating) tempoFloat(dstEl, cx);
     }
 
     const totalFound = G.found.reduce((s, p) => s + p.length, 0);
@@ -771,41 +1253,8 @@
       } else G.combo = 0;
 
       const willWin = G.found.every((p) => p.length === 13);
-      const crossed = (m) => prevChain < m && G.chain >= m;
-      const crossedHigh = G.chain >= 30 && (crossed(30) || (prevChain >= 30 && Math.floor((G.chain - 30) / 15) > Math.floor((prevChain - 30) / 15)));
-      let milestoneFired = false;
-
-      if (!retreating && !reHome) {
-        if (crossedHigh) {
-          milestoneFired = true;
-          (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(4);
-          StageBG?.pulse('#ffe169', 1.2);
-          PopupFX?.pill('★', 'APEX! ×3.0', `${G.chain} HIT STREAK`, 'gold', { medal: true });
-          if (!willWin) { Companion.react('chain30'); cutIn(`APEX COMBO ×${G.chain}!!`); }
-        } else if (crossed(25)) {
-          PopupFX?.pill('🔥', '25 HIT STREAK', 'APPROACHING APEX', 'gold', { medal: true });
-        } else if (crossed(20)) {
-          milestoneFired = true;
-          (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(3);
-          StageBG?.pulse('#ffb638', 1.0);
-          PopupFX?.pill('🔥', 'BLITZ ×2.0', '20 HIT STREAK', 'gold', { medal: true });
-          if (!willWin) { Companion.react('chain20'); cutIn(`BLITZ ×${G.chain}!`); }
-        } else if (crossed(15)) {
-          PopupFX?.pill('⚡', '15 HIT STREAK', 'BOOST SUSTAINED', 'amber', { medal: true });
-        } else if (crossed(10)) {
-          milestoneFired = true;
-          (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(2);
-          StageBG?.pulse('#2ce8a2', 0.9);
-          PopupFX?.pill('⚡', 'BOOST ×1.5', '10 HIT STREAK', 'amber', { medal: true });
-          if (!willWin) { Companion.react('chain10'); cutIn(`BOOST ×${G.chain}!`); }
-        } else if (crossed(5)) {
-          milestoneFired = true;
-          (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(1);
-          StageBG?.pulse('#2ce8a2', 0.7);
-          PopupFX?.pill('◈', 'SURGE ×1.2', '5 HIT STREAK', 'emerald', { medal: true });
-          if (!willWin) Companion.react('chain5');
-        }
-      }
+      const ms = comboMilestones(prevChain, willWin, !retreating && !reHome);
+      const { crossed, crossedHigh, milestoneFired } = ms;
 
       const hitAlmost = !willWin && totalFound >= 44 && !G.almostSaid;
       const hitHalfway = !willWin && totalFound >= 26 && totalFound < 44 && !G.halfwaySaid;
@@ -816,11 +1265,7 @@
       if (!willWin) {
         // Layer 3: Sub-HUD Kinetic Callout Banner
         if (suitCompleted) PopupFX?.banner('13 / 13 HARMONIZED', 'SUIT COMPLETE', 'gold', true);
-        else if (crossedHigh) PopupFX?.banner('APEX MULTIPLIER ×3.0', `${G.chain}x COMBO`, 'gold', true);
-        else if (crossed(20)) PopupFX?.banner('BLITZ MULTIPLIER ×2.0', '20x COMBO', 'gold', true);
-        else if (crossed(15)) PopupFX?.banner('BOOST SUSTAINED', '15x COMBO', 'amber', false);
-        else if (crossed(10)) PopupFX?.banner('BOOST MULTIPLIER ×1.5', '10x COMBO', 'amber', true);
-        else if (crossed(5)) PopupFX?.banner('SURGE MULTIPLIER ×1.2', '5x COMBO', 'emerald', false);
+        else if (comboBanner(ms)) { /* combo promotion took the banner */ }
         else if (hitStretch || hitAlmost) PopupFX?.banner('ENDGAME CONVERGENCE', 'FINAL STRETCH', 'gold', true);
         else if (hitHalfway) PopupFX?.banner('26 / 52 ARCHIVED', 'HALFWAY', 'amber', true);
         else if (wasClutchPop) PopupFX?.banner('LAST-SECOND EXTENSION', 'CLUTCH SAVE', 'amber', true);
@@ -878,9 +1323,497 @@
     afterMove();
   }
 
+  // ---------------------------------------------------------------- Spider & FreeCell moves
+  // Spider: lift a finished King-to-Ace run of one suit off column i, then turn up whatever it uncovered.
+  function spiderSettle(i, out) {
+    const p = G.tab[i];
+    if (p.length >= 13) {
+      const run = p.slice(-13), suit = run[0].suit;
+      let ok = run[0].rank === 13;
+      for (let k = 0; ok && k < 13; k++) if (!run[k].up || run[k].suit !== suit || run[k].rank !== 13 - k) ok = false;
+      if (ok) {
+        p.splice(p.length - 13);
+        const slot = G.found.findIndex((f) => !f.length);
+        G.found[slot].push(...run.slice().reverse());   // the King ends on top
+        out.runs.push({ col: i, slot, suit });
+      }
+    }
+    if (p.length && !p[p.length - 1].up) { p[p.length - 1].up = true; out.flips.push(p[p.length - 1]); }
+  }
+  // points, effects and medals for runs lifted by a move or a deal; returns the points scored
+  function spiderRunFx(out, mult) {
+    let pts = 0;
+    out.runs.forEach((r, k) => {
+      const runPts = Math.round(100 * mult);
+      pts += runPts;
+      G.score += runPts;
+      const el = slots.found[r.slot];
+      setTimeout(() => sparkleAt(el), moveMs() * 0.8 + k * 120);
+      PopupFX?.float(el, `★ SPIDER RUN! ${SUIT_SYMS[r.suit]}`, { kind: 'ace', tag: 'K → A', important: true });
+      scoreFloat(el, runPts, mult, 'RUN CLEARED', true);
+    });
+    if (out.runs.length) {
+      Sound.sfx.suitDone?.();
+      StageBG?.pulse('#ffe169', 1.0);
+      const done = G.found.filter((p) => p.length).length;
+      if (done >= 1) PopupFX?.award('spRun1', '🕸', 'FIRST RUN', '1 / 8 RUNS CLEARED', 'emerald');
+      if (done >= 4) PopupFX?.award('spRun4', '🕸', 'HALF THE WEB (4/8)', 'FOUR RUNS CLEARED', 'amber');
+      if (done >= 7) PopupFX?.award('spRun7', '🔥', 'ONE RUN LEFT (7/8)', 'FINAL THREAD', 'gold');
+      if (out.runs.length >= 2) PopupFX?.award('spDouble', '❖', 'DOUBLE RUN', 'TWO RUNS AT ONCE', 'violet');
+    }
+    return pts;
+  }
+
+  function tabMove(src, idx, dst, opts = {}) {
+    if (opts.record !== false) pushHistory();
+    clearHints(); G.hintIdx = 0;
+    const spider = G.variant === 'spider';
+    const sp = pileOf(src), dp = pileOf(dst);
+    const cellsBefore = spider ? 0 : 4 - freeCells();
+    const reveals = src.t === 'tab' && sp.length > idx && idx > 0 && !sp[idx - 1].up;
+    const mov = sp.splice(idx);
+    dp.push(...mov);
+    const now = Date.now();
+    const toFound = dst.t === 'found';
+    const reHome = toFound && G.homed.has(mov[0].id);
+    const under = !toFound && dp.length > mov.length ? dp[dp.length - mov.length - 1] : null;
+    const newLink = spider && !!under && under.suit === mov[0].suit && under.rank === mov[0].rank + 1 && !G.linked.has(mov[0].id);
+    const out = { runs: [], flips: [] };
+    if (spider) {
+      if (dst.t === 'tab') spiderSettle(dst.i, out);
+      if (src.t === 'tab') spiderSettle(src.i, out);
+    }
+    const flipped = out.flips.length > 0, flippedRank = flipped ? out.flips[0].rank : 1;
+
+    // Anti-farming, as in Klondike: shuffling a card around without turning anything up (or, in Spider, making a
+    // new same-suit link) stops counting toward the combo after a few moves.
+    let swapSpam = false;
+    if (!opts.auto && G.difficulty !== 'auto' && !toFound) {
+      if (reveals || newLink || out.runs.length) G.swaps = {};
+      else {
+        const n = (G.swaps[mov[0].id] = (G.swaps[mov[0].id] || 0) + 1);
+        swapSpam = n > (spider ? SWAP_LIMIT : SWAP_LIMIT + 1);   // FreeCell needs a little more juggling room
+      }
+    } else if (toFound && !reHome) G.swaps = {};
+    const cx = chainCtx(now);
+    if (swapSpam) {
+      if (G.chain > 0) breakChain('swap');
+      PopupFX?.float(mov[0].el, '✕ CARD SHUFFLE', { kind: 'warn', tag: 'NO COMBO', important: true });
+    } else if (!opts.auto && !reHome) {
+      stepChain(cx, (toFound && mov[0].rank === 13 ? 2 : 1) + out.runs.length * 2);
+    }
+
+    const { mult } = tierOf(G.chain);
+    let movePts = 0, flipPts = 0, linkPts = 0;
+    if (toFound && !reHome) { movePts = Math.round(10 * mult); G.score += movePts; G.homed.add(mov[0].id); }
+    if (newLink) { G.linked.add(mov[0].id); linkPts = Math.round(3 * mult); G.score += linkPts; }
+    if (flipped) { flipPts = Math.round(5 * mult) * out.flips.length; G.score += flipPts; }
+
+    // FreeCell cell pressure
+    const cellsAfter = spider ? 0 : 4 - freeCells();
+    const cellsFull = !spider && cellsAfter === 4 && cellsBefore < 4;
+    if (!spider) G.cellPeak = Math.max(G.cellPeak || 0, cellsAfter);
+    const cellsClear = !spider && cellsAfter === 0 && cellsBefore > 0 && G.cellPeak >= 3 && now - (G.cellsClearAt || 0) > 15000;
+    if (cellsClear) { G.cellPeak = 0; G.cellsClearAt = now; }
+    const supermove = !spider && dst.t === 'tab' && mov.length >= 3;
+    const toCell = dst.t === 'cell';
+    const acePlaced = toFound && mov[0].rank === 1 && !reHome;
+    const suitCompleted = toFound && mov[0].rank === 13 && !reHome;
+    const clearedCol = src.t === 'tab' && !sp.length;
+
+    G.moves++;
+    gameStepSeq++;
+    startClock();
+    layout();
+
+    if (toFound) {
+      Sound.sfx.foundation(mov[0].rank, G.chain);
+      if (acePlaced && !opts.auto) Sound.sfx.aceIgnition?.();
+      StageBG?.pulse(mov[0].red ? '#ffb638' : '#2ce8a2', suitCompleted ? 1.0 : 0.65);
+      setTimeout(() => sparkleAt(slotEl(dst)), moveMs() * 0.8);
+    } else {
+      if (toCell && Sound.sfx.cellPark) Sound.sfx.cellPark(cellsAfter);
+      else if (mov.length >= 2 && Sound.sfx.multiPlace) Sound.sfx.multiPlace(mov.length, G.chain);
+      else Sound.sfx.place(G.chain);
+      StageBG?.pulse(null, 0.28);
+    }
+    if (flipped) setTimeout(() => (Sound.sfx.revealCard ? Sound.sfx.revealCard(flippedRank) : Sound.sfx.flip()), 90);
+    if (suitCompleted && !opts.auto) Sound.sfx.suitDone?.();
+    if (clearedCol && !opts.auto) Sound.sfx.clearCol?.();
+    if (cellsClear) Sound.sfx.clearCol?.();
+    const runPts = spiderRunFx(out, mult);
+
+    const dstEl = mov[0]?.el || slotEl(dst);
+    if (movePts > 0 && (!opts.auto || G.moves % 2 === 0)) scoreFloat(dstEl, movePts, mult, 'FOUNDATION', !opts.auto);
+    if (!opts.auto) {
+      const sym = SUIT_SYMS[mov[0].suit];
+      if (acePlaced) PopupFX?.float(dstEl, `◈ ACE ONLINE! ${sym}`, { kind: 'ace', tag: SUIT_NAMES[mov[0].suit].toUpperCase(), important: true });
+      else if (suitCompleted) PopupFX?.float(dstEl, `★ SUIT COMPLETE! ${sym}`, { kind: 'ace', tag: '13 / 13', important: true });
+      if (linkPts) PopupFX?.float(dstEl, `SUIT LINK +${linkPts}`, { kind: 'score', tag: `${sym} ${Art.RANKS[under.rank - 1]}→${Art.RANKS[mov[0].rank - 1]}`, mult });
+      if (supermove) PopupFX?.float(dstEl, `⇉ SUPERMOVE ×${mov.length}`, { kind: 'stack', tag: `${fcCapacity(false)} MAX`, important: true });
+      else if (mov.length >= 2 && !toFound) {
+        PopupFX?.float(dstEl, mov.length >= 5 ? `MEGA STACK ×${mov.length}!` : `STACK ×${mov.length}!`, { kind: 'stack', tag: 'TRANSFER', important: mov.length >= 3 });
+      }
+      if (toCell && !cellsFull) PopupFX?.float(dstEl, '◇ CELL PARK', { kind: 'info', tag: `${4 - cellsAfter} FREE` });
+      if (cellsFull) PopupFX?.float(dstEl, '⚠ CELLS FULL', { kind: 'warn', tag: '0 FREE', important: true });
+      if (cellsClear) PopupFX?.float(slots.cell[0], '✧ CELLS CLEAR!', { kind: 'clear', tag: '4 FREE', important: true });
+      if (flipped) {
+        const fMain = flippedRank === 1 ? 'ACE REVEALED!' : flippedRank >= 11 ? 'ROYAL FLIP!' : `FLIP! +${flipPts}`;
+        PopupFX?.float(out.flips[0].el, fMain, { kind: 'flip', tag: flippedRank === 1 || flippedRank >= 11 ? `+${flipPts}` : 'REVEAL', important: true });
+      }
+      if (clearedCol) PopupFX?.float(slotEl(src), '⚡ COLUMN CLEAR!', { kind: 'clear', tag: 'OPEN LANE', important: true });
+      tempoFloat(dstEl, cx);
+    }
+
+    const { done, total } = progressOf();
+    if (!spider) {
+      if (done >= 1) PopupFX?.award('found1', '◈', 'FIRST FOUNDATION', '1 / 52 ARCHIVED', 'emerald');
+      if (done >= 13) PopupFX?.award('found13', '◈', '25% CLEARED (13/52)', 'QUARTER DECK HOME', 'emerald');
+      if (done >= 26) PopupFX?.award('found26', '⚡', 'HALFWAY THERE (26/52)', '50% DECK ARCHIVED', 'amber');
+      if (done >= 39) PopupFX?.award('found39', '🔥', 'FINAL STRETCH (39/52)', '75% DECK ARCHIVED', 'gold');
+    }
+    scoreAwards();
+
+    const willWin = done >= total;
+    let ms = { crossed: () => false, crossedHigh: false, milestoneFired: false }, pm = { hitHalfway: false, hitAlmost: false };
+    if (!opts.auto) {
+      if (G.openerMoves === 3 && G.dealFirstMoveAt && now - G.dealFirstMoveAt < 6000) {
+        PopupFX?.award('lightningOpener', '⚡', 'LIGHTNING OPENER', '3 MOVES IN <6S', 'amber');
+      }
+      if (supermove && mov.length >= 5) PopupFX?.award('superMaster', '⇉', 'SUPERMOVE MASTER', `${mov.length} CARDS IN ONE GO`, 'violet');
+      else if (mov.length >= 5) PopupFX?.award('fullStack', '❖', 'FULL STACK TRANSFER', `${mov.length} CARDS AT ONCE`, 'violet');
+      if (cellsClear) PopupFX?.award('cellsClear', '✧', 'CELLS CLEARED', 'ALL FOUR CELLS FREE AGAIN', 'emerald');
+      if (spider) {
+        if (flipped && src.t === 'tab' && G.tab[src.i].every((c) => c.up)) {
+          PopupFX?.award('colUnlock_' + src.i, '🔓', 'COLUMN UNLOCKED', `LANE ${src.i + 1} UNLOCKED`, 'emerald');
+        }
+        if (dst.t === 'tab' && !out.runs.length) {
+          let run = 1;
+          const p = G.tab[dst.i];
+          while (run < p.length && p[p.length - run - 1].up && p[p.length - run - 1].suit === p[p.length - run].suit && p[p.length - run - 1].rank === p[p.length - run].rank + 1) run++;
+          if (run >= 8) PopupFX?.award('silk', '🕸', 'SILK THREAD', `${run}-CARD SAME-SUIT RUN`, 'violet');
+        }
+        if (cards.every((c) => c.id >= 104 || c.up || c.pile?.t === 'stock')) PopupFX?.award('allUp', '👁', 'EVERY CARD REVEALED', 'NOTHING LEFT HIDDEN', 'gold');
+      }
+      if (toFound && !reHome) {
+        G.combo = now - (G.lastFoundT || 0) < 4500 ? (G.combo || 0) + 1 : 1;
+        G.lastFoundT = now;
+      } else G.combo = 0;
+
+      ms = comboMilestones(cx.prevChain, willWin, !reHome);
+      pm = progressMoments(willWin);
+      const run = out.runs.length > 0;
+      if (!willWin) {
+        if (run) PopupFX?.banner(`${G.found.filter((p) => p.length).length} / 8 RUNS LIFTED`, 'SPIDER RUN', 'gold', true);
+        else if (suitCompleted) PopupFX?.banner('13 / 13 HARMONIZED', 'SUIT COMPLETE', 'gold', true);
+        else if (comboBanner(ms)) { /* combo promotion took the banner */ }
+        else if (pm.hitAlmost) PopupFX?.banner('ENDGAME CONVERGENCE', 'FINAL STRETCH', 'gold', true);
+        else if (pm.hitHalfway) PopupFX?.banner(`${done} / ${total} HOME`, 'HALFWAY', 'amber', true);
+        else if (cx.wasClutchPop) PopupFX?.banner('LAST-SECOND EXTENSION', 'CLUTCH SAVE', 'amber', true);
+        else if (supermove) PopupFX?.banner(`${mov.length}-CARD SUPERMOVE`, 'SUPERMOVE', 'violet', mov.length >= 5);
+        else if (mov.length >= 5) PopupFX?.banner(`${mov.length}-CARD SEQUENCE`, 'MEGA STACK', 'gold', true);
+        else if (cellsClear) PopupFX?.banner('FOUR CELLS OPEN', 'CELLS CLEAR', 'emerald', false);
+        else if (acePlaced) PopupFX?.banner('FOUNDATION IGNITED', 'ACE ONLINE', 'emerald', false);
+        else if (clearedCol) PopupFX?.banner('TABLEAU LANE OPEN', 'COLUMN CLEAR', 'emerald', false);
+
+        if (ms.crossedHigh) PopupFX?.stamp('UNREAL!', 'hype', 'gold', true);
+        else if (ms.crossed(20) || run || suitCompleted || pm.hitAlmost) PopupFX?.stamp("LET'S GO!", 'cheer', 'gold', true);
+        else if (ms.crossed(10) || pm.hitHalfway) PopupFX?.stamp('LOCKED IN!', 'hype', 'amber', true);
+        else if (cx.wasClutchPop || cx.wasClutch) PopupFX?.stamp('CLUTCH!', 'smug', 'amber', true);
+        else if (ms.crossed(5) || acePlaced || cellsClear) PopupFX?.stamp('NICE!', 'cheer', 'emerald', false);
+        else if (supermove || mov.length >= 4) PopupFX?.stamp('GENIUS!', 'smug', 'gold', false);
+        else if (cellsFull) PopupFX?.stamp('OOPS!', 'shock', 'amber', false);
+        else if (clearedCol) PopupFX?.stamp('CLEAN!', 'smug', 'emerald', false);
+        else if (cx.wasFast) PopupFX?.stamp('SO FAST!', 'hype', 'emerald', false);
+        else if (flipped && (flippedRank === 1 || flippedRank >= 12)) PopupFX?.stamp('WHOA!', 'wink', 'amber', false);
+      }
+
+      if (willWin) {
+        /* win() reacts */
+      } else if (ms.milestoneFired) {
+        if ((run || suitCompleted) && G.chain < 10) cutIn(run ? 'SPIDER RUN!' : 'SUIT COMPLETE!');
+      } else if (run) {
+        Companion.react('spiderRun');
+        cutIn('SPIDER RUN!');
+      } else if (suitCompleted) {
+        Companion.react('suitDone');
+        cutIn('SUIT COMPLETE!');
+      } else if (pm.hitAlmost) Companion.react('almostWon');
+      else if (pm.hitHalfway) Companion.react('halfway');
+      else if (cx.wasClutch) Companion.react('clutch');
+      else if (toFound && G.combo >= 3) {
+        Companion.react('combo');
+        if (G.combo === 4) cutIn(`COMBO ×${G.combo}!`);
+      } else if (acePlaced) Companion.react('aceFound');
+      else if (cellsFull) Companion.react('cellsFull');
+      else if (cellsClear) Companion.react('cellsClear');
+      else if (supermove) Companion.react('supermove');
+      else if (clearedCol) Companion.react('clearCol');
+      else if (mov.length >= 4) Companion.react('multiMove');
+      else if (cx.wasFast && Companion.lastEv !== 'fastPlay') Companion.react('fastPlay');
+      else if (toFound) Companion.react('foundation');
+      else if (flipped) Companion.react('reveal');
+      else Companion.react('place');
+    } else if (runPts) {
+      Companion.react('spiderRun');
+    }
+    afterMove();
+  }
+
+  // Spider: deal one card onto every column. Like the classic rules, every column must hold a card first.
+  function spiderDeal() {
+    if (!G.stock.length) {
+      Sound.sfx.stockEmpty?.();
+      PopupFX?.float(slots.stock, 'STOCK EMPTY', { kind: 'warn', tag: 'ALL ROWS DEALT', important: true });
+      shakeEl(slots.stock);
+      return;
+    }
+    if (G.tab.some((p) => !p.length)) {
+      Sound.sfx.invalid();
+      PopupFX?.float(slots.stock, 'FILL EVERY COLUMN', { kind: 'warn', tag: 'DEAL LOCKED', important: true });
+      PopupFX?.stamp('OOPS!', 'oops', 'amber', false);
+      shakeEl(slots.stock);
+      G.tab.forEach((p, i) => { if (!p.length) shakeEl(slots.tab[i]); });
+      Companion.react('dealBlocked');
+      return;
+    }
+    pushHistory();
+    clearHints(); G.hintIdx = 0;
+    const dealt = [];
+    for (let i = 0; i < 10; i++) { const c = G.stock.pop(); c.up = true; G.tab[i].push(c); dealt.push(c); }
+    const out = { runs: [], flips: [] };
+    for (let i = 0; i < 10; i++) spiderSettle(i, out);
+    G.moves++; gameStepSeq++; startClock();
+    G.swaps = {};
+    extendChain(2400);
+    const step = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 22 : 40;
+    dealt.forEach((c, k) => { c.el.style.transitionDelay = (k * step) + 'ms'; });
+    layout();
+    setTimeout(() => dealt.forEach((c) => { c.el.style.transitionDelay = ''; }), 10 * step + moveMs() + 60);
+    if (step) Sound.sfx.deal(10, step / 1000); else Sound.sfx.draw();
+    const left = G.stock.length / 10;
+    PopupFX?.float(slots.stock, '🕸 WEB DEAL', { kind: 'info', tag: left ? `${left} LEFT` : 'LAST ROW', important: true });
+    if (!left) PopupFX?.pill('🕸', 'FINAL ROW DEALT', 'NO STOCK LEFT', 'amber');
+    if (out.runs.length) {
+      spiderRunFx(out, tierOf(G.chain).mult);
+      Companion.react('spiderRun');
+      cutIn('SPIDER RUN!');
+    } else Companion.react('spiderDeal');
+    afterMove();
+  }
+
+  // ---------------------------------------------------------------- Pyramid: pairs that add up to 13
+  function clearPyrSel() {
+    if (pyrSel) { const p = pileOf(pyrSel); p[p.length - 1]?.el.classList.remove('selected'); }
+    pyrSel = null;
+  }
+  function pyramidRemove(refs, opts = {}) {
+    if (opts.record !== false) pushHistory();
+    clearHints(); G.hintIdx = 0; clearPyrSel();
+    const rowsBefore = [0, 1, 2, 3, 4, 5, 6].map(rowCleared);
+    const out = refs.map((r) => pileOf(r).pop());
+    out.forEach((c) => { c.el.classList.remove('covered'); G.found[0].push(c); });
+    const now = Date.now(), cx = chainCtx(now);
+    const king = out.length === 1;
+    const fromWaste = refs.some((r) => r.t === 'waste');
+    const rows = [];
+    for (let r = 6; r >= 0; r--) if (!rowsBefore[r] && rowCleared(r)) rows.push(r);
+    const willWin = pyrLeft() === 0;
+    if (!opts.auto) stepChain(cx, 1 + rows.length);
+    const { mult } = tierOf(G.chain);
+    const pts = Math.round(10 * mult);
+    const rowPts = rows.length ? Math.round(25 * rows.length * mult) : 0;
+    G.score += pts + rowPts;
+
+    G.moves++; gameStepSeq++; startClock();
+    const el0 = out[0].el, pos = PopupFX?.posOf(el0);
+    layout();
+
+    (Sound.sfx.pairMatch || ((ch) => Sound.sfx.foundation(13, ch)))(G.chain, king);
+    if (rows.length) (Sound.sfx.rowClear || Sound.sfx.clearCol)?.();
+    StageBG?.pulse(king ? '#ffb638' : '#2ce8a2', rows.length ? 0.9 : 0.5);
+    setTimeout(() => sparkleAt(slots.found[0]), moveMs() * 0.8);
+
+    const at = pos || el0;
+    const lbl = (c) => Art.RANKS[c.rank - 1];
+    scoreFloat(at, pts, mult, king ? 'KING' : 'PAIR', mult >= 1.5);
+    if (king) PopupFX?.float(at, '♛ KING SOLO!', { kind: 'king', tag: '13 ALONE', important: true });
+    else if (fromWaste) PopupFX?.float(at, `DECK PAIR! ${lbl(out[0])}+${lbl(out[1])}`, { kind: 'ace', tag: '= 13', important: false });
+    else PopupFX?.float(at, `PAIR 13! ${lbl(out[0])}+${lbl(out[1])}`, { kind: 'ace', tag: '= 13', important: false });
+    rows.forEach((r) => {
+      PopupFX?.float(at, '⚡ ROW CLEAR!', { kind: 'clear', tag: `ROW ${7 - r} / 7`, important: true });
+      scoreFloat(at, Math.round(25 * mult), mult, 'ROW BONUS', true);
+    });
+    tempoFloat(at, cx);
+
+    const removed = 28 - pyrLeft();
+    PopupFX?.award('pyrFirst', '🔺', 'FIRST PAIR', 'THE PYRAMID CRACKS', 'emerald');
+    if (rows.length) PopupFX?.award('pyrRow', '⚡', 'FIRST ROW DOWN', 'BASE OF THE PYRAMID BROKEN', 'emerald');
+    if (removed >= 14) PopupFX?.award('pyrHalf', '🔺', 'HALF PYRAMID (14/28)', 'HALFWAY TO THE SUMMIT', 'amber');
+    if (!willWin && pyrExposed(0) && removed === 27) PopupFX?.award('pyrSummit', '⛰', 'SUMMIT EXPOSED', 'ONE CARD TO GO', 'gold');
+    if (king) PopupFX?.award('pyrKing', '♛', 'KING SOLO', 'KINGS LEAVE ALONE', 'amber');
+    scoreAwards();
+
+    let ms = { crossed: () => false, crossedHigh: false, milestoneFired: false }, pm = { hitHalfway: false, hitAlmost: false };
+    if (!opts.auto) {
+      G.combo = now - (G.lastFoundT || 0) < 4500 ? (G.combo || 0) + 1 : 1;
+      G.lastFoundT = now;
+      ms = comboMilestones(cx.prevChain, willWin);
+      pm = progressMoments(willWin);
+      if (!willWin) {
+        if (rows.length) PopupFX?.banner(`ROW ${7 - rows[0]} DISMANTLED`, 'ROW CLEAR', 'gold', true);
+        else if (comboBanner(ms)) { /* combo promotion took the banner */ }
+        else if (pm.hitAlmost) PopupFX?.banner('SUMMIT IN SIGHT', 'FINAL STRETCH', 'gold', true);
+        else if (pm.hitHalfway) PopupFX?.banner(`${removed} / 28 CLEARED`, 'HALFWAY', 'amber', true);
+        else if (cx.wasClutchPop) PopupFX?.banner('LAST-SECOND EXTENSION', 'CLUTCH SAVE', 'amber', true);
+        else if (king) PopupFX?.banner('THIRTEEN ON ITS OWN', 'KING SOLO', 'amber', false);
+
+        if (ms.crossedHigh) PopupFX?.stamp('UNREAL!', 'hype', 'gold', true);
+        else if (ms.crossed(20) || pm.hitAlmost || rows.some((r) => r <= 2)) PopupFX?.stamp("LET'S GO!", 'cheer', 'gold', true);
+        else if (ms.crossed(10) || pm.hitHalfway) PopupFX?.stamp('LOCKED IN!', 'hype', 'amber', true);
+        else if (cx.wasClutchPop || cx.wasClutch) PopupFX?.stamp('CLUTCH!', 'smug', 'amber', true);
+        else if (ms.crossed(5) || rows.length) PopupFX?.stamp('NICE!', 'cheer', 'emerald', false);
+        else if (king) PopupFX?.stamp('CLEAN!', 'smug', 'emerald', false);
+        else if (cx.wasFast) PopupFX?.stamp('SO FAST!', 'hype', 'emerald', false);
+      }
+      if (willWin) {
+        /* win() reacts */
+      } else if (ms.milestoneFired) {
+        if (rows.length && G.chain < 10) cutIn('ROW CLEAR!');
+      } else if (rows.length) {
+        Companion.react('rowClear');
+        if (rows.some((r) => r <= 3)) cutIn('ROW CLEAR!');
+      } else if (pm.hitAlmost) Companion.react('almostWon');
+      else if (pm.hitHalfway) Companion.react('halfway');
+      else if (cx.wasClutch) Companion.react('clutch');
+      else if (G.combo >= 4 && G.combo % 2 === 0) Companion.react('combo');
+      else if (king) Companion.react('kingSolo');
+      else if (cx.wasFast && Companion.lastEv !== 'fastPlay') Companion.react('fastPlay');
+      else Companion.react('pairMatch');
+    }
+    afterMove();
+  }
+
+  // ---------------------------------------------------------------- TriPeaks: one higher or one lower, Kings wrap to Aces
+  function peakPlay(i, opts = {}) {
+    if (opts.record !== false) pushHistory();
+    clearHints(); G.hintIdx = 0;
+    const c = G.pyr[i].pop();
+    const prev = G.waste[G.waste.length - 1];
+    c.up = true;
+    G.waste.push(c);
+    const wrap = !!prev && Math.abs(prev.rank - c.rank) === 12;
+    const flips = [];
+    for (let k = 0; k < 28; k++) {
+      const p = G.pyr[k];
+      if (p.length && !p[0].up && pyrExposed(k)) { p[0].up = true; flips.push(p[0]); }
+    }
+    const peak = SP_.TP_ROW[i] === 0;
+    const peaksDone = [0, 1, 2].filter((k) => !G.pyr[k].length).length;
+    const willWin = pyrLeft() === 0;
+    const now = Date.now(), cx = chainCtx(now);
+    if (!opts.auto) stepChain(cx, peak ? 2 : 1);
+    const { mult } = tierOf(G.chain);
+    const pts = Math.round((wrap ? 10 : 5) * mult);
+    const peakPts = peak ? Math.round(50 * mult) : 0;
+    G.score += pts + peakPts;
+    G.bestRun = Math.max(G.bestRun || 0, G.chain);
+    const pos = PopupFX?.posOf(c.el);
+
+    G.moves++; gameStepSeq++; startClock();
+    layout();
+
+    Sound.sfx.place(G.chain);
+    if (flips.length) setTimeout(() => (Sound.sfx.revealCard ? Sound.sfx.revealCard(flips[0].rank) : Sound.sfx.flip()), 90);
+    if (peak) (Sound.sfx.peakClear || Sound.sfx.suitDone)?.();
+    StageBG?.pulse(peak ? '#ffe169' : null, peak ? 1.0 : 0.3);
+
+    const wEl = slots.waste;
+    scoreFloat(wEl, pts, mult, wrap ? 'WRAP' : `RUN ×${G.chain}`, mult >= 1.5);
+    if (!opts.auto) {
+      if (wrap) PopupFX?.float(wEl, `↻ WRAP! ${Art.RANKS[prev.rank - 1]}↔${Art.RANKS[c.rank - 1]}`, { kind: 'speed', tag: 'K ↔ A', important: true });
+      if (peak) {
+        PopupFX?.float(pos || c.el, '⛰ PEAK CLEARED!', { kind: 'ace', tag: `${peaksDone} / 3`, important: true });
+        scoreFloat(pos || c.el, peakPts, mult, 'PEAK BONUS', true);
+      }
+      const royal = flips.find((f) => f.rank >= 12);
+      if (royal) PopupFX?.float(royal.el, 'ROYAL FLIP!', { kind: 'flip', tag: 'REVEAL', important: false });
+      tempoFloat(wEl, cx);
+    }
+
+    const cleared = 28 - pyrLeft();
+    if (peak) PopupFX?.award('tpPeak1', '⛰', 'FIRST PEAK', '1 / 3 SUMMITS', 'emerald');
+    if (peaksDone >= 2) PopupFX?.award('tpPeak2', '⛰', 'TWIN PEAKS', '2 / 3 SUMMITS', 'amber');
+    if (wrap) PopupFX?.award('tpWrap', '↻', 'WRAPAROUND', 'KING ↔ ACE', 'violet');
+    if (G.chain >= 10) PopupFX?.award('tpRun10', '🔥', 'LONG RUN ×10', 'TEN IN A ROW', 'amber');
+    if (G.chain >= 20) PopupFX?.award('tpRun20', '👑', 'MOUNTAIN RUN ×20', 'TWENTY IN A ROW', 'gold');
+    if (cleared >= 14) PopupFX?.award('tpHalf', '⛰', 'HALF THE RANGE (14/28)', 'HALFWAY UP', 'amber');
+    scoreAwards();
+
+    if (!opts.auto) {
+      const ms = comboMilestones(cx.prevChain, willWin);
+      const pm = progressMoments(willWin);
+      if (!willWin) {
+        if (peak) PopupFX?.banner(`PEAK ${peaksDone} / 3 CONQUERED`, 'PEAK CLEARED', 'gold', true);
+        else if (comboBanner(ms)) { /* combo promotion took the banner */ }
+        else if (pm.hitAlmost) PopupFX?.banner('LAST SUMMIT IN REACH', 'FINAL STRETCH', 'gold', true);
+        else if (pm.hitHalfway) PopupFX?.banner(`${cleared} / 28 CLEARED`, 'HALFWAY', 'amber', true);
+        else if (cx.wasClutchPop) PopupFX?.banner('LAST-SECOND EXTENSION', 'CLUTCH SAVE', 'amber', true);
+
+        if (ms.crossedHigh) PopupFX?.stamp('UNREAL!', 'hype', 'gold', true);
+        else if (ms.crossed(20) || peak || pm.hitAlmost) PopupFX?.stamp("LET'S GO!", 'cheer', 'gold', true);
+        else if (ms.crossed(10) || pm.hitHalfway) PopupFX?.stamp('LOCKED IN!', 'hype', 'amber', true);
+        else if (cx.wasClutchPop || cx.wasClutch) PopupFX?.stamp('CLUTCH!', 'smug', 'amber', true);
+        else if (ms.crossed(5)) PopupFX?.stamp('NICE!', 'cheer', 'emerald', false);
+        else if (wrap) PopupFX?.stamp('WHOA!', 'wink', 'amber', false);
+        else if (cx.wasFast) PopupFX?.stamp('SO FAST!', 'hype', 'emerald', false);
+      }
+      if (willWin) {
+        /* win() reacts */
+      } else if (ms.milestoneFired) {
+        if (peak && G.chain < 10) cutIn('PEAK CLEARED!');
+      } else if (peak) {
+        Companion.react('peakClear');
+        cutIn('PEAK CLEARED!');
+      } else if (pm.hitAlmost) Companion.react('almostWon');
+      else if (pm.hitHalfway) Companion.react('halfway');
+      else if (cx.wasClutch) Companion.react('clutch');
+      else if (wrap) Companion.react('wrapPlay');
+      else if (cx.wasFast && Companion.lastEv !== 'fastPlay') Companion.react('fastPlay');
+      else if (flips.some((f) => f.rank === 1 || f.rank >= 12)) Companion.react('reveal');
+      else Companion.react('place');
+    }
+    afterMove();
+  }
+  // TriPeaks: the run is cashed in when it ends by drawing or by the gauge running out
+  function bankRun(len, reason) {
+    if (len < 3) return;
+    const bonus = 10 * (len - 2);
+    G.score += bonus;
+    G.bestRun = Math.max(G.bestRun || 0, len);
+    PopupFX?.pill('⛰', `RUN ×${len} BANKED`, `+${bonus} PTS`, len >= 10 ? 'gold' : len >= 5 ? 'amber' : 'emerald', { medal: len >= 5 });
+    PopupFX?.float(slots.waste || board, `RUN BONUS +${bonus}`, { kind: 'score', tag: `×${len} RUN`, important: len >= 5 });
+    Sound.sfx.runBank?.(len);
+    StageBG?.pulse('#ffb638', Math.min(1, 0.4 + len * 0.04));
+    if (len >= 5 && reason === 'draw') Companion.react('runBanked');
+    if (DOM.score) DOM.score.textContent = G.score;
+  }
+
+  // one entry point for "move this card (stack) there", whatever the variant
+  function doMove(src, idx, dst, opts) {
+    switch (G.variant) {
+      case 'spider': case 'freecell': return tabMove(src, idx, dst, opts);
+      case 'pyramid': return dst.t === 'found' ? pyramidRemove([src], opts) : pyramidRemove([src, dst], opts);
+      case 'tripeaks': return peakPlay(src.i, opts);
+      default: return moveCards(src, idx, dst, opts);
+    }
+  }
+
   function drawStock() {
     if (!G || busy || G.won || G.lost) return;
-    noteActivity(); clearHints(); G.hintIdx = 0;
+    if (G.variant === 'freecell') return;
+    noteActivity(); clearHints(); G.hintIdx = 0; clearPyrSel();
+    if (G.variant === 'spider') { spiderDeal(); return; }
     if (!G.stock.length) {
       if (!G.waste.length) {
         Sound.sfx.stockEmpty?.();
@@ -891,7 +1824,7 @@
       if (!canRecycle()) {
         Sound.sfx.stockEmpty?.();
         Sound.sfx.invalid();
-        PopupFX?.float(slots.stock, 'STOCK EMPTY', { kind: 'warn', tag: '0 PASSES', important: true });
+        PopupFX?.float(slots.stock, 'STOCK EMPTY', { kind: 'warn', tag: G.variant === 'tripeaks' ? 'NO DRAWS LEFT' : '0 PASSES', important: true });
         PopupFX?.stamp('OOPS!', 'sad', 'amber', false);
         if (G.chain >= 3) breakChain('recycle');
         Companion.react('noRedeal');
@@ -903,7 +1836,7 @@
       G.stock = G.waste.reverse(); G.waste = [];
       G.stock.forEach((c) => { c.up = false; });
       G.passes++; G.wasteFan = 0;
-      if (G.draw === 1) G.score = Math.max(0, G.score - 20);
+      if (G.variant === 'klondike' && G.draw === 1) G.score = Math.max(0, G.score - 20);
       G.moves++; gameStepSeq++; startClock();
       Sound.sfx.recycle();
       const lim = passLimit();
@@ -918,19 +1851,14 @@
       return;
     }
     pushHistory();
-    const n = Math.min(G.draw, G.stock.length);
+    // TriPeaks: drawing ends the run (and banks it)
+    if (G.variant === 'tripeaks' && G.chain > 0) breakChain('draw');
+    const n = Math.min(G.variant === 'klondike' ? G.draw : 1, G.stock.length);
     for (let k = 0; k < n; k++) { const c = G.stock.pop(); c.up = true; G.waste.push(c); }
     G.wasteFan = n;
     G.moves++; gameStepSeq++; startClock();
-    if (G.chain > 0) {
-      const now = Date.now();
-      G.chainUntil = Math.min(now + G.chainDur, G.chainUntil + 2400);
-      if (G.chainDur > 0 && (G.chainUntil - now) / G.chainDur >= 0.22) {
-        G.warnedChain = false;
-        DOM.comboHud?.classList.remove('danger');
-      }
-      syncComboHud(false);
-    }
+    extendChain(2400);
+    if (G.variant === 'tripeaks' && !G.stock.length) PopupFX?.pill('⛰', 'LAST DRAW', 'NO STOCK LEFT', 'amber');
     if (n > 1 && Sound.sfx.drawTriple) Sound.sfx.drawTriple();
     else Sound.sfx.draw();
     Companion.react('draw');
@@ -947,7 +1875,7 @@
       autoT = setTimeout(() => {
         if (!G || G.won || busy || drag) return;
         const m = autoFoundStep(true);
-        if (m) moveCards(m.src, m.idx, m.dst, { record: false, auto: true });
+        if (m) doMove(m.src, m.idx, m.dst, { record: false, auto: true });
       }, moveMs() + 60);
     }
     maybeAutoFinish();
@@ -966,7 +1894,7 @@
       return;
     }
     if (!G.history.length) return;
-    clearTimeout(autoT); clearHints(); G.hintIdx = 0; G.combo = 0;
+    clearTimeout(autoT); clearHints(); G.hintIdx = 0; G.combo = 0; clearPyrSel();
     if (G.lost) { G.lost = false; board.classList.remove('lost'); }
     restore(G.history.pop());
     gameStepSeq++;
@@ -990,7 +1918,9 @@
     let worker = null, blobUrl = null, running = false, activeType = null, onDone = null, failed = false, seqId = 0;
     function workerSrc() {
       return `const Solver = (${solverFactory.toString()})();
+        const VSolver = (${variantSolverFactory.toString()})();
         const GENTLE_NODES = ${GENTLE_NODES}, GENTLE_BURY = ${GENTLE_BURY}, OBVIOUS_NODES = ${OBVIOUS_NODES};
+        const DEAL_NODES = ${JSON.stringify(DEAL_NODES)};
         function rng(seed) {
           let a = seed >>> 0;
           return () => {
@@ -1001,11 +1931,12 @@
           };
         }
         const randSeed = () => (1 + Math.random() * 999998) | 0;
-        function shuffledDeck(seed) {
-          const r = rng(seed), d = [...Array(52).keys()];
-          for (let i = 51; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+        function shuffledDeck(seed, n = 52) {
+          const r = rng(seed), d = [...Array(n).keys()];
+          for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
           return d;
         }
+        ${findVariantDealSrc}
         function openingBurial(deck) {
           let b = 0;
           Solver.deal(deck).t.forEach((col) => col.forEach((c, i) => {
@@ -1048,6 +1979,14 @@
             postMessage({ id: j.id, plan });
           } else if (j.type === 'findDeal') {
             postMessage(findDeal(j));
+          } else if (j.type === 'vplan') {
+            postMessage({ id: j.id, plan: VSolver.plan(j.variant, j.st, j.opt) });
+          } else if (j.type === 'vfindDeal') {
+            postMessage(findVariantDeal(j, randSeed, shuffledDeck));
+          } else if (j.variant) {
+            const o = Object.assign({}, j.opt, { limit: j.limit, ms: j.ms });
+            const r = (j.mode === 'stuck' ? VSolver.progress : VSolver.analyze)(j.variant, j.state, o);
+            postMessage({ id: j.id, result: r.result, nodes: r.nodes });
           } else {
             const r = (j.mode === 'stuck' ? Solver.progress : Solver.analyze)(j.state, j.draw, j.maxPasses, j.limit, j.ms);
             postMessage({ id: j.id, result: r.result, nodes: r.nodes });
@@ -1085,7 +2024,17 @@
         return;
       }
       // no worker support: synchronous fallback
-      if (job.type === 'plan') {
+      if (job.type === 'vplan') {
+        setTimeout(() => settle({ id: job.id, plan: VSolver.plan(job.variant, job.st, Object.assign({}, job.opt, { limit: 15000, ms: 400 })) }), 0);
+      } else if (job.type === 'vfindDeal') {
+        settle({ id: job.id, fallback: true });
+      } else if (job.variant) {
+        setTimeout(() => {
+          const o = Object.assign({}, job.opt, { limit: 15000, ms: 150 });
+          const r = (job.mode === 'stuck' ? VSolver.progress : VSolver.analyze)(job.variant, job.state, o);
+          settle({ id: job.id, ...r });
+        }, 0);
+      } else if (job.type === 'plan') {
         setTimeout(() => {
           const plan = Solver.plan ? Solver.plan(job.st, job.draw, job.maxPasses, job.limit) : null;
           settle({ id: job.id, plan });
@@ -1115,10 +2064,63 @@
         });
       });
     }
-    return { run, stop, plan, findDeal };
+    function vplan(variant, st, opt) {
+      const id = ++seqId;
+      return new Promise((resolve) => {
+        run({ id, type: 'vplan', variant, st, opt }, (res) => resolve(res && res.id === id ? res.plan : null));
+      });
+    }
+    function vfindDeal(variant, kind, opt) {
+      const id = ++seqId;
+      return new Promise((resolve) => {
+        run({ id, type: 'vfindDeal', variant, kind, opt }, (res) => resolve(res && res.id === id ? res : null));
+      });
+    }
+    return { run, stop, plan, findDeal, vplan, vfindDeal };
   })();
 
+  // Shared by the worker and the no-worker fallback: keep shuffling until the variant solver wins a deal that fits the
+  // difficulty (gentle = solved with little search, tricky = needs a non-obvious line), or settle for the best one seen.
+  function findVariantDeal(j, randSeedFn, deckFn) {
+    const t0 = Date.now(), kind = j.kind || '', patience = kind ? 6000 : 0, V = j.variant;
+    const n = V === 'spider' ? 104 : 52;
+    const th = DEAL_NODES[V === 'spider' ? 'spider' + j.opt.suits : V] || { gentle: 200, tricky: 1500 };
+    let last = null, fallback = null;
+    while (Date.now() - t0 < (j.budget || 30000)) {
+      const seed = randSeedFn(), deck = deckFn(seed, n);
+      last = { seed, deck };
+      const r = VSolver.rate(V, deck, Object.assign({ limit: V === 'spider' ? 30000 : 25000, ms: 1500 }, j.opt));
+      if (r.won === true) {
+        const fits = kind === 'gentle' ? r.nodes <= th.gentle : kind === 'tricky' ? r.nodes > th.tricky : true;
+        if (fits) return { id: j.id, seed, deck, rated: { won: true, nodes: r.nodes, ok: true } };
+        fallback = fallback || { seed, deck, rated: { won: true, nodes: r.nodes, ok: true } };
+      }
+      if (fallback && Date.now() - t0 > patience) return { id: j.id, ...fallback };
+    }
+    return fallback ? { id: j.id, ...fallback } : { id: j.id, seed: last.seed, deck: last.deck, rated: { won: false, nodes: 0, ok: false } };
+  }
+  const findVariantDealSrc = findVariantDeal.toString();
+
   let stateVer = 0, checkT = null;
+  // the position in the variant solver's format
+  function variantState() {
+    const ids = (p) => p.map((c) => c.id);
+    switch (G.variant) {
+      case 'spider': return {
+        t: G.tab.map(ids), dn: G.tab.map((p) => { const k = p.findIndex((c) => c.up); return k < 0 ? p.length : k; }),
+        s: ids(G.stock), f: G.found.filter((p) => p.length).length,
+      };
+      case 'freecell': {
+        const f = [0, 0, 0, 0];
+        G.found.forEach((p) => { if (p.length) f[p[0].suit] = p.length; });
+        return { t: G.tab.map(ids), c: G.cells.map((p) => (p.length ? p[0].id : -1)), f };
+      }
+      case 'pyramid': return { p: G.pyr.map((p) => (p.length ? p[0].id : -1)), s: ids(G.stock), w: ids(G.waste), pass: G.passes };
+      case 'tripeaks': return { p: G.pyr.map((p) => (p.length ? p[0].id : -1)), s: ids(G.stock), w: ids(G.waste) };
+      default: return null;
+    }
+  }
+  const variantOpt = () => ({ suits: G.suits, maxPasses: passLimit() });
   function solverState() {
     const ids = (p) => p.map((c) => c.id);
     const f = [0, 0, 0, 0];
@@ -1136,7 +2138,10 @@
     if (mode === 'off' || !G || G.won || G.lost || !G.started) { Analyzer.stop('analyze'); return; }
     checkT = setTimeout(() => {
       if (ver !== stateVer || !G || G.won || G.lost || busy) return;
-      Analyzer.run({ id: ver, mode, state: solverState(), draw: G.draw, maxPasses: passLimit(), limit: 250000, ms: 4000 }, (r) => {
+      const job = G.variant === 'klondike'
+        ? { id: ver, mode, state: solverState(), draw: G.draw, maxPasses: passLimit(), limit: 250000, ms: 4000 }
+        : { id: ver, mode, variant: G.variant, state: variantState(), opt: variantOpt(), limit: 250000, ms: 4000 };
+      Analyzer.run(job, (r) => {
         if (!r || r.id !== stateVer || !G || G.won || G.lost || busy || settings.detectLoss !== mode) return;
         G.analysis = r.result;
         if ((mode === 'solver' && r.result === 'lose') || (mode === 'stuck' && r.result === 'stuck')) declareLost(mode);
@@ -1148,6 +2153,7 @@
   const LOSS_TEXT = {
     solver: { banner: 'SOLVER VERIFIED', kicker: '⚠ DEADLOCK DETECTED // NO WINNING PATH', sub: 'Every legal branch was checked — no winning path remains from here.' },
     stuck: { banner: 'NO MOVES LEFT', kicker: '⚠ DEADLOCK DETECTED // NO MOVES LEFT', sub: 'Every legal move was checked — no card can reach a foundation or turn face-up anymore.' },
+    stuckPairs: { banner: 'NO MOVES LEFT', kicker: '⚠ DEADLOCK DETECTED // NO MOVES LEFT', sub: 'Every legal move was checked — no card can be cleared from the table anymore.' },
   };
   function declareLost(mode = 'solver') {
     G.lost = true; G.lossMode = mode; stopAutoStep();
@@ -1156,7 +2162,8 @@
     syncComboHud(false);
     clearHints(); clearTimeout(autoT); clearTimeout(finishT);
     DOM.btnAutoFinish.classList.add('hidden');
-    const st = getStats(); st[G.difficulty].streak = 0; Store.set('stats', st);
+    const st = getStats(); st[SK()].streak = 0; Store.set('stats', st);
+    clearPyrSel();
     board.classList.add('lost');
     updateHUD(); saveGame();
     Sound.sfx.lose(); Companion.react('lost');
@@ -1167,7 +2174,7 @@
   function showLost() {
     if (!G || !G.lost) return;
     const c = Companion.c, girl = c.kind === 'girl', d = DIFF[G.difficulty];
-    const lt = LOSS_TEXT[G.lossMode] || LOSS_TEXT.solver;
+    const lt = (G.lossMode === 'stuck' && (G.variant === 'pyramid' || G.variant === 'tripeaks') ? LOSS_TEXT.stuckPairs : LOSS_TEXT[G.lossMode]) || LOSS_TEXT.solver;
     StageBG?.pulse('#ff5c6c', 1.1);
     PopupFX?.banner(lt.banner, 'DEADLOCK!', 'danger', true);
     const kick = DOM.loseKicker;
@@ -1189,19 +2196,21 @@
 
     const sub = DOM.loseSub;
     if (sub) {
-      sub.innerHTML = `<b>${d.icon} ${d.label}</b> · Draw ${G.draw} · ${lt.sub}`;
+      sub.innerHTML = `<b>${d.icon} ${d.label}</b> · ${modeText()} · ${lt.sub}`;
     }
 
-    const foundCards = G.found.reduce((a, p) => a + p.length, 0);
-    const pct = Math.round((foundCards / 52) * 100);
+    const prog = progressOf(), foundCards = prog.done;
+    const pct = Math.round((foundCards / prog.total) * 100);
     const pt = DOM.loseProgText, pf = DOM.loseProgFill;
-    if (pt) pt.textContent = `${foundCards} / 52 (${pct}%)`;
+    if (pt) pt.textContent = `${foundCards} / ${prog.total} (${pct}%)`;
     if (pf) pf.style.width = pct + '%';
+    const pl = document.getElementById('loseProgLabel');
+    if (pl) pl.textContent = prog.label;
 
     const ls = DOM.loseStats;
     if (ls) {
       ls.innerHTML = [
-        [`${foundCards} / 52`, 'Cards Home'],
+        [`${foundCards} / ${prog.total}`, prog.unit],
         [G.score.toLocaleString(), 'Score'],
         [`×${G.maxChain || 0}`, 'Max Combo'],
         [fmtTime(G.elapsed) === '—' ? '0:00' : fmtTime(G.elapsed), 'Time'],
@@ -1233,10 +2242,12 @@
 
   function tapCard(c) {
     if (c.pile.t === 'stock') { drawStock(); return; }
+    if (G.variant === 'pyramid') { tapPyramid(c); return; }
+    if (G.variant === 'tripeaks') { tapPeak(c); return; }
     if (!settings.tapMove) return;
     const mov = movableFrom(c); if (!mov) return;
     const dst = bestTarget(mov, c.pile);
-    if (dst) moveCards(c.pile, c.idx, dst);
+    if (dst) doMove(c.pile, c.idx, dst);
     else {
       mov.forEach(shakeCard);
       Sound.sfx.invalid();
@@ -1247,6 +2258,41 @@
     }
   }
 
+  function invalidTap(c, label = '✕ NO MOVE') {
+    shakeCard(c);
+    Sound.sfx.invalid();
+    PopupFX?.float(c.el, label, { kind: 'warn' });
+    PopupFX?.stamp('OOPS!', 'oops', 'amber', false);
+    if (G.chain > 0) breakChain('miss');
+    Companion.react('invalid');
+  }
+  // Pyramid taps: a King goes alone; otherwise pick one card, then its partner. With tap-to-move on, a card that has
+  // exactly one possible partner pairs straight away.
+  function tapPyramid(c) {
+    if (!pyrAvailable(c)) { if (c.pile.t === 'pyr') invalidTap(c, '✕ COVERED'); return; }
+    const ref = c.pile;
+    if (c.rank === 13) { pyramidRemove([ref]); return; }
+    if (pyrSel) {
+      const sp = pileOf(pyrSel), o = sp[sp.length - 1];
+      if (o === c) { clearPyrSel(); Sound.sfx.click(); return; }
+      if (o && pyrAvailable(o) && o.rank + c.rank === 13) { const a = pyrSel; pyrSel = null; o.el.classList.remove('selected'); pyramidRemove([a, ref]); return; }
+      clearPyrSel();
+    }
+    const partners = pyrAvail().filter((a) => a.c !== c && a.c.rank + c.rank === 13);
+    if (settings.tapMove && partners.length === 1) { pyramidRemove([ref, partners[0].ref]); return; }
+    pyrSel = { t: ref.t, i: ref.i };
+    c.el.classList.add('selected');
+    Sound.sfx.pick();
+    if (!partners.length) PopupFX?.float(c.el, `NEEDS ${Art.RANKS[12 - c.rank]}`, { kind: 'info', tag: 'NO PARTNER YET' });
+    Companion.react('pick');
+  }
+  function tapPeak(c) {
+    if (c.pile.t !== 'pyr') return;
+    const top = G.waste[G.waste.length - 1];
+    if (!c.up || !pyrExposed(c.pile.i)) { invalidTap(c, '✕ COVERED'); return; }
+    if (top && tpAdjacent(c, top)) { peakPlay(c.pile.i); return; }
+    invalidTap(c, `✕ NEEDS ${Art.RANKS[(top.rank + 11) % 13]} / ${Art.RANKS[top.rank % 13]}`);
+  }
   function shakeCard(c) { shakeEl(c.el); }
   function shakeEl(el) {
     el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
@@ -1254,7 +2300,88 @@
   }
 
   // ---------------------------------------------------------------- hints
+  function findVariantHints() {
+    const out = [];
+    const tabRefs = G.tab.map((_, i) => ({ t: 'tab', i }));
+    if (G.variant === 'spider') {
+      G.tab.forEach((p, i) => {
+        const fu = p.findIndex((c) => c.up);
+        if (fu < 0) return;
+        for (let idx = fu; idx < p.length; idx++) {
+          const seq = movableFrom(p[idx]);
+          if (!seq) continue;
+          const reveals = idx === fu && fu > 0;
+          for (const ref of tabRefs) {
+            if (ref.i === i || !canDrop(seq, ref)) continue;
+            const q = G.tab[ref.i], top = q[q.length - 1];
+            const sameSuit = top && top.suit === seq[0].suit;
+            const breaksLink = idx > fu && p[idx - 1].rank === seq[0].rank + 1 && p[idx - 1].suit === seq[0].suit;
+            if (breaksLink && !sameSuit) continue;
+            let pri = 0;
+            if (!q.length) pri = reveals ? 55 : idx === 0 ? 0 : 20;
+            else if (sameSuit) pri = reveals ? 95 : breaksLink ? 0 : 85;
+            else pri = reveals ? 75 : idx === 0 ? 45 : 35;
+            if (pri) out.push({ src: { t: 'tab', i }, idx, dst: ref, pri });
+          }
+        }
+      });
+      if (G.stock.length && G.tab.every((p) => p.length)) out.push({ draw: true, pri: 10 });
+    } else if (G.variant === 'freecell') {
+      const tops = [];
+      G.tab.forEach((p, i) => { if (p.length) tops.push({ src: { t: 'tab', i }, idx: p.length - 1, c: p[p.length - 1] }); });
+      G.cells.forEach((p, i) => { if (p.length) tops.push({ src: { t: 'cell', i }, idx: 0, c: p[0] }); });
+      for (const t of tops) { const d = foundTarget(t.c); if (d) out.push({ src: t.src, idx: t.idx, dst: d, pri: 100 - t.c.rank }); }
+      G.cells.forEach((p, k) => {
+        if (!p.length) return;
+        for (const ref of tabRefs) if (G.tab[ref.i].length && canDrop(p, ref)) { out.push({ src: { t: 'cell', i: k }, idx: 0, dst: ref, pri: 70 }); break; }
+      });
+      G.tab.forEach((p, i) => {
+        for (let idx = 0; idx < p.length; idx++) {
+          const seq = movableFrom(p[idx]);
+          if (!seq) continue;
+          for (const ref of tabRefs) {
+            if (ref.i === i || !G.tab[ref.i].length || !canDrop(seq, ref)) continue;
+            const freed = idx > 0 ? p[idx - 1] : null;
+            out.push({ src: { t: 'tab', i }, idx, dst: ref, pri: !freed ? 65 : foundTarget(freed) ? 80 : 50 });
+            break;
+          }
+        }
+        const free = G.cells.findIndex((q) => !q.length);
+        if (free >= 0 && p.length >= 2 && foundTarget(p[p.length - 2])) out.push({ src: { t: 'tab', i }, idx: p.length - 1, dst: { t: 'cell', i: free }, pri: 60 });
+      });
+      const empty = G.tab.findIndex((p) => !p.length);
+      if (empty >= 0) {
+        G.tab.forEach((p, i) => {
+          if (p.length < 2) return;
+          for (let idx = 1; idx < p.length; idx++) {
+            if (movableFrom(p[idx]) && canDrop(p.slice(idx), { t: 'tab', i: empty })) { out.push({ src: { t: 'tab', i }, idx, dst: { t: 'tab', i: empty }, pri: 30 }); break; }
+          }
+        });
+      }
+    } else if (G.variant === 'pyramid') {
+      const av = pyrAvail();
+      av.forEach((a) => { if (a.c.rank === 13) out.push({ src: a.ref, idx: pileOf(a.ref).length - 1, dst: { t: 'found', i: 0 }, pri: 100 }); });
+      for (let x = 0; x < av.length; x++) {
+        for (let y = x + 1; y < av.length; y++) {
+          if (av[x].c.rank + av[y].c.rank !== 13) continue;
+          const waste = av[x].ref.t === 'waste' || av[y].ref.t === 'waste';
+          const a = waste && av[x].ref.t === 'waste' ? av[y] : av[x], b = a === av[x] ? av[y] : av[x];
+          out.push({ src: a.ref, idx: pileOf(a.ref).length - 1, dst: b.ref, pri: waste ? 80 : 90 });
+        }
+      }
+      if (G.stock.length || (G.waste.length && canRecycle())) out.push({ draw: true, pri: 10 });
+    } else if (G.variant === 'tripeaks') {
+      const top = G.waste[G.waste.length - 1];
+      for (let i = 0; i < 28; i++) {
+        const p = G.pyr[i];
+        if (p.length && p[0].up && pyrExposed(i) && top && tpAdjacent(p[0], top)) out.push({ src: { t: 'pyr', i }, idx: 0, dst: { t: 'waste', i: 0 }, pri: 60 + (3 - SP_.TP_ROW[i]) * 5 });
+      }
+      if (G.stock.length) out.push({ draw: true, pri: 10 });
+    }
+    return out.sort((a, b) => b.pri - a.pri);
+  }
   function findHints() {
+    if (G.variant !== 'klondike') return findVariantHints();
     const out = [];
     const tops = [];
     if (G.waste.length) tops.push({ src: { t: 'waste', i: 0 }, idx: G.waste.length - 1 });
@@ -1329,6 +2456,7 @@
     if (h.draw) {
       targetEl = G.stock.length ? G.stock[G.stock.length - 1].el : slots.stock;
       targetEl.classList.add('hint');
+      if (G.variant === 'spider') G.stock.slice(-10).forEach((c) => c.el.classList.add('hint'));
     } else {
       const seq = pileOf(h.src).slice(h.idx);
       seq.forEach((c) => c.el.classList.add('hint'));
@@ -1349,12 +2477,18 @@
   }
 
   // ---------------------------------------------------------------- auto finish & win
+  function autoFinishReady() {
+    if (G.variant === 'klondike') return !G.stock.length && !G.waste.length && G.tab.every((p) => p.every((c) => c.up));
+    // FreeCell: once every column runs high-to-low, the cards can always be sent home in order
+    if (G.variant === 'freecell') return G.tab.every((p) => p.every((c, k) => k === 0 || p[k - 1].rank >= c.rank)) && G.found.some((p) => p.length);
+    return false;
+  }
   function maybeAutoFinish() {
     const btn = DOM.btnAutoFinish;
     if (!G || G.won || busy) { btn.classList.add('hidden'); return; }
-    const ready = !G.stock.length && !G.waste.length && G.tab.every((p) => p.every((c) => c.up));
+    const ready = autoFinishReady();
     if (!ready) { btn.classList.add('hidden'); return; }
-    PopupFX?.award('autoReady', '✨', 'AUTO-FINISH READY', 'ALL CARDS REVEALED', 'gold');
+    PopupFX?.award('autoReady', '✨', 'AUTO-FINISH READY', G.variant === 'freecell' ? 'EVERY COLUMN IN ORDER' : 'ALL CARDS REVEALED', 'gold');
     if (settings.autoFinish) runAutoFinish();
     else btn.classList.remove('hidden');
   }
@@ -1365,7 +2499,7 @@
     pushHistory();
     busy = true;
     Companion.react('autoFinish');
-    PopupFX?.banner('ALL CARDS REVEALED', 'AUTO-FINISH!', 'gold', true);
+    PopupFX?.banner(G.variant === 'freecell' ? 'EVERY COLUMN IN ORDER' : 'ALL CARDS REVEALED', 'AUTO-FINISH!', 'gold', true);
     PopupFX?.stamp("LET'S GO!", 'hype', 'gold', true);
     const stepMs = settings.anim === 'off' ? 40 : settings.anim === 'fast' ? 70 : 110;
     let stepCount = 0;
@@ -1374,15 +2508,19 @@
       const m = autoFoundStep(false);
       if (!m) { busy = false; updateHUD(); return; }
       Sound.sfx.autoStep?.(stepCount++);
-      moveCards(m.src, m.idx, m.dst, { record: false, auto: true });
+      doMove(m.src, m.idx, m.dst, { record: false, auto: true });
       if (!G.won) finishT = setTimeout(tick, stepMs);
     };
     finishT = setTimeout(tick, 150);
   }
   function stopAutoFinish() { clearTimeout(finishT); busy = false; }
 
+  function isWon() {
+    if (G.variant === 'pyramid' || G.variant === 'tripeaks') return pyrLeft() === 0;
+    return G.found.every((p) => p.length === 13);
+  }
   function checkWin() {
-    if (!G.found.every((p) => p.length === 13)) return false;
+    if (!isWon()) return false;
     win();
     return true;
   }
@@ -1409,7 +2547,7 @@
   function showWinModal(opts = {}) {
     if (!G) return;
     const c = Companion.c, girl = c.kind === 'girl', d = DIFF[G.difficulty];
-    const st = getStats(), s = st[G.difficulty];
+    const st = getStats(), s = st[SK()];
     const bonus = opts.bonus !== undefined ? opts.bonus : Math.max(0, Math.round(1500 - G.elapsed * 3));
     const finalScore = opts.finalScore !== undefined ? opts.finalScore : Math.round((G.score + bonus) * d.mult);
     const recTime = !!opts.recTime, recScore = !!opts.recScore;
@@ -1437,7 +2575,7 @@
     const wg = DOM.winGrade;
     if (wg) { wg.textContent = grade; wg.dataset.grade = grade; }
 
-    DOM.winSub.innerHTML = `<b>${d.icon} ${d.label}</b> · Draw ${G.draw}${d.mult !== 1 ? ` · ×${d.mult}` : ''} · Deal #${G.seed}`;
+    DOM.winSub.innerHTML = `<b>${d.icon} ${d.label}</b> · ${modeText()}${d.mult !== 1 ? ` · ×${d.mult}` : ''} · Deal #${G.seed}`;
 
     const wr = DOM.winRecords;
     if (wr) {
@@ -1454,7 +2592,7 @@
       [`+${bonus.toLocaleString()}`, `Time Bonus${d.mult !== 1 ? ` (×${d.mult})` : ''}`],
       [clearTime, 'Clear Time'],
       [String(G.moves), 'Total Moves'],
-      [`×${maxCombo}`, 'Max Combo'],
+      G.variant === 'tripeaks' ? [`×${G.bestRun || maxCombo}`, 'Best Run'] : [`×${maxCombo}`, 'Max Combo'],
       [`🔥 ${s.streak}`, `Win Streak (${rate}%)`],
     ].map(([b, l], i) => `<div class="win-stat" style="--i:${i}"><b>${b}</b><span>${l}</span></div>`).join('');
 
@@ -1462,6 +2600,14 @@
     rollWinScore(finalScore);
   }
   function win() {
+    // TriPeaks banks its last run; Pyramid & TriPeaks pay out for every unused stock card
+    if (G.variant === 'tripeaks' && G.chain >= 3) bankRun(G.chain, 'win');
+    const leftover = G.variant === 'tripeaks' ? G.stock.length * 20 : G.variant === 'pyramid' ? (G.stock.length + G.waste.length) * 10 : 0;
+    if (leftover) {
+      G.score += leftover;
+      PopupFX?.pill('🎁', 'STOCK BONUS', `+${leftover} PTS · ${leftover / (G.variant === 'tripeaks' ? 20 : 10)} CARDS UNUSED`, 'gold', { medal: true });
+    }
+    clearPyrSel();
     G.won = true; busy = false; clearTimeout(finishT); clearTimeout(autoT); stopAutoStep();
     clearTimeout(winModalT);
     G.warnedChain = false;
@@ -1470,14 +2616,14 @@
     const d = DIFF[G.difficulty];
     const bonus = Math.max(0, Math.round(1500 - G.elapsed * 3));
     const finalScore = Math.round((G.score + bonus) * d.mult);
-    const st = getStats(), s = st[G.difficulty];
+    const st = getStats(), s = st[SK()];
     const prevBest = s.bestScore || 0;
     const recTime = !s.bestTime || G.elapsed < s.bestTime;
     const recScore = finalScore > prevBest;
     s.won++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak);
     if (recTime) s.bestTime = G.elapsed;
     if (recScore) s.bestScore = finalScore;
-    Store.recordGuestStat(G.difficulty, 'won');
+    Store.recordGuestStat(SK(), 'won');
     Store.set('stats', st, { immediate: true }); Store.set('save', null, { immediate: true });
     updateHUD();
     Sound.sfx.win(); Companion.react('win'); cutIn('VICTORY!!'); FX.celebrate();
@@ -1485,7 +2631,8 @@
     PopupFX?.stamp('UNREAL!', 'cheer', 'gold', true);
     if (recScore) PopupFX?.award('newBest', '👑', 'NEW BEST SCORE!', `${finalScore} PTS RECORD`, 'gold');
     StageBG?.pulse('#ffe169', 1.4);
-    G.found.forEach((p, i) => setTimeout(() => p[p.length - 1]?.el.classList.add('celebrate'), i * 120));
+    const tops = G.variant === 'tripeaks' ? [G.waste[G.waste.length - 1]] : G.found.map((p) => p[p.length - 1]);
+    tops.forEach((c, i) => setTimeout(() => c?.el.classList.add('celebrate'), i * 120));
     winModalT = setTimeout(() => {
       if (!G || !G.won) return;
       if (recTime || recScore) Sound.sfx.newRecord?.();
@@ -1500,6 +2647,7 @@
     autoStepT = null;
     autoPlanSeq++;
     Analyzer.stop('plan');
+    Analyzer.stop('vplan');
   }
   function resetAutoPlan() {
     stopAutoStep();
@@ -1517,8 +2665,74 @@
     if (!G || G.difficulty !== 'auto' || G.won || G.lost || autoPaused || busy || document.hidden || anyOverlayOpen()) return;
     autoStepT = setTimeout(runAutoTick, delay);
   }
+  // one step of a variant solver plan, checked against the live table first
+  function tryExecVariantStep(m) {
+    const top = (p) => p[p.length - 1];
+    switch (m[0]) {
+      case 'tt': {
+        const sp = G.tab[m[1]];
+        if (!sp || sp.length < m[2]) return false;
+        const idx = sp.length - m[2], seq = movableFrom(sp[idx]);
+        if (!seq || !canDrop(seq, { t: 'tab', i: m[3] })) return false;
+        tabMove({ t: 'tab', i: m[1] }, idx, { t: 'tab', i: m[3] });
+        return true;
+      }
+      case 'tf': case 'cf': {
+        const src = m[0] === 'tf' ? { t: 'tab', i: m[1] } : { t: 'cell', i: m[1] };
+        const p = pileOf(src);
+        if (!p || !p.length) return false;
+        const dst = foundTarget(top(p));
+        if (!dst) return false;
+        tabMove(src, p.length - 1, dst);
+        return true;
+      }
+      case 'ct': {
+        const p = G.cells[m[1]];
+        if (!p || !p.length || !canDrop(p, { t: 'tab', i: m[2] })) return false;
+        tabMove({ t: 'cell', i: m[1] }, 0, { t: 'tab', i: m[2] });
+        return true;
+      }
+      case 'tc': {
+        const p = G.tab[m[1]];
+        if (!p || !p.length || G.cells[m[2]].length) return false;
+        tabMove({ t: 'tab', i: m[1] }, p.length - 1, { t: 'cell', i: m[2] });
+        return true;
+      }
+      case 'deal': {
+        if (!G.stock.length || G.tab.some((p) => !p.length)) return false;
+        spiderDeal();
+        return true;
+      }
+      case 'k': case 'p': {
+        const refs = m.slice(1).map((a) => (a < 0 ? { t: 'waste', i: 0 } : { t: 'pyr', i: a }));
+        const cs = refs.map((r) => top(pileOf(r)));
+        if (cs.some((c) => !c || !pyrAvailable(c))) return false;
+        if (cs.reduce((a, c) => a + c.rank, 0) !== 13) return false;
+        pyramidRemove(refs);
+        return true;
+      }
+      case 'd': {
+        if (!G.stock.length) return false;
+        drawStock();
+        return true;
+      }
+      case 'r': {
+        if (G.stock.length || !G.waste.length || !canRecycle()) return false;
+        drawStock();
+        return true;
+      }
+      case 't': {
+        const p = G.pyr[m[1]], w = top(G.waste);
+        if (!p || !p.length || !pyrExposed(m[1]) || !w || !tpAdjacent(p[0], w)) return false;
+        peakPlay(m[1]);
+        return true;
+      }
+      default: return false;
+    }
+  }
   function tryExecPlanStep(m) {
     if (!m || !G) return false;
+    if (G.variant !== 'klondike') return tryExecVariantStep(m);
     switch (m[0]) {
       case 0: {
         const col = m[1], p = G.tab[col];
@@ -1578,7 +2792,7 @@
   }
   function execAutoFallback() {
     const af = autoFoundStep(true);
-    if (af) { moveCards(af.src, af.idx, af.dst); return true; }
+    if (af) { doMove(af.src, af.idx, af.dst); return true; }
     const hints = findHints();
     const passCtx = `${G.passes}:${G.stock.length}:${G.waste.length}`;
     for (const h of hints) {
@@ -1587,7 +2801,7 @@
       const sig = `${passCtx}:${c.id}->${h.dst.t}${h.dst.i}`;
       if (autoVisited.has(sig)) continue;
       autoVisited.add(sig);
-      moveCards(h.src, h.idx, h.dst);
+      doMove(h.src, h.idx, h.dst);
       return true;
     }
     return false;
@@ -1601,8 +2815,11 @@
     const seq = gameStepSeq;
     const tickTok = ++autoPlanSeq;
 
+    const planNow = () => (G.variant === 'klondike'
+      ? Analyzer.plan(solverState(), G.draw, passLimit(), 65000)
+      : Analyzer.vplan(G.variant, variantState(), Object.assign(variantOpt(), { limit: 60000, ms: 2500 })));
     if (!autoQueue.length && Solver.plan) {
-      const planned = await Analyzer.plan(solverState(), G.draw, passLimit(), 65000);
+      const planned = await planNow();
       if (tickTok !== autoPlanSeq || seq !== gameStepSeq || !G || G.difficulty !== 'auto' || G.won || G.lost || autoPaused || busy || drag || document.hidden || anyOverlayOpen()) {
         return false;
       }
@@ -1617,7 +2834,7 @@
       moved = tryExecPlanStep(autoQueue.shift());
       if (!moved && Solver.plan) {
         autoQueue = [];
-        const replanned = await Analyzer.plan(solverState(), G.draw, passLimit(), 65000);
+        const replanned = await planNow();
         if (tickTok !== autoPlanSeq || seq !== gameStepSeq || !G || G.difficulty !== 'auto' || G.won || G.lost || autoPaused || busy || drag || document.hidden || anyOverlayOpen()) {
           return false;
         }
@@ -1704,6 +2921,42 @@
     return findWinnableSync(draw, tok, maxPasses, kind);
   }
 
+  // verified deals for the other variants (Spider only at 1–2 suits: 4-suit deals are too costly to prove)
+  const variantSolvable = (variant, difficulty, suits) => !!DIFF[difficulty].solvable && (variant !== 'spider' || suits <= 2);
+  async function findVariantWinnable(variant, difficulty, suits, tok) {
+    const opt = { suits, maxPasses: variant === 'pyramid' ? PYRAMID_PASSES[difficulty] : Infinity };
+    const kind = DIFF[difficulty].deals || '';
+    const res = await Analyzer.vfindDeal(variant, kind, opt);
+    if (tok !== dealToken) return { ok: false };
+    if (res && !res.fallback && Array.isArray(res.deck)) return { seed: res.seed, deck: res.deck, ok: !!(res.rated && res.rated.ok) };
+    // no worker: search on the main thread in short slices
+    const t0 = performance.now();
+    let found = null;
+    while (!found && performance.now() - t0 < 8000) {
+      found = findVariantDeal({ id: 0, variant, kind: '', opt, budget: 120 }, randSeed, shuffledDeck);
+      if (!found.rated.ok) found = null;
+      await new Promise((r) => setTimeout(r, 0));
+      if (tok !== dealToken) return { ok: false };
+    }
+    if (found) return { seed: found.seed, deck: found.deck, ok: true };
+    const seed = randSeed();
+    return { seed, deck: shuffledDeck(seed, VARIANTS[variant].deck), ok: false };
+  }
+  // the opening layout: Klondike deals itself; the others take VSolver.deal() so the solver always sees the same table
+  function dealLayout() {
+    const d = G.deck.slice();
+    if (G.variant === 'klondike') {
+      for (let i = 0; i < 7; i++) for (let j = i; j < 7; j++) G.tab[j].push(cards[d.pop()]);
+      G.stock = d.map((id) => cards[id]);
+      return;
+    }
+    const L = VSolver.deal(G.variant, d), cs = (a) => a.map((id) => cards[id]);
+    if (L.t) G.tab = L.t.map(cs);
+    if (L.p) G.pyr = L.p.map((id) => [cards[id]]);
+    if (L.s) G.stock = cs(L.s);
+    if (L.w) G.waste = cs(L.w);
+  }
+
   async function newGame(opts = {}) {
     const tok = ++dealToken;
     Analyzer.stop();
@@ -1714,42 +2967,91 @@
     hideAllOverlays(); clearHints(); stopAutoFinish(); clearTimeout(autoT);
     DOM.btnAutoFinish.classList.add('hidden');
     Sound.ensure();
-    if (G && G.started && !G.won) { const st = getStats(); st[G.difficulty].streak = 0; Store.set('stats', st); }
+    if (G && G.started && !G.won) { const st = getStats(); st[SK()].streak = 0; Store.set('stats', st); }
     const restart = opts.restart && G;
     const difficulty = restart ? G.difficulty : settings.difficulty;
     const draw = restart ? G.draw : settings.draw;
+    const variant = restart ? G.variant : settings.variant;
+    const suits = restart ? G.suits : settings.spiderSuits;
     let deck, seed, verified = false;
     if (restart) { deck = G.deck; seed = G.seed; verified = G.verified; }
-    else if (DIFF[difficulty].solvable) {
+    else if (variant === 'klondike' ? DIFF[difficulty].solvable : variantSolvable(variant, difficulty, suits)) {
       busy = true;
       const note = DOM.shuffleNote; const noteT = setTimeout(() => note.classList.remove('hidden'), 250);
       Sound.sfx.shuffle();
-      const r = await findWinnable(draw, tok, DIFF[difficulty].passes[draw], DIFF[difficulty].deals);
+      const r = variant === 'klondike'
+        ? await findWinnable(draw, tok, DIFF[difficulty].passes[draw], DIFF[difficulty].deals)
+        : await findVariantWinnable(variant, difficulty, suits, tok);
       clearTimeout(noteT); note.classList.add('hidden');
       if (tok !== dealToken) return;
       ({ deck, seed } = r); verified = r.ok;
-    } else { seed = randSeed(); deck = shuffledDeck(seed); }
+    } else { seed = randSeed(); deck = shuffledDeck(seed, VARIANTS[variant].deck); }
 
-    G = newState(difficulty, draw, deck, seed, verified);
+    G = newState(difficulty, draw, deck, seed, verified, variant, suits);
+    pyrSel = null;
     gameStepSeq++; resetAutoPlan();
     syncComboHud(false);
     board.classList.remove('lost'); scheduleCheck();
-    const d = deck.slice();
-    cards.forEach((c) => { c.up = false; c._rx = null; c._ry = null; c._rz = null; c._rup = false; });
-    for (let i = 0; i < 7; i++) for (let j = i; j < 7; j++) G.tab[j].push(cards[d.pop()]);
-    G.stock = d.map((id) => cards[id]);
+    enterVariant(variant, suits);
+    cards.forEach((c) => { c.up = false; c.pile = null; c._rx = null; c._ry = null; c._rz = null; c._rup = false; c.el.classList.remove('covered', 'selected'); });
+    dealLayout();
     board.classList.remove('empty');
     updateHUD();
     animateDeal(tok);
-    PopupFX?.pill('✿', `DEAL #${G.seed} LIVE`, `${DIFF[G.difficulty].label.toUpperCase()} · DRAW ${G.draw}${G.verified ? ' · VERIFIED' : ''}`, 'emerald');
-    Companion.react(restart ? 'restart' : DIFF[difficulty].solvable && verified ? 'startEasy' : 'start');
+    PopupFX?.pill('✿', `DEAL #${G.seed} LIVE`, `${DIFF[G.difficulty].label.toUpperCase()} · ${modeText().toUpperCase()}${G.verified ? ' · VERIFIED' : ''}`, 'emerald');
+    Companion.react(restart ? 'restart' : START_EV[variant] || (DIFF[difficulty].solvable && verified ? 'startEasy' : 'start'));
     saveGame();
   }
+  // switch the table over to a variant: faces, slots, measurements
+  function enterVariant(variant, suits) {
+    applyFaces(variant, suits);
+    buildSlots(variant);
+    layoutDirty = true; lastMeasW = -1;
+    measure(true);
+  }
+  function modeText() {
+    if (!G) return '';
+    switch (G.variant) {
+      case 'klondike': return `Draw ${G.draw}`;
+      case 'spider': return `Spider · ${G.suits} suit${G.suits > 1 ? 's' : ''}`;
+      default: return VARIANTS[G.variant].label;
+    }
+  }
 
+  // the order cards fly out of the deck, and which ones land face up
+  function dealOrder() {
+    const out = [];
+    switch (G.variant) {
+      case 'klondike':
+        for (let i = 0; i < 7; i++) for (let j = i; j < 7; j++) out.push(G.tab[j][i]);
+        break;
+      case 'spider': case 'freecell': {
+        const rows = Math.max(...G.tab.map((p) => p.length));
+        for (let r = 0; r < rows; r++) G.tab.forEach((p) => { if (p[r]) out.push(p[r]); });
+        break;
+      }
+      default:
+        G.pyr.forEach((p) => { if (p[0]) out.push(p[0]); });
+        out.push(...G.waste);
+    }
+    return out;
+  }
+  function revealOpening() {
+    switch (G.variant) {
+      case 'freecell': G.tab.forEach((p) => p.forEach((c) => { c.up = true; })); break;
+      case 'pyramid': G.pyr.forEach((p) => p.forEach((c) => { c.up = true; })); break;
+      case 'tripeaks':
+        G.pyr.forEach((p, i) => { if (p[0] && pyrExposed(i)) p[0].up = true; });
+        G.waste.forEach((c) => { c.up = true; });
+        break;
+      default: G.tab.forEach((p) => { if (p.length) p[p.length - 1].up = true; });
+    }
+  }
   function animateDeal(tok) {
     busy = true;
     measure();
-    const sx = colX(slotCol('stock')), sy = M.topY;
+    layout({ instant: true });   // places the slots, so the deck can fly out of the stock (FreeCell: from the top centre)
+    const sx = slots.stock ? slots.stock._rx : (M.W - M.cw) / 2, sy = slots.stock ? slots.stock._ry : M.topY;
     board.classList.add('no-anim');
     cards.forEach((c, k) => {
       c.el.classList.remove('up', 'celebrate', 'hint', 'shake');
@@ -1761,20 +3063,20 @@
     });
     void board.offsetHeight;
     board.classList.remove('no-anim');
-    const step = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 18 : 36;
-    let k = 0;
-    for (let i = 0; i < 7; i++) for (let j = i; j < 7; j++) { G.tab[j][i].el.style.transitionDelay = (k * step) + 'ms'; k++; }
+    const order = dealOrder();
+    const step = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 18 : (order.length > 40 ? 22 : 36);
+    order.forEach((c, k) => { c.el.style.transitionDelay = (k * step) + 'ms'; });
     layout();
-    if (step) Sound.sfx.deal(k, step / 1000);
+    if (step) Sound.sfx.deal(Math.min(order.length, 40), step / 1000);
     setTimeout(() => {
       cards.forEach((c) => { c.el.style.transitionDelay = ''; });
       if (tok !== dealToken) return;
-      G.tab.forEach((p) => { p[p.length - 1].up = true; });
+      revealOpening();
       layout(); Sound.sfx.flip();
       busy = false;
       saveGame();
       scheduleAutoStep(AUTO_STEP_MS);
-    }, k * step + moveMs() + 40);
+    }, order.length * step + moveMs() + 40);
   }
 
   // ---------------------------------------------------------------- save / load
@@ -1782,9 +3084,9 @@
     if (!G) return;
     if (G.won || (G.lost && !DIFF[G.difficulty].undo)) { Store.set('save', null); return; }
     Store.set('save', {
-      v: 1, difficulty: G.difficulty, draw: G.draw, deck: G.deck, seed: G.seed, verified: G.verified,
+      v: 1, variant: G.variant, suits: G.suits, difficulty: G.difficulty, draw: G.draw, deck: G.deck, seed: G.seed, verified: G.verified,
       state: snap(), elapsed: G.elapsed, started: G.started, hintsLeft: G.hintsLeft === Infinity ? -1 : G.hintsLeft,
-      maxChain: G.maxChain || 0, halfwaySaid: !!G.halfwaySaid, almostSaid: !!G.almostSaid,
+      maxChain: G.maxChain || 0, halfwaySaid: !!G.halfwaySaid, almostSaid: !!G.almostSaid, bestRun: G.bestRun || 0,
       medals: G.medals ? [...G.medals] : [],
       history: G.history.slice(-80),
     });
@@ -1795,37 +3097,46 @@
     busy = false;
     DOM.shuffleNote.classList.add('hidden');
     autoPaused = false;
-    G = newState(sv.difficulty, sv.draw, sv.deck, sv.seed, sv.verified);
+    const variant = VARIANTS[sv.variant] ? sv.variant : 'klondike';
+    G = newState(sv.difficulty, sv.draw, sv.deck, sv.seed, sv.verified, variant, sv.suits || 1);
     board.classList.remove('lost');
+    enterVariant(variant, G.suits);
+    cards.forEach((c) => c.el.classList.remove('covered', 'selected'));
     restore(sv.state);
     gameStepSeq++; resetAutoPlan();
     G.elapsed = sv.elapsed || 0; G.started = !!sv.started; G.history = sv.history || [];
     G.hintsLeft = sv.hintsLeft === -1 ? Infinity : sv.hintsLeft;
     G.maxChain = sv.maxChain || 0;
     G.medals = new Set(Array.isArray(sv.medals) ? sv.medals : []);
-    const totalFound = G.found.reduce((s, p) => s + p.length, 0);
-    G.halfwaySaid = !!sv.halfwaySaid || totalFound >= 26;
-    G.almostSaid = !!sv.almostSaid || totalFound >= 44;
+    G.bestRun = sv.bestRun || 0;
+    const { done, total } = progressOf();
+    G.halfwaySaid = !!sv.halfwaySaid || done >= total / 2;
+    G.almostSaid = !!sv.almostSaid || done >= Math.ceil(total * 0.85);
     // a save made mid-deal may have face-down tableau tops
-    G.tab.forEach((p) => { if (p.length) p[p.length - 1].up = true; });
+    revealOpening();
     board.classList.remove('empty');
     cards.forEach((c) => { c.x = null; c._rx = null; c._ry = null; c._rz = null; c._rup = null; });
     syncComboHud(false);
     layout({ instant: true }); updateHUD(); maybeAutoFinish();
-    PopupFX?.pill('✿', `DEAL #${G.seed} RESUMED`, `${DIFF[G.difficulty].label.toUpperCase()} · DRAW ${G.draw}`, 'emerald');
+    PopupFX?.pill('✿', `DEAL #${G.seed} RESUMED`, `${DIFF[G.difficulty].label.toUpperCase()} · ${modeText().toUpperCase()}`, 'emerald');
     Companion.react('welcome');
     scheduleCheck();
     scheduleAutoStep(AUTO_STEP_MS);
   }
   function validSave(sv) {
-    return sv && sv.v === 1 && DIFF[sv.difficulty] && (sv.draw === 1 || sv.draw === 3) && Array.isArray(sv.deck) && sv.state;
+    if (!sv || sv.v !== 1 || !DIFF[sv.difficulty] || !Array.isArray(sv.deck) || !sv.state) return false;
+    const variant = sv.variant || 'klondike';
+    if (!VARIANTS[variant] || sv.deck.length !== VARIANTS[variant].deck) return false;
+    if (variant === 'klondike') return sv.draw === 1 || sv.draw === 3;
+    if (variant === 'spider') return [1, 2, 4].includes(sv.suits);
+    return true;
   }
 
   // ---------------------------------------------------------------- stats
   function getStats() {
     const base = () => ({ played: 0, won: 0, bestTime: 0, bestScore: 0, streak: 0, bestStreak: 0 });
     const st = Store.get('stats', {}) || {};
-    for (const k of Object.keys(DIFF)) st[k] = Object.assign(base(), st[k]);
+    for (const k of STAT_KEYS) st[k] = Object.assign(base(), st[k]);
     return st;
   }
   const fmtTime = (s) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '—');
@@ -1848,11 +3159,22 @@
       cd.removeAttribute('role');
       cd.removeAttribute('tabindex');
     }
-    DOM.chipDraw.textContent = `Draw ${G.draw}`;
+    DOM.chipDraw.textContent = G.variant === 'klondike' ? `Draw ${G.draw}` : `${V().icon} ${modeText()}`;
     DOM.moves.textContent = G.moves;
     DOM.score.textContent = G.score;
-    const lim = passLimit();
-    DOM.passes.textContent = lim === Infinity ? '∞' : Math.max(0, lim - G.passes);
+    // the third counter means something different per variant
+    const pc = DOM.chipPasses, lim = passLimit();
+    if (pc) {
+      let ic = '↻', val, title = 'Redeals left', hide = false;
+      if (G.variant === 'spider') { val = G.stock.length / 10; title = 'Deals left'; ic = '🕸'; }
+      else if (G.variant === 'freecell') { val = freeCells(); title = 'Free cells'; ic = '◇'; }
+      else if (G.variant === 'tripeaks') { val = G.stock.length; title = 'Cards left in the stock'; ic = '▤'; }
+      else val = lim === Infinity ? '∞' : Math.max(0, lim - G.passes);
+      pc.classList.toggle('hidden', hide);
+      pc.title = title;
+      if (DOM.passesIc) DOM.passesIc.textContent = ic;
+      DOM.passes.textContent = val;
+    }
     DOM.chipDeal.textContent = `#${G.seed}${G.verified ? ' ✓' : ''}`;
     DOM.chipDeal.title = G.verified ? 'Deal number — verified winnable' : 'Deal number';
     DOM.time.textContent = fmtTime(G.elapsed) === '—' ? '0:00' : fmtTime(G.elapsed);
@@ -1939,7 +3261,7 @@
       c._rx = null; c._ry = null; c._rz = null;
     });
     const dst = e.type === 'pointercancel' ? null : findDrop(d.mov, d.src);
-    if (dst) moveCards(d.src, d.idx, dst);
+    if (dst) doMove(d.src, d.idx, dst);
     else {
       layout();
       if (Math.hypot(d.dx, d.dy) > M.cw * 0.6) {
@@ -1956,28 +3278,38 @@
     const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
     return w > 0 && h > 0 ? w * h : 0;
   }
+  // every pile a dragged card might land on, for this variant
+  function dropRefs() {
+    const refs = [];
+    const add = (t, n) => { for (let i = 0; i < n; i++) refs.push({ t, i }); };
+    switch (G.variant) {
+      case 'spider': add('tab', 10); break;
+      case 'freecell': add('cell', 4); add('found', 4); add('tab', 8); break;
+      case 'pyramid': add('found', 1); add('pyr', 28); refs.push({ t: 'waste', i: 0 }); break;
+      case 'tripeaks': refs.push({ t: 'waste', i: 0 }); break;
+      default: add('found', 4); add('tab', 7);
+    }
+    return refs;
+  }
   function findDrop(mov, src) {
     const c0 = mov[0], r = { x: c0.x, y: c0.y, w: M.cw, h: M.ch };
     let best = null, bestA = 0;
-    const consider = (ref, x, y, h) => {
-      if (src.t === ref.t && src.i === ref.i) return;
-      if (!canDrop(mov, ref)) return;
+    for (const ref of dropRefs()) {
+      if (src.t === ref.t && src.i === ref.i) continue;
+      if (!canDrop(mov, ref)) continue;
+      const p = pileOf(ref), top = p[p.length - 1];
+      let x, y, h = M.ch;
+      if (top && top !== c0) { x = top.x; y = top.y; if (ref.t === 'tab') h = M.ch * 1.3; }
+      else { const el = slotEl(ref); x = el._rx; y = el._ry; }
+      if (x == null) continue;
       const a = overlap(r, { x, y, w: M.cw, h });
       if (a > bestA) { bestA = a; best = ref; }
-    };
-    for (let i = 0; i < 4; i++) consider({ t: 'found', i }, colX(slotCol('found', i)), M.topY, M.ch);
-    for (let i = 0; i < 7; i++) {
-      const p = G.tab[i], top = p[p.length - 1];
-      consider({ t: 'tab', i }, colX(i), top ? top.y : M.tabY, M.ch * (top ? 1.3 : 1));
     }
     return bestA > M.cw * M.ch * 0.06 ? best : null;
   }
   function showGuides(mov, src) {
     clearGuides();
-    const refs = [];
-    for (let i = 0; i < 4; i++) refs.push({ t: 'found', i });
-    for (let i = 0; i < 7; i++) refs.push({ t: 'tab', i });
-    refs.forEach((ref) => {
+    dropRefs().forEach((ref) => {
       if ((ref.t === src.t && ref.i === src.i) || !canDrop(mov, ref)) return;
       const p = pileOf(ref);
       const el = p.length ? p[p.length - 1].el : slotEl(ref);
@@ -2114,7 +3446,7 @@
         if (ch === 'some' && (pri < 2 || (pri === 2 && Math.random() > 0.45))) return null;
       }
       const now = Date.now();
-      const milestone = /^(chain|musicChange|themeChange|suitDone|win|lost)/.test(ev);
+      const milestone = /^(chain|musicChange|themeChange|suitDone|spiderRun|rowClear|peakClear|win|lost)/.test(ev);
       if (!force && !milestone && now < this.lineUntil && this.linePri > pri) return null; // don't talk over something more important
       if (!force && ev === this.lastEv && pri === 1 && now - this.lastEvT < 280) return null;
       this.lastEv = ev; this.lastEvT = now;
@@ -2281,7 +3613,7 @@
     Sound.sfx.cutin?.();
     const el = DOM.cutin, c = Companion.c;
     const mood = /APEX|BLITZ|BOOST/i.test(text) ? 'hype'
-      : /SUIT/i.test(text) ? 'cheer'
+      : /SUIT|RUN|PEAK|ROW/i.test(text) ? 'cheer'
       : /VICTORY|WIN/i.test(text) ? 'cheer'
       : (c.key === 'rin' || c.key === 'kira' || c.key === 'ayame') ? 'smug'
       : (c.key === 'sakura' || c.key === 'kaede') ? 'cheer'
@@ -2311,6 +3643,17 @@
     const minX = L + w * 0.12, maxX = L + w * 0.88, minBottomY = T + h * 0.30;
     const avail = M.H - M.tabY - M.gap - M.cardH;
     let hit = false;
+    if (G.variant !== 'klondike') {
+      for (let i = 0; i < useCount && !hit; i++) {
+        const c = cards[i];
+        if (!c.pile || c.x == null) continue;
+        const x = M.boardLeft + c.x;
+        if (x >= maxX || x + M.cw <= minX) continue;
+        if (M.boardTop + c.y + M.cardH > minBottomY) hit = true;
+      }
+      if (mascotBox.peek !== hit) { mascotBox.peek = hit; el.classList.toggle('peek', hit); }
+      return;
+    }
     for (let i = 0; i < 7; i++) {
       const p = G.tab[i], len = p.length;
       if (!len) continue;
@@ -3039,13 +4382,15 @@
   const MUSIC_OPTS = [['pulse', '◈ Prism Pulse (165)'], ['redline', '🔥 Redline Rush (178)'], ['horizon', '⚡ Horizon Drive (152)'], ['zenith', '✦ Zenith Core (190)'], ['bounce', '🐾 Neko Bounce (118)'], ['lofi', '🌸 Pastel Lo-fi (76)'], ['lullaby', '🌙 Starlight (64)'], ['off', 'Off']];
   const SCHEMA = [
     { title: 'Gameplay', items: [
-      { key: 'difficulty', label: 'Difficulty', type: 'seg', options: Object.keys(DIFF).map((k) => [k, `${DIFF[k].icon} ${DIFF[k].label}`]), hint: () => DIFF[settings.difficulty].desc, nextGame: true },
-      { key: 'draw', label: 'Draw mode', type: 'seg', options: [[1, '1 card'], [3, '3 cards']], hint: 'Draw one card at a time, or three (harder!).', nextGame: true },
+      { key: 'variant', label: 'Game', type: 'seg', options: VARIANT_KEYS.map((k) => [k, `${VARIANTS[k].icon} ${VARIANTS[k].label}`]), hint: () => VARIANTS[settings.variant].tagline, nextGame: true },
+      { key: 'difficulty', label: 'Difficulty', type: 'seg', options: Object.keys(DIFF).map((k) => [k, `${DIFF[k].icon} ${DIFF[k].label}`]), hint: () => diffDesc(settings.variant, settings.difficulty), nextGame: true },
+      { key: 'draw', label: 'Draw mode', type: 'seg', options: [[1, '1 card'], [3, '3 cards']], hint: 'Draw one card at a time, or three (harder!).', nextGame: true, when: () => settings.variant === 'klondike' },
+      { key: 'spiderSuits', label: 'Spider suits', type: 'seg', options: [[1, '1 suit'], [2, '2 suits'], [4, '4 suits']], hint: () => SUIT_HINT[settings.spiderSuits], nextGame: true, when: () => settings.variant === 'spider' },
       { key: 'tapMove', label: 'Tap to auto-move', type: 'toggle', hint: 'Click a card to send it to the best spot.' },
-      { key: 'autoFound', label: 'Auto-play to foundations', type: 'toggle', hint: 'Safely sends cards home for you.' },
-      { key: 'autoFinish', label: 'Auto-finish', type: 'toggle', hint: 'Finish automatically once every card is revealed.' },
+      { key: 'autoFound', label: 'Auto-play to foundations', type: 'toggle', hint: 'Safely sends cards home for you (Klondike & FreeCell).', when: () => settings.variant === 'klondike' || settings.variant === 'freecell' },
+      { key: 'autoFinish', label: 'Auto-finish', type: 'toggle', hint: 'Finish automatically once the rest plays itself.', when: () => settings.variant === 'klondike' || settings.variant === 'freecell' },
       { key: 'dropGuides', label: 'Highlight valid drops', type: 'toggle', hint: 'Glow where a dragged card can land.' },
-      { key: 'leftHanded', label: 'Left-handed layout', type: 'toggle', hint: 'Stock on the right side.' },
+      { key: 'leftHanded', label: 'Left-handed layout', type: 'toggle', hint: 'Mirror the top row (stock on the right side).', when: () => settings.variant !== 'tripeaks' },
       { key: 'detectLoss', label: 'End game when', type: 'seg', options: [['solver', 'Unwinnable'], ['stuck', 'No moves left'], ['off', 'Never']], hint: () => LOSS_HINT[settings.detectLoss] },
     ] },
     { title: 'Look & feel', items: [
@@ -3093,6 +4438,7 @@
     for (const sec of SCHEMA) {
       const h = document.createElement('h3'); h.textContent = sec.title; body.appendChild(h);
       for (const it of sec.items) {
+        if (it.when && !it.when()) continue;
         const row = document.createElement('div'); row.className = 'row';
         row.dataset.setting = it.key;
         const hint = typeof it.hint === 'function' ? it.hint() : it.hint;
@@ -3154,10 +4500,12 @@
     // stats
     const h = document.createElement('h3'); h.textContent = 'Stats ♡'; body.appendChild(h);
     const st = getStats();
-    const rows = Object.keys(DIFF).map((k) => {
-      const s = st[k];
+    // the selected game, plus every other game that has been played
+    const shown = VARIANT_KEYS.filter((v) => v === settings.variant || Object.keys(DIFF).some((d) => st[statKey(v, d)].played > 0));
+    const rows = shown.map((v) => `<tr class="stats-group"><td colspan="7">${VARIANTS[v].icon} ${VARIANTS[v].label}</td></tr>` + Object.keys(DIFF).map((k) => {
+      const s = st[statKey(v, k)];
       return `<tr><td>${DIFF[k].icon} ${DIFF[k].label}</td><td>${s.played}</td><td>${s.won}</td><td>${s.played ? Math.round(s.won / s.played * 100) : 0}%</td><td>${fmtTime(s.bestTime)}</td><td>${s.bestScore || '—'}</td><td>${s.bestStreak}</td></tr>`;
-    }).join('');
+    }).join('')).join('');
     const wrap = document.createElement('div');
     wrap.innerHTML = `<table class="stats-table"><tr><th></th><th>Played</th><th>Won</th><th>Win%</th><th>Best time</th><th>Best score</th><th>Streak</th></tr>${rows}</table>
       <div style="text-align:right;margin-top:8px"><button class="btn" type="button" id="btnResetStats">Reset stats</button></div>`;
@@ -3171,6 +4519,11 @@
     updateSettingsNote();
   }
 
+  const SUIT_HINT = {
+    1: 'All spades: the classic warm-up.',
+    2: 'Spades & hearts: runs must still be one suit to lift.',
+    4: 'All four suits: the real thing (deals are not verified).',
+  };
   const LOSS_HINT = {
     solver: 'A solver checks every line in the background and ends the game as soon as it can no longer be won.',
     stuck: 'Keep playing until no move can put a card home or turn one face-up (shuffling cards around does not count).',
@@ -3209,7 +4562,8 @@
   }
 
   function updateSettingsNote() {
-    const pending = G && (G.difficulty !== settings.difficulty || G.draw !== settings.draw);
+    const pending = G && (G.difficulty !== settings.difficulty || G.variant !== settings.variant
+      || (settings.variant === 'klondike' && G.draw !== settings.draw) || (settings.variant === 'spider' && G.suits !== settings.spiderSuits));
     DOM.settingsNote.classList.toggle('hidden', !pending);
   }
 
@@ -3247,7 +4601,13 @@
       }
     }
     updateSettingsNote();
-    if (key === 'difficulty' || key === 'draw') buildStartPickers();
+    if (key === 'difficulty' || key === 'draw' || key === 'variant' || key === 'spiderSuits') buildStartPickers();
+    // rows that only apply to one game appear / disappear with it
+    if (key === 'variant' && DOM.settingsModal && !DOM.settingsModal.classList.contains('hidden')) {
+      const panel = DOM.settingsModal.querySelector('.panel'), y = panel ? panel.scrollTop : 0;
+      buildSettings();
+      if (panel) panel.scrollTop = y;
+    }
   }
 
   function applySettings(key) {
@@ -3344,7 +4704,7 @@
     DOM.btnContinue.classList.toggle('hidden', !canContinue);
 
     if (G) {
-      G.prevBestScore = Math.max(G.prevBestScore || 0, getStats()?.[G.difficulty]?.bestScore || 0);
+      G.prevBestScore = Math.max(G.prevBestScore || 0, getStats()?.[SK()]?.bestScore || 0);
       if (prevLeftHanded !== settings.leftHanded) { slotsDirty = true; layout(); }
       if (prevAutoFinish !== settings.autoFinish) maybeAutoFinish();
       if (prevDetectLoss !== settings.detectLoss) scheduleCheck();
@@ -3367,19 +4727,45 @@
 
   // ---------------------------------------------------------------- start screen
   function buildStartPickers() {
+    const vp = $('#variantPick');
+    if (vp) {
+      vp.innerHTML = '';
+      VARIANT_KEYS.forEach((k) => {
+        const v = VARIANTS[k], b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'variant-card' + (settings.variant === k ? ' on' : '');
+        b.dataset.variant = k;
+        b.title = v.tagline;
+        b.innerHTML = `<span class="vc-ic">${v.icon}</span><span class="vc-name">${v.label}</span>`;
+        b.onclick = () => { Sound.ensure(); setSetting('variant', k); };
+        vp.appendChild(b);
+      });
+      const vt = $('#variantTagline');
+      if (vt) vt.textContent = VARIANTS[settings.variant].tagline;
+    }
     const dp = $('#diffPick'); dp.innerHTML = '';
     Object.keys(DIFF).forEach((k) => {
       const d = DIFF[k], b = document.createElement('button');
       b.type = 'button';
       b.className = 'diff-card' + (settings.difficulty === k ? ' on' : '');
-      b.innerHTML = `<span class="dc-ic">${d.icon}</span><span class="dc-name">${d.label}</span><span class="dc-desc">${d.desc}</span>`;
+      b.innerHTML = `<span class="dc-ic">${d.icon}</span><span class="dc-name">${d.label}</span><span class="dc-desc">${diffDesc(settings.variant, k)}</span>`;
       b.onclick = () => { Sound.ensure(); setSetting('difficulty', k); };
       dp.appendChild(b);
     });
     const cp = $('#castPick'), picker = makeCastPicker();
     cp.replaceWith(picker); picker.id = 'castPick';
-    const wrap = $('#drawPick'); const fresh = makeSeg([[1, '1 card'], [3, '3 cards']], () => settings.draw, (v) => { Sound.ensure(); setSetting('draw', v); });
+    // the mode row: draw count for Klondike, suit count for Spider, nothing for the rest
+    const row = $('#modeRow'), lbl = $('#modeLabel'), wrap = $('#drawPick');
+    let fresh;
+    if (settings.variant === 'spider') {
+      fresh = makeSeg([[1, '1 suit'], [2, '2 suits'], [4, '4 suits']], () => settings.spiderSuits, (v) => { Sound.ensure(); setSetting('spiderSuits', v); });
+      if (lbl) lbl.textContent = 'Suits';
+    } else {
+      fresh = makeSeg([[1, '1 card'], [3, '3 cards']], () => settings.draw, (v) => { Sound.ensure(); setSetting('draw', v); });
+      if (lbl) lbl.textContent = 'Draw mode';
+    }
     wrap.replaceWith(fresh); fresh.id = 'drawPick';
+    if (row) row.classList.toggle('hidden', settings.variant !== 'klondike' && settings.variant !== 'spider');
   }
   function showStart(silent) {
     buildStartPickers();
@@ -3409,6 +4795,7 @@
   function init() {
     Art.injectDefs();
     buildTable();
+    applyFaces('klondike', 1);
     applySettings();
     measure();
 
@@ -3569,6 +4956,7 @@
         get chain() { return G ? G.chain : 0; },
         get autoPaused() { return autoPaused; },
         cards, settings, setSetting, newGame, moveCards, drawStock, undo,
+        doMove, tabMove, spiderDeal, pyramidRemove, peakPlay, variantState, isWon, pyrExposed, VSolver,
         autoFoundStep, layout, win, showWinModal, declareLost, showLost, findHints,
         Companion, cutIn, scheduleCheck, detectTouchZone, handleCompanionTouch, FX,
         StageBG, PopupFX, tierOf, syncComboHud, breakChain,

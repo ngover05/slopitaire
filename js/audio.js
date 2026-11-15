@@ -972,6 +972,64 @@ const Sound = (() => {
       });
     },
 
+    // ---------- variant SFX (Pyramid / TriPeaks / FreeCell) ----------
+    // Pyramid pair: two bells a fifth apart that meet on one chord; climbs with the combo. Kings get a low thud.
+    pairMatch(combo = 0, king = false) {
+      if (!ok()) return;
+      const t = now();
+      const cb = clamp(Math.round(Number(combo) || 0), 0, 24);
+      const m = Math.min(92, 67 + PENTA[cb % 13] + ((cb / 13) | 0) * 12);
+      noise(t, 0.04, { ft: 'highpass', f: 6800, vol: 0.06 });
+      if (king) tone(130, t, 0.18, { vol: 0.18, glide: 55, glideT: 0.12 });
+      bell(mtof(m), t, 0.34, 0.1, sfxBus, false, true);
+      bell(mtof(m + 7), t + 0.06, 0.3, 0.085, sfxBus, false, true);
+      chordStab([m - 12, m, m + 4, m + 7], t + 0.1, 0.2, { type: 'triangle', vol: 0.045, lp: 5200, lpEnd: 1800, sfxSend: true });
+    },
+
+    // Pyramid row gone: a rising sweep into a bright stack of bells
+    rowClear() {
+      if (!ok()) return;
+      const t = now();
+      supersaw(330, t, 0.2, { glide: 1320, glideT: 0.18, vol: 0.08, lp: 6800, spread: 16, sfxSend: true });
+      [76, 79, 83, 88, 91].forEach((m, i) => bell(mtof(m), t + 0.05 + i * 0.045, 0.32, 0.07, sfxBus, false, true));
+    },
+
+    // TriPeaks summit: deep boom, then a fanfare arpeggio
+    peakClear() {
+      if (!ok()) return;
+      const t = now();
+      tone(110, t, 0.3, { vol: 0.22, glide: 40, glideT: 0.25 });
+      noise(t, 0.2, { ft: 'bandpass', f: 900, fEnd: 5200, q: 1.2, vol: 0.08, a: 0.03 });
+      [72, 79, 84, 88, 91, 96].forEach((m, i) => {
+        const nt = t + 0.04 + i * 0.06;
+        supersaw(mtof(m), nt, 0.12, { vol: 0.06, lp: 7600, spread: 12, sfxSend: i >= 4 });
+        bell(mtof(m), nt, 0.28, 0.065, sfxBus, false, i === 5);
+      });
+    },
+
+    // TriPeaks run cashed in: a coin-counter ripple, longer runs get more ticks
+    runBank(len = 3) {
+      if (!ok()) return;
+      const t = now();
+      const n = clamp((len | 0) - 1, 2, 9);
+      for (let i = 0; i < n; i++) {
+        const nt = t + i * 0.045;
+        tone(mtof(84 + PENTA[i % 13]), nt, 0.06, { type: 'square', vol: 0.03, lp: 4200 });
+        bell(mtof(84 + PENTA[i % 13]), nt, 0.16, 0.05, sfxBus, false, false);
+      }
+      chordStab([72, 76, 79, 84], t + n * 0.045, 0.32, { type: 'sawtooth', detune: 10, vol: 0.05, lp: 6400, lpEnd: 2000, sfxSend: true });
+    },
+
+    // FreeCell: parking a card in a cell; the pitch drops as the cells fill up
+    cellPark(used = 1) {
+      if (!ok()) return;
+      const t = now();
+      const u = clamp(used | 0, 1, 4);
+      tone(520 - u * 60, t, 0.07, { type: 'triangle', vol: 0.1, glide: 300 - u * 30, glideT: 0.05 });
+      noise(t, 0.03, { ft: 'bandpass', f: 1800, q: 1.4, vol: 0.07 });
+      tone(1040 - u * 90, t + 0.03, 0.05, { type: 'sine', vol: 0.04 });
+    },
+
     autoStep(i = 0) {
       if (!ok()) return;
       const t = now();

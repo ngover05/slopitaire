@@ -649,7 +649,7 @@ function runSmokeTest(win) {
         const hasAccount = (typeof Account !== 'undefined' && !!Account) || !!window.Account;
         const hasDesktop = !!window.slopDesktop && window.slopDesktop.isElectron === true;
         return {
-          ready: cards === 52 && hasSolver && hasCast && hasDesktop,
+          ready: cards === 104 && hasSolver && hasCast && hasDesktop,
           cards,
           hasSolver,
           hasCast,

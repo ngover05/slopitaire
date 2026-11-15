@@ -1,6 +1,6 @@
 # Slopitaire // PRISM ◈✿
 
-High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows & Linux Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprites all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork showcase portraits** are studio-cleaned transparent TV-anime artwork (shipped as WebP; PNG masters in `art/sprites/`), and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
+High-tech **futuristic anime solitaire collection** (**Klondike, Spider, FreeCell, Pyramid & TriPeaks**) featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows & Linux Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprites all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork showcase portraits** are studio-cleaned transparent TV-anime artwork (shipped as WebP; PNG masters in `art/sprites/`), and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
 
 ---
 
@@ -35,7 +35,7 @@ High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** t
   - `🌸 Pastel Lo-fi` (**76 BPM**)
   - `🌙 Starlight` (**64 BPM**)
 - **49+ Synthesized Futuristic Digital SFX (`Sound.sfx`):** Pitch-climbing `place` & `comboTick` pings, staggered `multiPlace` stack drops, harmonic `multiPick`, `cardHover` & UI `hover` micro-ticks, crystalline `revealCard` data-decrypt shimmers, `kingLock` bass servo-locks, `aceIgnition` prism sparks, `foundation` chord chimes, tiered `comboMilestone` risers, clutch `comboSave` dual-chimes, `comboBreak` power-downs, `popupScore` twinkles, `badgeUnlock` medal chimes, `bannerSlam` visor thumps, `reactStamp` star pops, `draw` & `drawTriple` card fans, `stockEmpty`, `modalOpen` / `modalClose` holo-whooshes, `toggleOn` / `toggleOff` binary chirps, 8 character-signature `partnerSelect` & `petGirl` musical motifs, `halfway`, `almostWon`, `suitDone`, `clearCol`, `autoStep`, `cutin`, `warning`, `newRecord`, and `win` fanfare.
-- **2,000+ Bilingual Voice Lines:** Over 2,000 distinct `[bubble, Japanese TTS, English TTS]` lines across all 8 companions and 41 gameplay & combo-momentum events (`SURGE` / `BOOST` / `BLITZ` / `APEX` milestones, combo breaks, clutch saves, rapid APM streaks, King locks, Ace ignitions, multi-card stacks, midpoint & climax rush, music/theme switches, and more) with a 5-line anti-repeat ring buffer and automatic BGM ducking.
+- **3,000+ Bilingual Voice Lines:** Over 3,000 distinct `[bubble, Japanese TTS, English TTS]` lines across all 8 companions and 62 gameplay & combo-momentum events (Spider runs, FreeCell supermoves, Pyramid row clears, TriPeaks peaks & banked runs, `SURGE` / `BOOST` / `BLITZ` / `APEX` milestones, combo breaks, clutch saves, rapid APM streaks, King locks, Ace ignitions, multi-card stacks, midpoint & climax rush, music/theme switches, and more) with a 5-line anti-repeat ring buffer and automatic BGM ducking.
 - **151 Cleaned TV-Anime Companion Sprites (`Corner` & `Full-Body` Modes) + Partner Auras:** 20+ transparent RGBA sprites per heroine across **11 expressive moods** (`normal`, `happy`, `wink`, `oops`, `sad`, `thinking`, `special`, `hype`, `smug`, `shock`, `cheer`, plus character extras and showcase portraits, alongside Mochi SVG), switchable live between **Corner bust** and **Full-Body** framing via **Settings → Sprite style**, with bespoke `[data-partner]` holographic aura FX, `4×2` hover-winking partner portraits, zero-fringe alpha decontamination, and zero-obstruction click-through card safety.
 
 ---
@@ -155,7 +155,7 @@ npm install
 # Launch the Electron desktop app
 npm start
 
-# Run the headless smoke check (verifies 52 cards, Solver, Cast, Account, slopDesktop, app://slopitaire)
+# Run the headless smoke check (verifies 104 cards, Solver, Cast, Account, slopDesktop, app://slopitaire)
 npm run test:smoke
 
 # Build unpacked desktop directory for the current OS (dist/win-unpacked/ or dist/linux-unpacked/)
@@ -181,6 +181,22 @@ Linux keeps user data in `~/.config/slopitaire/` (`config.json`, `auth.json`, `p
 `npm run dist` still builds the Windows targets so existing workflows keep working.
 
 ---
+
+## 🃏 Game Variants
+
+Pick the game on the title screen or in **Settings → Game**. Every variant shares the combo gauge and multiplier tiers, the 4-layer pop-ups, companions, save/resume, per-variant stats (synced to the cloud) and all four difficulties.
+
+| Game | Rules | Mode | Its own combo & score events |
+|---|---|---|---|
+| ♠ **Klondike** | The classic: build down in alternating colours, send every suit home | Draw 1 / Draw 3 | (see above) |
+| 🕷 **Spider** | 104 cards, 10 columns. Build down regardless of suit; only same-suit runs move together. A finished King→Ace run of one suit lifts off by itself. Dealing a row needs every column filled | 1 / 2 / 4 suits | `★ SPIDER RUN!` +100 (counts +2 combo), `SUIT LINK` +3 the first time a card joins its suit, flips +5, `🕸 WEB DEAL`, `FILL EVERY COLUMN`; medals `FIRST RUN`, `HALF THE WEB`, `ONE RUN LEFT`, `DOUBLE RUN`, `SILK THREAD` (8+ same-suit run), `EVERY CARD REVEALED` |
+| ❄ **FreeCell** | All cards face up, 4 free cells. Sequences move as far as the free cells and empty columns allow | — | `⇉ SUPERMOVE ×N`, `◇ CELL PARK`, `⚠ CELLS FULL`, `✧ CELLS CLEAR!`, foundation +10; medals `SUPERMOVE MASTER`, `CELLS CLEARED`; auto-finish once every column runs high-to-low |
+| 🔺 **Pyramid** | Remove exposed cards in pairs that add up to 13; Kings go alone. Tap one card then its partner, or drag one onto the other | Redeals: Easy ∞ · Medium 3 · Hard 2 passes | `PAIR 13!` / `DECK PAIR!` +10, `♛ KING SOLO!`, `⚡ ROW CLEAR!` +25 per row (+1 combo); medals `FIRST PAIR`, `FIRST ROW DOWN`, `HALF PYRAMID`, `SUMMIT EXPOSED`; +10 per unused stock card on a win |
+| ⛰ **TriPeaks** | Play exposed cards one rank above or below the waste card; Kings and Aces wrap around. One pass through the stock | — | Each card +5 (`↻ WRAP!` +10), `⛰ PEAK CLEARED!` +50 (+2 combo). Drawing ends the run and **banks** it: `RUN ×N BANKED` +10 per card past the second. Medals `FIRST PEAK`, `TWIN PEAKS`, `WRAPAROUND`, `LONG RUN ×10`, `MOUNTAIN RUN ×20`; +20 per unused stock card on a win |
+
+New companion events, each with lines for all 8 partners: `startSpider`, `startFreecell`, `startPyramid`, `startTripeaks`, `spiderRun`, `spiderDeal`, `dealBlocked`, `cellsFull`, `cellsClear`, `supermove`, `pairMatch`, `kingSolo`, `rowClear`, `peakClear`, `runBanked`, `wrapPlay`. They have no prerecorded clips yet, so they speak through the browser's Web Speech voices until `python3 tools/voice/generate.py` is run.
+
+Verified deals (Easy, Hard, Auto) come from `js/variant-solver.js`: Easy deals are ones the solver wins with little searching, Hard deals need a non-obvious line. 4-suit Spider deals are too costly to prove, so they are always random. Stats are stored per variant and difficulty (`spider_hard`, `freecell_easy`, …; Klondike keeps `easy` / `medium` / `hard` / `auto`).
 
 ## 🎴 Difficulties
 
@@ -236,9 +252,10 @@ Every line is **prerecorded with [Kokoro](https://huggingface.co/hexgrad/Kokoro-
 - `js/game.js` — Klondike rules, combo/multiplier engine, `PopupFX` 4-layer pop-up controller, `StageBG` ambient circuit backdrop, timestamped `Store` & guest delta tracking, input, UI, persistence
 - `js/account.js` — Google OAuth2 account UI, cloud sync client, Electron desktop bridge integration & offline backup hooks
 - `js/audio.js` — 16th-note Web Audio synthesizer, 7 BGM tracks, real-time `AnalyserNode` telemetry, 49+ digital SFX
-- `js/cast.js` — 8-companion / 151-sprite `Corner`/`Full-Body` manifest, 11 moods, 2,000+ bilingual voice lines, voice-clip player with Web Speech fallback
+- `js/cast.js` — 8-companion / 151-sprite `Corner`/`Full-Body` manifest, 11 moods, 3,000+ bilingual voice lines, voice-clip player with Web Speech fallback
 - `js/art.js` — Crisp SVG card faces, chibi royal court cards, card backs, Mochi SVG mascot
 - `js/solver.js` — Exhaustive DFS Klondike solver & step-by-step `◈ Auto` autopilot move planner (runs in Web Worker and Node.js)
+- `js/variant-solver.js` — Best-first solver for Spider, FreeCell, Pyramid & TriPeaks: verified deals, unwinnable detection and the `◈ Auto` planner (Web Worker and Node.js)
 - `images/{sakura,yuki,rin,mio,ayame,kira,kaede}/` — 151 cleaned transparent TV-anime companion sprites as lossy WebP (`corner_*` & `full_*`) + showcase portraits
 - `art/sprites/` — lossless PNG masters for every sprite (not shipped). Re-export one with `cwebp -q 85 -alpha_q 100 -m 6 -sharp_yuv art/sprites/<path>.png -o images/<path>.webp`
 - `server/` — Zero-dependency Node.js 24 backend (`index.js`, `db.js`, `auth.js`, `merge.js`, `test-auth.js`) for Google OAuth2 + PKCE and SQLite progress sync

@@ -645,6 +645,21 @@ body[data-combo-tier="4"] .slot-found {
 .card.celebrate .card-inner { animation: hop .6s ease 3; }
 .no-anim .card, .no-anim .card-inner { transition: none !important; }
 
+/* ---------- variants: Spider / FreeCell / Pyramid / TriPeaks ---------- */
+.card.unused { display: none; }
+.slot-cell { border-style: solid; border-color: color-mix(in srgb, var(--beam-b) 45%, var(--slot-b)); }
+.slot-cell .slot-ic { opacity: .55; }
+.board[data-variant="spider"] .slot-found .slot-ic,
+.board[data-variant="pyramid"] .slot-found .slot-ic { font-size: calc(var(--cw) * .24); letter-spacing: .5px; }
+.board[data-variant="tripeaks"] .slot-waste,
+.board[data-variant="pyramid"] .slot-waste { border: 1.5px dashed var(--slot-b); }
+/* Pyramid: cards still covered by the row below sit a little dimmer */
+.board[data-variant="pyramid"] .card.covered .front { filter: brightness(.84) saturate(.8); }
+.card.selected .card-inner { transform: translateY(-8%); }
+.card.selected .front {
+  box-shadow: 0 0 0 3px var(--accent), 0 8px 18px rgba(4, 10, 18, .4), 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
 @keyframes hintPulse { 50% { box-shadow: 0 0 0 3px var(--glow), 0 0 24px 6px var(--glow); } }
 @keyframes slotPulse { 50% { box-shadow: 0 0 0 3px var(--glow), 0 0 24px 6px var(--glow); border-color: var(--glow); } }
 @keyframes shake { 20% { transform: translateX(-6px) rotate(-3deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
@@ -1861,10 +1876,12 @@ body[data-theme="matcha"] .panel h3 { color: var(--accent); }
   flex-wrap: nowrap; white-space: nowrap;
 }
 .seg[data-setting="difficulty"] button { white-space: nowrap; }
-.seg[data-setting="theme"] {
+.seg[data-setting="theme"],
+.seg[data-setting="variant"] {
   display: flex; flex-wrap: wrap; justify-content: stretch;
   width: 100%; gap: 5px; padding: 4px;
 }
+.seg[data-setting="variant"] button { flex: 1 1 96px; min-width: 0; text-align: center; white-space: nowrap; }
 .seg[data-setting="theme"] button {
   flex: 1 1 140px; min-width: 0; text-align: center; white-space: nowrap;
 }
@@ -1935,6 +1952,11 @@ input[type="range"] { accent-color: var(--accent); width: 150px; cursor: pointer
   letter-spacing: .5px; opacity: .72; font-weight: 700;
 }
 .stats-table td:first-child { text-align: left; font-weight: 800; }
+.stats-table .stats-group td {
+  padding-top: 10px; font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-size: 11.5px; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--beam-a);
+  border-bottom: 1px solid color-mix(in srgb, var(--hud-border) 60%, transparent);
+}
 
 /* ---------- start screen (calibrated for 8-partner 4x2 & 4-diff zero-clip fit on 1440x900, 1366x768 & 390x844) ---------- */
 .start-panel { text-align: center; max-width: 568px; padding: 12px 18px 13px; }
@@ -2000,6 +2022,28 @@ body[data-theme="matcha"] .tagline { color: var(--ink); opacity: .8; }
 .draw-pick {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   margin: 9px 0; font: 700 13px 'Chakra Petch', 'Nunito', sans-serif;
+}
+.draw-pick.hidden + * { margin-top: 9px; }
+.variant-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0 0 3px; }
+.variant-card {
+  min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px;
+  border: 2px solid var(--hud-border); background: var(--chip); color: inherit; border-radius: 11px; padding: 5px 4px;
+  cursor: pointer; transition: transform .15s, border-color .15s, background .15s, box-shadow .15s;
+}
+.variant-card .vc-ic { font-size: 15px; line-height: 1; }
+.variant-card .vc-name {
+  font: 700 11.5px 'Orbitron', 'Mochiy Pop One', sans-serif; letter-spacing: .2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.variant-card:hover:not(.on) { transform: translateY(-2px); border-color: var(--beam-a); box-shadow: 0 0 12px color-mix(in srgb, var(--beam-a) 28%, transparent); }
+.variant-card.on {
+  border-color: var(--beam-a);
+  background: color-mix(in srgb, var(--beam-a) 18%, var(--panel));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--beam-a) 60%, transparent), 0 0 14px color-mix(in srgb, var(--beam-a) 30%, transparent);
+}
+.variant-tagline {
+  font: 700 11px 'Nunito', sans-serif; opacity: .74; margin: 0 0 6px; min-height: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .start-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .linkish {
@@ -2575,6 +2619,10 @@ body[data-theme="matcha"] .lose-stats .win-stat b { color: #be123c; }
   .cast-opt b { font-size: 11.5px; }
   .cast-opt small { font-size: 9px; letter-spacing: -.1px; }
   .diff-pick { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .variant-pick { gap: 4px; }
+  .variant-card { flex-direction: column; gap: 1px; padding: 4px 2px; border-radius: 10px; }
+  .variant-card .vc-name { font-size: 9.5px; letter-spacing: 0; }
+  .variant-tagline { white-space: normal; font-size: 10.5px; }
   .diff-card { padding: 5px 3px; border-radius: 11px; }
   .diff-card .dc-ic { font-size: 17px; }
   .diff-card .dc-name { font-size: 11px; letter-spacing: .15px; }

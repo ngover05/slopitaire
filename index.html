@@ -25,7 +25,7 @@
       <div class="chip stat" title="Time">⏱ <b id="time">0:00</b></div>
       <div class="chip stat" title="Moves">✦ <b id="moves">0</b></div>
       <div class="chip stat" title="Score">♡ <b id="score">0</b></div>
-      <div class="chip" id="chipPasses" title="Redeals left">↻ <b id="passes">∞</b></div>
+      <div class="chip" id="chipPasses" title="Redeals left"><span id="passesIc">↻</span> <b id="passes">∞</b></div>
       <div class="chip" id="chipDeal" title="Deal number">#0</div>
     </div>
     <div id="comboHud" class="combo-hud" data-tier="0" title="Active Move Combo &amp; Score Multiplier">
@@ -71,8 +71,10 @@
       <h1 class="title">Slopitaire</h1>
       <p class="tagline">◈ HIGH-TECH ANIME SOLITAIRE ◈</p>
       <div class="start-cast"><div class="start-cast-label">Choose your partner ♡</div><div class="cast-pick" id="castPick"></div></div>
+      <div class="variant-pick" id="variantPick" role="group" aria-label="Game"></div>
+      <div class="variant-tagline" id="variantTagline"></div>
       <div class="diff-pick" id="diffPick"></div>
-      <div class="draw-pick"><span>Draw mode</span><div class="seg" id="drawPick"></div></div>
+      <div class="draw-pick" id="modeRow"><span id="modeLabel">Draw mode</span><div class="seg" id="drawPick"></div></div>
       <div id="startAccountBar" class="start-account-bar"></div>
       <div class="start-actions">
         <button class="btn primary big" id="btnPlay">Play ♡</button>
@@ -151,7 +153,7 @@
             <div class="rank-badge lose-badge" id="loseGrade" data-grade="F">✕</div>
           </div>
           <div class="lose-progress">
-            <div class="lp-top"><span>FOUNDATION PROGRESS</span><b id="loseProgText">0 / 52 (0%)</b></div>
+            <div class="lp-top"><span id="loseProgLabel">FOUNDATION PROGRESS</span><b id="loseProgText">0 / 52 (0%)</b></div>
             <div class="lp-bar"><div class="lp-fill" id="loseProgFill"></div></div>
           </div>
           <div class="win-stats result-stats lose-stats" id="loseStats"></div>
@@ -174,6 +176,7 @@
   <script defer src="js/voice-clips.js"></script>
   <script defer src="js/cast.js"></script>
   <script defer src="js/solver.js"></script>
+  <script defer src="js/variant-solver.js"></script>
   <script defer src="js/account.js"></script>
   <script defer src="js/game.js"></script>
 </body>

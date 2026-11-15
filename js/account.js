@@ -6,7 +6,8 @@
   const SYNC_DEBOUNCE_MS = 900;
   const BACKUP_DEBOUNCE_MS = 400;
   const STATUS_TIMEOUT_MS = 6000;
-  const DIFF_KEYS = ['easy', 'medium', 'hard', 'auto'];
+  // per-variant stat keys, as in statKey() in game.js and DIFFICULTIES in server/merge.js
+  const DIFF_KEYS = ['easy', 'medium', 'hard', 'auto'].flatMap((d) => [d, ...['spider', 'freecell', 'pyramid', 'tripeaks'].map((v) => `${v}_${d}`)]);
 
   const GOOGLE_G_SVG =
     '<svg class="acct-g-svg" viewBox="0 0 24 24" aria-hidden="true">' +
