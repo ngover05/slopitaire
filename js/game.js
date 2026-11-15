@@ -402,7 +402,7 @@
       medals: new Set(), dealFirstMoveAt: 0, openerMoves: 0, prevBestScore: prevBest,
       homed: new Set(),  // cards that already scored a foundation placement this deal
       linked: new Set(), // Spider: cards that already scored a same-suit link this deal
-      cellPeak: 0, homedSincePeak: 0, lastRunAt: 0, bestRun: 0,
+      cellPeak: 0, cellsClearAt: 0, bestRun: 0,
     };
   }
   const SK = () => statKey(G.variant, G.difficulty);
@@ -465,9 +465,9 @@
       clearTimeout(breakT);
       breakT = setTimeout(() => hud.classList.remove('break'), 520);
     }
-    // TriPeaks: a run that ends by drawing (or by running out the clock) is cashed in, not lost
-    if (G.variant === 'tripeaks' && reason !== 'miss' && reason !== 'swap') {
-      bankRun(old, reason);
+    // TriPeaks: however a run ends (a draw, the clock, a mis-tap) it is cashed in, not lost
+    if (G.variant === 'tripeaks') {
+      if (reason !== 'undo') bankRun(old, reason);   // undo restores the score as it was; nothing to pay out
       return reason;
     }
     if (old >= 4) {
@@ -684,7 +684,7 @@
   }
 
   // ---------------------------------------------------------------- variant layouts
-  const SP_ = VSolver;   // shared cover maps for Pyramid & TriPeaks
+  const VS = VSolver;   // shared cover maps for Pyramid & TriPeaks
   // a fanned tableau column, squeezed when it would run off the bottom of the board
   function layoutColumn(p, i, x, y0, inst) {
     const { ch, gap, H } = M, downOff = ch * 0.11, upOff = ch * M.upF;
@@ -750,7 +750,7 @@
       G.pyr.forEach((p, i) => {
         const c = p[0];
         if (!c) return;
-        const r = SP_.PYR_ROW[i], j = i - (r * (r + 1)) / 2;
+        const r = VS.PYR_ROW[i], j = i - (r * (r + 1)) / 2;
         place(c, unitX(3 + j - r / 2), topY + r * ch * 0.5, 300 + i, { t: 'pyr', i }, 0, inst);
         c.el.classList.toggle('covered', !pyrExposed(i));
       });
@@ -769,7 +769,7 @@
       G.pyr.forEach((p, i) => {
         const c = p[0];
         if (!c) return;
-        const r = SP_.TP_ROW[i];
+        const r = VS.TP_ROW[i];
         let u;
         if (r === 0) u = 3 * i + 1.5;
         else if (r === 1) { const j = i - 3; u = 3 * (j >> 1) + (j & 1) + 1; }
@@ -781,7 +781,7 @@
   };
 
   // ---------------------------------------------------------------- Pyramid & TriPeaks cover rules
-  const coverOf = (i) => (G.variant === 'pyramid' ? SP_.PYR_COVER : SP_.TP_COVER)[i];
+  const coverOf = (i) => (G.variant === 'pyramid' ? VS.PYR_COVER : VS.TP_COVER)[i];
   function pyrExposed(i) {
     if (!G.pyr[i] || !G.pyr[i].length) return false;
     const cv = coverOf(i);
@@ -801,7 +801,7 @@
     return c.pile.t === 'waste' && c.idx === G.waste.length - 1;
   }
   const tpAdjacent = (a, b) => { const d = Math.abs(a.rank - b.rank); return d === 1 || d === 12; };
-  const rowCleared = (r) => G.pyr.every((p, i) => SP_.PYR_ROW[i] !== r || !p.length);
+  const rowCleared = (r) => G.pyr.every((p, i) => VS.PYR_ROW[i] !== r || !p.length);
   // FreeCell: the longest sequence that can move at once (free cells + 1, doubled for each empty column)
   function fcCapacity(toEmpty) {
     const free = G.cells.filter((p) => !p.length).length;
@@ -822,7 +822,7 @@
         return top.up && top.rank === c.rank + 1;
       }
       case 'freecell': {
-        if (ref.t === 'cell') return mov.length === 1 && !G.cells[ref.i].length;
+        if (ref.t === 'cell') return mov.length === 1 && c.pile?.t !== 'cell' && !G.cells[ref.i].length;
         if (ref.t === 'tab') {
           const p = G.tab[ref.i];
           if (mov.length > fcCapacity(!p.length)) return false;
@@ -906,6 +906,11 @@
       // same suit first (it keeps the run movable), then any suit, then an empty column
       let any = null, empty = null;
       const c = mov[0];
+      // a tap never makes the table worse: a run already on its own suit stays put, and one already built on
+      // another suit only moves to its own suit
+      const under = src.t === 'tab' && c.idx > 0 ? G.tab[src.i][c.idx - 1] : null;
+      const onLink = !!under && under.up && under.rank === c.rank + 1;
+      if (onLink && under.suit === c.suit) return null;
       for (let i = 0; i < G.tab.length; i++) {
         if (src.t === 'tab' && src.i === i) continue;
         const p = G.tab[i];
@@ -914,6 +919,7 @@
         if (p[p.length - 1].suit === c.suit) return { t: 'tab', i };
         if (any === null) any = i;
       }
+      if (onLink) return null;
       if (any !== null) return { t: 'tab', i: any };
       if (empty !== null && !(src.t === 'tab' && mov[0].idx === 0)) return { t: 'tab', i: empty };
       return null;
@@ -1370,6 +1376,7 @@
     const spider = G.variant === 'spider';
     const sp = pileOf(src), dp = pileOf(dst);
     const cellsBefore = spider ? 0 : 4 - freeCells();
+    const capBefore = spider ? 0 : fcCapacity(dst.t === 'tab' && !dp.length);
     const reveals = src.t === 'tab' && sp.length > idx && idx > 0 && !sp[idx - 1].up;
     const mov = sp.splice(idx);
     dp.push(...mov);
@@ -1450,7 +1457,7 @@
       if (acePlaced) PopupFX?.float(dstEl, `◈ ACE ONLINE! ${sym}`, { kind: 'ace', tag: SUIT_NAMES[mov[0].suit].toUpperCase(), important: true });
       else if (suitCompleted) PopupFX?.float(dstEl, `★ SUIT COMPLETE! ${sym}`, { kind: 'ace', tag: '13 / 13', important: true });
       if (linkPts) PopupFX?.float(dstEl, `SUIT LINK +${linkPts}`, { kind: 'score', tag: `${sym} ${Art.RANKS[under.rank - 1]}→${Art.RANKS[mov[0].rank - 1]}`, mult });
-      if (supermove) PopupFX?.float(dstEl, `⇉ SUPERMOVE ×${mov.length}`, { kind: 'stack', tag: `${fcCapacity(false)} MAX`, important: true });
+      if (supermove) PopupFX?.float(dstEl, `⇉ SUPERMOVE ×${mov.length}`, { kind: 'stack', tag: `${capBefore} MAX`, important: true });
       else if (mov.length >= 2 && !toFound) {
         PopupFX?.float(dstEl, mov.length >= 5 ? `MEGA STACK ×${mov.length}!` : `STACK ×${mov.length}!`, { kind: 'stack', tag: 'TRANSFER', important: mov.length >= 3 });
       }
@@ -1493,7 +1500,7 @@
           while (run < p.length && p[p.length - run - 1].up && p[p.length - run - 1].suit === p[p.length - run].suit && p[p.length - run - 1].rank === p[p.length - run].rank + 1) run++;
           if (run >= 8) PopupFX?.award('silk', '🕸', 'SILK THREAD', `${run}-CARD SAME-SUIT RUN`, 'violet');
         }
-        if (cards.every((c) => c.id >= 104 || c.up || c.pile?.t === 'stock')) PopupFX?.award('allUp', '👁', 'EVERY CARD REVEALED', 'NOTHING LEFT HIDDEN', 'gold');
+        if (cards.every((c) => c.up || c.pile?.t === 'stock')) PopupFX?.award('allUp', '👁', 'EVERY CARD REVEALED', 'NOTHING LEFT HIDDEN', 'gold');
       }
       if (toFound && !reHome) {
         G.combo = now - (G.lastFoundT || 0) < 4500 ? (G.combo || 0) + 1 : 1;
@@ -1708,7 +1715,7 @@
       const p = G.pyr[k];
       if (p.length && !p[0].up && pyrExposed(k)) { p[0].up = true; flips.push(p[0]); }
     }
-    const peak = SP_.TP_ROW[i] === 0;
+    const peak = VS.TP_ROW[i] === 0;
     const peaksDone = [0, 1, 2].filter((k) => !G.pyr[k].length).length;
     const willWin = pyrLeft() === 0;
     const now = Date.now(), cx = chainCtx(now);
@@ -1903,7 +1910,7 @@
     G.score = Math.max(0, G.score - cost);
     Sound.sfx.undo();
     PopupFX?.float(DOM.btnUndo, '↶ REWIND', { kind: 'warn', tag: cost ? `-${cost} PTS` : 'UNDO', important: true });
-    if (G.chain > 0) breakChain('miss');
+    if (G.chain > 0) breakChain('undo');
     Companion.react('undo');
     layout(); updateHUD(); maybeAutoFinish(); saveGame();
     scheduleCheck();
@@ -2380,7 +2387,7 @@
       const top = G.waste[G.waste.length - 1];
       for (let i = 0; i < 28; i++) {
         const p = G.pyr[i];
-        if (p.length && p[0].up && pyrExposed(i) && top && tpAdjacent(p[0], top)) out.push({ src: { t: 'pyr', i }, idx: 0, dst: { t: 'waste', i: 0 }, pri: 60 + (3 - SP_.TP_ROW[i]) * 5 });
+        if (p.length && p[0].up && pyrExposed(i) && top && tpAdjacent(p[0], top)) out.push({ src: { t: 'pyr', i }, idx: 0, dst: { t: 'waste', i: 0 }, pri: 60 + (3 - VS.TP_ROW[i]) * 5 });
       }
       if (G.stock.length) out.push({ draw: true, pri: 10 });
     }
@@ -3171,12 +3178,11 @@
     // the third counter means something different per variant
     const pc = DOM.chipPasses, lim = passLimit();
     if (pc) {
-      let ic = '↻', val, title = 'Redeals left', hide = false;
+      let ic = '↻', val, title = 'Redeals left';
       if (G.variant === 'spider') { val = G.stock.length / 10; title = 'Deals left'; ic = '🕸'; }
       else if (G.variant === 'freecell') { val = freeCells(); title = 'Free cells'; ic = '◇'; }
       else if (G.variant === 'tripeaks') { val = G.stock.length; title = 'Cards left in the stock'; ic = '▤'; }
       else val = lim === Infinity ? '∞' : Math.max(0, lim - G.passes);
-      pc.classList.toggle('hidden', hide);
       pc.title = title;
       if (DOM.passesIc) DOM.passesIc.textContent = ic;
       DOM.passes.textContent = val;
