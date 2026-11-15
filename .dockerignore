@@ -6,6 +6,7 @@ node_modules
 dist
 electron
 tools
+art
 server/data
 .env
 .env.*

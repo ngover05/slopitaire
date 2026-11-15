@@ -1,6 +1,6 @@
 # Slopitaire // PRISM ◈✿
 
-High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows & Linux Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork, and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
+High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows & Linux Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprites all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork showcase portraits** are studio-cleaned transparent TV-anime artwork (shipped as WebP; PNG masters in `art/sprites/`), and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
 
 ---
 
@@ -239,7 +239,8 @@ Every line is **prerecorded with [Kokoro](https://huggingface.co/hexgrad/Kokoro-
 - `js/cast.js` — 8-companion / 151-sprite `Corner`/`Full-Body` manifest, 11 moods, 2,000+ bilingual voice lines, voice-clip player with Web Speech fallback
 - `js/art.js` — Crisp SVG card faces, chibi royal court cards, card backs, Mochi SVG mascot
 - `js/solver.js` — Exhaustive DFS Klondike solver & step-by-step `◈ Auto` autopilot move planner (runs in Web Worker and Node.js)
-- `images/{sakura,yuki,rin,mio,ayame,kira,kaede}/` — 151 cleaned transparent TV-anime companion sprites (`corner_*` & `full_*`) + showcase portraits
+- `images/{sakura,yuki,rin,mio,ayame,kira,kaede}/` — 151 cleaned transparent TV-anime companion sprites as lossy WebP (`corner_*` & `full_*`) + showcase portraits
+- `art/sprites/` — lossless PNG masters for every sprite (not shipped). Re-export one with `cwebp -q 85 -alpha_q 100 -m 6 -sharp_yuv art/sprites/<path>.png -o images/<path>.webp`
 - `server/` — Zero-dependency Node.js 24 backend (`index.js`, `db.js`, `auth.js`, `merge.js`, `test-auth.js`) for Google OAuth2 + PKCE and SQLite progress sync
 - `electron/` — Electron desktop shell (`main.js`, `preload.js`, `icon.png`, `icon.ico`) with `app://slopitaire` protocol, `safeStorage` token vault, loopback OAuth2, and `--smoke-test`
 - `package.json`, `Dockerfile`, `Dockerfile.api`, `docker-compose.yml`, `nginx.conf`, `.env.example`, `.dockerignore` — Electron packaging and multi-service Docker deployment
