@@ -5,6 +5,7 @@
 node_modules
 dist
 electron
+tools
 server/data
 .env
 .env.*

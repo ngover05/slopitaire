@@ -276,6 +276,7 @@
       chain: 0, maxChain: 0, chainUntil: 0, chainDur: 9500, lastMoveAt: 0,
       warnedChain: false, halfwaySaid: false, almostSaid: false, combo: 0, lastFoundT: 0, swaps: {},
       medals: new Set(), dealFirstMoveAt: 0, openerMoves: 0, prevBestScore: prevBest,
+      homed: new Set(),  // cards that already scored a foundation placement this deal
     };
   }
 
@@ -365,6 +366,7 @@
       stock: ids(G.stock), waste: ids(G.waste), found: G.found.map(ids), tab: G.tab.map(ids),
       up: cards.filter((c) => c.up).map((c) => c.id),
       score: G.score, moves: G.moves, passes: G.passes, wasteFan: G.wasteFan,
+      homed: [...G.homed],
     };
   }
   function restore(s) {
@@ -373,6 +375,8 @@
     cards.forEach((c) => { c.up = false; });
     s.up.forEach((id) => { cards[id].up = true; });
     G.score = s.score; G.moves = s.moves; G.passes = s.passes; G.wasteFan = s.wasteFan;
+    // older saves have no list: every card currently on a foundation has scored
+    G.homed = new Set(Array.isArray(s.homed) ? s.homed : s.found.flat());
   }
   function pushHistory() {
     G.history.push(snap());
@@ -611,6 +615,9 @@
 
     const now = Date.now();
     const retreating = src.t === 'found' && dst.t === 'tab';
+    // A card pulled back off a foundation and sent home again already scored once. Without this, the round trip
+    // (-15, then +10 × combo multiplier) gains points at ×2.0 and above and pumps the combo for free.
+    const reHome = dst.t === 'found' && src.t !== 'found' && G.homed.has(mov[0].id);
     const prevChain = G.chain;
     const dtPrev = G.lastMoveAt > 0 ? now - G.lastMoveAt : 0;
     // Anti-farming: shuffling a card between tableau piles without turning anything face-up would pump the combo
@@ -624,12 +631,12 @@
         const n = (G.swaps[mov[0].id] = (G.swaps[mov[0].id] || 0) + 1);
         swapSpam = n > SWAP_LIMIT;
       }
-    } else if (dst.t === 'found' && !retreating) G.swaps = {};
+    } else if (dst.t === 'found' && !retreating && !reHome) G.swaps = {};
     let remRatio = 0, wasClutch = false, wasClutchPop = false, wasFast = false;
     if (swapSpam) {
       if (G.chain > 0) breakChain('swap');
       PopupFX?.float(mov[0].el, '✕ CARD SHUFFLE', { kind: 'warn', tag: 'NO COMBO', important: true });
-    } else if (!opts.auto && !retreating) {
+    } else if (!opts.auto && !retreating && !reHome) {
       remRatio = G.chain > 0 && G.chainDur > 0 ? (G.chainUntil - now) / G.chainDur : 0;
       wasClutch = G.chain >= 5 && remRatio > 0 && remRatio < 0.22;
       wasClutchPop = prevChain >= 3 && remRatio > 0 && remRatio < 0.28;
@@ -650,8 +657,9 @@
 
     const { mult } = tierOf(G.chain);
     let movePts = 0, flipPts = 0;
-    if (dst.t === 'found' && src.t !== 'found') { movePts = Math.round(10 * mult); G.score += movePts; }
-    else if (src.t === 'waste' && dst.t === 'tab') { movePts = Math.round(5 * mult); G.score += movePts; }
+    if (dst.t === 'found' && src.t !== 'found') {
+      if (!reHome) { movePts = Math.round(10 * mult); G.score += movePts; G.homed.add(mov[0].id); }
+    } else if (src.t === 'waste' && dst.t === 'tab') { movePts = Math.round(5 * mult); G.score += movePts; }
     else if (retreating) G.score = Math.max(0, G.score - 15);
     let flipped = false, flippedRank = 1;
     if (src.t === 'tab' && sp.length && !sp[sp.length - 1].up) {
@@ -662,9 +670,9 @@
       flipped = true;
     }
 
-    const suitCompleted = dst.t === 'found' && mov[0].rank === 13 && src.t !== 'found';
-    const acePlaced = dst.t === 'found' && mov[0].rank === 1 && src.t !== 'found';
-    const kingLocked = dst.t === 'tab' && dpWasEmpty && mov[0].rank === 13;
+    const suitCompleted = dst.t === 'found' && mov[0].rank === 13 && src.t !== 'found' && !reHome;
+    const acePlaced = dst.t === 'found' && mov[0].rank === 1 && src.t !== 'found' && !reHome;
+    const kingLocked = dst.t === 'tab' && dpWasEmpty && mov[0].rank === 13 && !retreating;
     const clearedCol = src.t === 'tab' && !sp.length;
 
     G.moves++;
@@ -708,7 +716,7 @@
       const sym = SUIT_SYMS[mov[0].suit];
       if (acePlaced) {
         PopupFX?.float(dstEl, `◈ ACE ONLINE! ${sym}`, { kind: 'ace', tag: SUIT_NAMES[mov[0].suit].toUpperCase(), important: true });
-      } else if (dst.t === 'found' && src.t !== 'found') {
+      } else if (dst.t === 'found' && src.t !== 'found' && !reHome) {
         if (mov[0].rank === 13) PopupFX?.float(dstEl, `★ SUIT COMPLETE! ${sym}`, { kind: 'ace', tag: '13 / 13', important: true });
         else if (mov[0].rank >= 11) PopupFX?.float(dstEl, `ROYAL LOCK! ${sym}`, { kind: 'ace', tag: mov[0].rank === 11 ? 'JACK' : 'QUEEN', important: true });
         else if (mov[0].rank === 7) PopupFX?.float(dstEl, `HALF SUIT! ${sym}`, { kind: 'ace', tag: '7 / 13', important: true });
@@ -757,7 +765,7 @@
         PopupFX?.award('fourKings', '♛', 'FOUR KINGS ANCHORED', 'ROYAL QUAD FORMATION', 'gold');
       }
 
-      if (dst.t === 'found') {
+      if (dst.t === 'found' && !reHome) {
         G.combo = now - (G.lastFoundT || 0) < 4500 ? (G.combo || 0) + 1 : 1;
         G.lastFoundT = now;
       } else G.combo = 0;
@@ -767,7 +775,7 @@
       const crossedHigh = G.chain >= 30 && (crossed(30) || (prevChain >= 30 && Math.floor((G.chain - 30) / 15) > Math.floor((prevChain - 30) / 15)));
       let milestoneFired = false;
 
-      if (!retreating) {
+      if (!retreating && !reHome) {
         if (crossedHigh) {
           milestoneFired = true;
           (Sound.sfx.comboMilestone || Sound.sfx.chainMilestone)?.(4);
@@ -2626,7 +2634,11 @@
       matcha: { a: [31, 184, 121],  b: [255, 127, 80],  acc: [78, 214, 154],  dark: false },
     };
     let pal = { a: [44, 232, 162], b: [255, 182, 56], acc: [255, 225, 105], dark: true };
-    let W = 0, H = 0, dpr = 1, raf = null, lastWall = Date.now(), hiddenAt = 0;
+    let W = 0, H = 0, dpr = 1, raf = null, lastWall = Date.now(), hiddenAt = 0, resizeRaf = 0;
+    // The backdrop drifts slowly, so it is redrawn at ~30 fps instead of every display refresh (60–144 Hz):
+    // each redraw composites several full-screen layers. The combo timer still updates every frame.
+    const STAGE_FRAME_MS = 1000 / 30;
+    let stageAccMs = STAGE_FRAME_MS;
     let timeSec = 0, pulseBoost = 0, pulseRGB = [44, 232, 162];
     // Calm ambient backdrop: a faint, static circuit-board pattern with a few lights gliding along its traces and two
     // slowly drifting colour glows. Nothing is tied to the music's beat or scrolls toward the player.
@@ -2774,6 +2786,7 @@
       cv.width = Math.max(1, Math.floor(W * dpr));
       cv.height = Math.max(1, Math.floor(H * dpr));
       buildTraces(); lights.length = 0; paintTraces();
+      stageAccMs = STAGE_FRAME_MS;  // resizing cleared the canvas: redraw on the next frame
       if (!shouldAnimate()) renderStatic();
     }
 
@@ -2889,7 +2902,13 @@
       lastWall = now;
       tickCombo(now, dtMs);
       const anim = shouldAnimate();
-      if (anim) drawStage(Math.min(0.05, dtMs / 1000 || 0.016), false);
+      if (anim) {
+        stageAccMs += dtMs;
+        if (stageAccMs >= STAGE_FRAME_MS - 1) {
+          drawStage(Math.min(0.05, stageAccMs / 1000), false);
+          stageAccMs = 0;
+        }
+      }
       if (anim || needsComboTick()) raf = requestAnimationFrame(loop);
     }
 
@@ -2904,6 +2923,7 @@
       }
       if (!raf) {
         lastWall = Date.now();
+        stageAccMs = STAGE_FRAME_MS;
         raf = requestAnimationFrame(loop);
       }
     }
@@ -2925,7 +2945,11 @@
     }
 
     resize();
-    addEventListener('resize', resize);
+    // a window drag fires many resize events; rebuild the circuit pattern once per frame at most
+    addEventListener('resize', () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => { resizeRaf = 0; resize(); });
+    });
     if (reduceMQ.addEventListener) reduceMQ.addEventListener('change', () => { if (!shouldAnimate()) renderStatic(); ensureLoop(); });
     return { refreshTheme, resize, pulse, ensureLoop, onVisibility, renderStatic };
   })();
