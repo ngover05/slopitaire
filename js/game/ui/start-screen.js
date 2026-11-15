@@ -29,6 +29,11 @@ function buildStartPickers() {
   });
   const cp = $('#castPick'), picker = makeCastPicker();
   cp.replaceWith(picker); picker.id = 'castPick';
+  const skinsChip = $('#btnStartSkins');
+  if (skinsChip && typeof Cast !== 'undefined' && Array.isArray(Cast.girlKeys)) {
+    const customCount = Cast.girlKeys.filter((k) => skinFor(k) !== 'default').length;
+    skinsChip.classList.toggle('has-custom', customCount > 0);
+  }
   // the mode row: draw count for Klondike, suit count for Spider, nothing for the rest
   const row = $('#modeRow'), lbl = $('#modeLabel'), wrap = $('#drawPick');
   let fresh;

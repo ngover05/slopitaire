@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="css/screens/overlays.css">
   <link rel="stylesheet" href="css/screens/start-screen.css">
   <link rel="stylesheet" href="css/screens/results.css">
+  <link rel="stylesheet" href="css/screens/skins.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/screens/account.css">
   <link rel="stylesheet" href="css/perf-lite.css">
@@ -63,6 +64,7 @@
       <button id="btnHint" class="btn" title="Hint (H)"><span class="ic">✧</span><span class="lbl">Hint</span><span class="badge" id="hintBadge"></span></button>
       <button id="btnSound" class="btn" title="Mute / unmute (M)"><span class="ic" id="soundIc">♪</span></button>
       <button id="btnAccount" class="btn btn-account" title="Google Account &amp; Cloud Sync"><span class="ic acct-ic" id="accountIc"></span><span class="lbl" id="accountLbl">Sign in</span></button>
+      <button id="btnSkins" class="btn" title="Companion skins (O)"><span class="ic">🎀</span><span class="lbl">Skins</span></button>
       <button id="btnSettings" class="btn" title="Settings"><span class="ic">⚙</span><span class="lbl">Settings</span></button>
     </nav>
   </header>
@@ -90,7 +92,13 @@
       <div class="start-mascot" data-mood="happy" data-partner="sakura"><div class="mascot-body" id="startMascot" data-partner="sakura"></div></div>
       <h1 class="title">Slopitaire</h1>
       <p class="tagline">◈ HIGH-TECH ANIME SOLITAIRE ◈</p>
-      <div class="start-cast"><div class="start-cast-label">Choose your partner ♡</div><div class="cast-pick" id="castPick"></div></div>
+      <div class="start-cast">
+        <div class="start-cast-head">
+          <span class="start-cast-label">Choose your partner ♡</span>
+          <button type="button" class="skins-open-chip" id="btnStartSkins">🎀 Outfits &amp; Skins</button>
+        </div>
+        <div class="cast-pick" id="castPick"></div>
+      </div>
       <div class="variant-pick" id="variantPick" role="group" aria-label="Game"></div>
       <div class="variant-tagline" id="variantTagline"></div>
       <div class="diff-pick" id="diffPick"></div>
@@ -115,6 +123,45 @@
         <div class="note hidden" id="settingsNote">Difficulty &amp; draw changes apply to your next game.</div>
         <button class="btn primary" id="btnSettingsNew">New game ♡</button>
         <button class="btn" data-close="settingsModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Companion Skins -->
+  <div id="skinsModal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="skinsTitle">
+    <div class="panel skins-panel">
+      <button class="close-x" data-close="skinsModal" aria-label="Close">✕</button>
+      <div class="skins-header">
+        <div>
+          <h2 id="skinsTitle">Companion Skins 🎀</h2>
+          <p class="skins-sub">Customize each heroine's outfit across the table, cut-ins, portraits &amp; results.</p>
+        </div>
+        <div class="skins-bulk" id="skinsBulk">
+          <button type="button" class="btn skins-bulk-btn" id="btnSkinsAllCasual">✨ All Casual</button>
+          <button type="button" class="btn skins-bulk-btn" id="btnSkinsAllDefault">◈ All Default</button>
+        </div>
+      </div>
+      <div class="skins-roster" id="skinsRoster" role="tablist" aria-label="Heroines"></div>
+      <div class="skins-body">
+        <div class="skins-preview-card" id="skinsPreviewCard">
+          <div class="skins-stage" id="skinsStage" data-partner="sakura" data-mood="happy">
+            <div class="skins-stage-kicker" id="skinsStageKicker">SAKURA // DEFAULT</div>
+            <div class="skins-mascot is-girl" data-partner="sakura" data-mood="happy">
+              <div class="mascot-body" id="skinsMascot" data-partner="sakura" data-skin="default" role="button" tabindex="0" aria-label="Interact with companion preview"></div>
+            </div>
+            <div class="hero-pedestal" aria-hidden="true"></div>
+            <div class="skins-preview-quote" id="skinsPreviewQuote"></div>
+          </div>
+          <div class="skins-mood-bar" id="skinsMoodBar" role="group" aria-label="Preview expression"></div>
+        </div>
+        <div class="skins-wardrobe">
+          <div class="skins-girl-meta" id="skinsGirlMeta"></div>
+          <div class="skins-options" id="skinsOptions" role="radiogroup" aria-label="Outfits"></div>
+        </div>
+      </div>
+      <div class="skins-foot">
+        <button type="button" class="btn" id="btnSkinsMakePartner">♡ Make active partner</button>
+        <button type="button" class="btn primary" data-close="skinsModal">Done</button>
       </div>
     </div>
   </div>
@@ -198,6 +245,9 @@
   <script defer src="js/core/storage.js"></script>
   <!-- artwork & audio -->
   <script defer src="js/art/art.js"></script>
+  <script defer src="js/art/decks-cyber-mochi.js"></script>
+  <script defer src="js/art/decks-prism.js"></script>
+  <script defer src="js/art/decks-velvet.js"></script>
   <script defer src="js/audio/tracks.js"></script>
   <script defer src="js/audio/synth.js"></script>
   <script defer src="js/audio/score.js"></script>
@@ -278,6 +328,7 @@
   <script defer src="js/game/ui/overlays.js"></script>
   <script defer src="js/game/ui/win-modal.js"></script>
   <script defer src="js/game/ui/lose-modal.js"></script>
+  <script defer src="js/game/ui/skins-modal.js"></script>
   <script defer src="js/game/ui/settings-panel.js"></script>
   <script defer src="js/game/ui/start-screen.js"></script>
   <script defer src="js/game/ui/controls.js"></script>

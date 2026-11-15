@@ -48,19 +48,70 @@ const Cast = (() => {
   Object.keys(CAST).forEach((k) => {
     const c = CAST[k];
     c.key = k;
-    c.html = (mode = 'corner', fixedMood = null) => spriteHTML(c, mode, fixedMood);
-    c.faceHTML = (fixedMood = null) => spriteHTML(c, 'face', fixedMood);
+    const baseFaceStyle = c.faceStyle || '';
+    const baseSprites = c.sprites || null;
+    if (c.kind === 'girl') {
+      const rawSkins = (c.skins && typeof c.skins === 'object' && !Array.isArray(c.skins)) ? c.skins : {};
+      const normSkins = {};
+      if (!rawSkins.default) {
+        normSkins.default = {
+          key: 'default',
+          name: 'Default',
+          subtitle: c.title || 'Default',
+          faceStyle: baseFaceStyle,
+          sprites: baseSprites || { corner: {}, full: {} },
+        };
+      }
+      Object.keys(rawSkins).forEach((sk) => {
+        const s = rawSkins[sk];
+        if (!s || typeof s !== 'object') return;
+        const corner = (s.sprites && s.sprites.corner) || (baseSprites && baseSprites.corner) || {};
+        const full = (s.sprites && s.sprites.full) || (baseSprites && baseSprites.full) || corner;
+        normSkins[sk] = {
+          key: sk,
+          name: s.name || (sk === 'default' ? 'Default' : sk.charAt(0).toUpperCase() + sk.slice(1)),
+          subtitle: s.subtitle != null ? s.subtitle : (sk === 'default' ? (c.title || '') : ''),
+          faceStyle: s.faceStyle || baseFaceStyle,
+          sprites: { corner, full },
+        };
+      });
+      c.skins = normSkins;
+      c.skinKeys = Object.keys(normSkins);
+      c.getSkin = (skinOverride = null) => {
+        const wanted = skinOverride
+          || ((typeof settings !== 'undefined' && settings && settings.skins) ? settings.skins[c.key] : null)
+          || 'default';
+        return c.skins[wanted] || c.skins.default;
+      };
+      Object.defineProperty(c, 'sprites', {
+        enumerable: true,
+        configurable: true,
+        get() { return c.getSkin().sprites; },
+      });
+      Object.defineProperty(c, 'faceStyle', {
+        enumerable: true,
+        configurable: true,
+        get() { return c.getSkin().faceStyle; },
+      });
+    } else {
+      c.skinKeys = [];
+      c.getSkin = () => null;
+    }
+    c.html = (mode = 'corner', fixedMood = null, skinOverride = null) => spriteHTML(c, mode, fixedMood, skinOverride);
+    c.faceHTML = (fixedMood = null, skinOverride = null) => spriteHTML(c, 'face', fixedMood, skinOverride);
     c.svg = (crop) => spriteHTML(c, crop ? 'face' : 'corner');
-    c.preload = (mode) => {
-      if (!c.sprites) return;
+    c.preload = (mode, skinOverride = null) => {
+      const skin = c.getSkin ? c.getSkin(skinOverride) : null;
+      const sp = (skin && skin.sprites) || c.sprites;
+      if (!sp || !sp.corner) return;
       const activeMode = mode === 'full' ? 'full' : 'corner';
-      const immediate = [c.sprites.corner.normal, c.sprites.corner.wink];
-      if (c.sprites[activeMode] && c.sprites[activeMode].normal) {
-        immediate.push(c.sprites[activeMode].normal);
+      const immediate = [sp.corner.normal, sp.corner.wink];
+      if (sp[activeMode] && sp[activeMode].normal) {
+        immediate.push(sp[activeMode].normal);
       }
       preloadUrls(immediate);
-      const primary = Object.values(c.sprites[activeMode]);
-      const secondary = Object.values(c.sprites[activeMode === 'full' ? 'corner' : 'full']);
+      const primary = Object.values(sp[activeMode] || {});
+      const secondary = Object.values(sp[activeMode === 'full' ? 'corner' : 'full'] || {});
       queuePreload([...primary, ...secondary], true);
     };
     const recentGlobal = [];
@@ -110,15 +161,18 @@ const Cast = (() => {
   deferPreload(() => {
     const faceUrls = [];
     Object.values(CAST).forEach((c) => {
-      if (c.sprites) faceUrls.push(c.sprites.corner.normal, c.sprites.corner.wink);
+      const sp = c.sprites;
+      if (sp && sp.corner) faceUrls.push(sp.corner.normal, sp.corner.wink);
     });
     queuePreload(faceUrls);
   });
 
+  const keys = Object.keys(CAST);
+  const girlKeys = keys.filter((k) => CAST[k].kind === 'girl');
   const get = (k) => CAST[k] || CAST.sakura;
-  const faceHTML = (kOrC, mood = 'wink') => {
+  const faceHTML = (kOrC, mood = 'wink', skinOverride = null) => {
     const c = kOrC && typeof kOrC === 'object' ? kOrC : get(kOrC);
-    return spriteHTML(c, 'face', mood);
+    return spriteHTML(c, 'face', mood, skinOverride);
   };
-  return { get, faceHTML, keys: Object.keys(CAST), CAST, MOODS };
+  return { get, faceHTML, keys, girlKeys, CAST, MOODS };
 })();

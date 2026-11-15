@@ -22,6 +22,7 @@ function hideOverlay(id, silent) {
   el.classList.add('hidden');
   if (id === 'winModal' && DOM.winMascot) DOM.winMascot.innerHTML = '';
   if (id === 'loseModal' && DOM.loseMascot) DOM.loseMascot.innerHTML = '';
+  if (id === 'skinsModal' && DOM.skinsMascot) DOM.skinsMascot.innerHTML = '';
   if (wasOpen && !silent) {
     Sound.sfx.modalClose?.();
     if (id === 'loseModal' && G && G.lost) toast('Board locked — press New or Undo ✿', 3000);
@@ -29,8 +30,8 @@ function hideOverlay(id, silent) {
   if (id === 'confirmModal' && askResolve) { const r = askResolve; askResolve = null; r(null); }
   scheduleAutoStep(AUTO_STEP_MS);
 }
-function hideAllOverlays() { ['startScreen', 'settingsModal', 'winModal', 'loseModal', 'confirmModal'].forEach((id) => hideOverlay(id, true)); }
-function overlayOpen() { return ['startScreen', 'settingsModal', 'winModal', 'loseModal', 'confirmModal'].some((id) => !(OVERLAYS[id] || $('#' + id))?.classList.contains('hidden')); }
+function hideAllOverlays() { ['startScreen', 'settingsModal', 'skinsModal', 'winModal', 'loseModal', 'confirmModal'].forEach((id) => hideOverlay(id, true)); }
+function overlayOpen() { return ['startScreen', 'settingsModal', 'skinsModal', 'winModal', 'loseModal', 'confirmModal'].some((id) => !(OVERLAYS[id] || $('#' + id))?.classList.contains('hidden')); }
 
 function ask(text, buttons) {
   return new Promise((res) => {

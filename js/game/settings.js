@@ -5,9 +5,9 @@ const DEFAULTS = {
   variant: 'klondike', spiderSuits: 1,
   difficulty: 'medium', draw: 1,
   tapMove: true, autoFound: false, autoFinish: true, dropGuides: true, showStats: true, leftHanded: false,
-  theme: 'prism', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', perf: 'auto', mascot: true,
+  theme: 'prism', front: 'classic', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', perf: 'auto', mascot: true,
   muted: false, music: 'pulse', musicVol: 0.5, sfxVol: 0.7,
-  companion: 'sakura', spriteMode: 'corner', chatter: 'all', voice: true, voiceLang: 'ja', voiceNames: {}, voiceVol: 0.9, cutins: true, detectLoss: 'solver',
+  companion: 'sakura', skins: {}, spriteMode: 'corner', chatter: 'all', voice: true, voiceLang: 'ja', voiceNames: {}, voiceVol: 0.9, cutins: true, detectLoss: 'solver',
 };
 const hadRawMeta = Store.get('meta', null) !== null;
 const hadSavedSettings = Store.get('settings', null) !== null;
@@ -44,8 +44,27 @@ function normalizeSettings(raw) {
   if (!VALID_MUSIC.has(next.music)) next.music = 'pulse';
   if (!VALID_POPUPS.has(next.popups)) next.popups = 'max';
   if (!VALID_PERF.has(next.perf)) next.perf = 'auto';
-  if (typeof Art !== 'undefined' && Art.BACKS && !Art.BACKS[next.back]) next.back = 'sakura';
+  if (typeof Art !== 'undefined' && Art.FRONTS && !Object.prototype.hasOwnProperty.call(Art.FRONTS, next.front)) next.front = 'classic';
+  if (typeof Art !== 'undefined' && Art.BACKS && !Object.prototype.hasOwnProperty.call(Art.BACKS, next.back)) next.back = 'sakura';
   if (typeof Cast !== 'undefined' && Array.isArray(Cast.keys) && !Cast.keys.includes(next.companion)) next.companion = 'sakura';
+  const rawSkins = (next.skins && typeof next.skins === 'object' && !Array.isArray(next.skins)) ? next.skins : {};
+  const cleanSkins = {};
+  if (typeof Cast !== 'undefined' && Cast.CAST) {
+    Object.keys(rawSkins).forEach((k) => {
+      if (!Object.prototype.hasOwnProperty.call(Cast.CAST, k)) return;
+      const c = Cast.CAST[k];
+      if (!c || c.kind !== 'girl') return;
+      const val = rawSkins[k];
+      if (typeof val === 'string' && c.skins && Object.prototype.hasOwnProperty.call(c.skins, val)) {
+        cleanSkins[k] = val;
+      }
+    });
+  } else {
+    Object.keys(rawSkins).forEach((k) => {
+      if (typeof rawSkins[k] === 'string' && rawSkins[k]) cleanSkins[k] = rawSkins[k];
+    });
+  }
+  next.skins = cleanSkins;
   next.prismV1 = true;
   next.hyperPopV1 = true;
   return next;
@@ -53,6 +72,59 @@ function normalizeSettings(raw) {
 const rawBootSettings = Store.get('settings', {});
 let settings = normalizeSettings(rawBootSettings);
 const voiceNameFor = (k) => settings.voiceNames[k || settings.companion] || '';
+const partnerTone = (k) => (k === 'kira' || k === 'mio' ? 'emerald' : k === 'ayame' ? 'danger' : k === 'yuki' ? 'violet' : 'amber');
+function skinFor(charKey) {
+  const k = charKey || settings.companion;
+  const raw = (settings.skins && typeof settings.skins === 'object' && Object.prototype.hasOwnProperty.call(settings.skins, k))
+    ? settings.skins[k]
+    : 'default';
+  if (typeof Cast !== 'undefined' && Cast.CAST) {
+    const c = Cast.CAST[k];
+    if (!c || c.kind !== 'girl') return 'default';
+    if (c.skins && Object.prototype.hasOwnProperty.call(c.skins, raw)) return raw;
+    return 'default';
+  }
+  return raw || 'default';
+}
+function setGirlSkin(charKey, skinKey, quiet) {
+  if (typeof Cast === 'undefined' || !Cast.CAST || !Object.prototype.hasOwnProperty.call(Cast.CAST, charKey)) return false;
+  const c = Cast.CAST[charKey];
+  if (!c || c.kind !== 'girl' || !c.skins || !Object.prototype.hasOwnProperty.call(c.skins, skinKey)) return false;
+  const skin = c.skins[skinKey];
+  settings.skins = Object.assign({}, settings.skins, { [charKey]: skinKey });
+  saveSettings();
+  applySettings('skins');
+  if (!quiet) {
+    Sound.sfx.modeSwitch?.();
+    const sub = skin.subtitle ? `${skin.name.toUpperCase()} · ${skin.subtitle.toUpperCase()}` : skin.name.toUpperCase();
+    PopupFX?.pill('🎀', `OUTFIT // ${c.name.toUpperCase()}`, sub, partnerTone(charKey), { always: true });
+    if (settings.companion === charKey) Companion.react('themeChange');
+  }
+  return true;
+}
+function setAllGirlSkins(skinKey, quiet) {
+  if (typeof Cast === 'undefined' || !Cast.CAST || !Array.isArray(Cast.girlKeys)) return false;
+  const nextSkins = Object.assign({}, settings.skins);
+  let updated = 0;
+  Cast.girlKeys.forEach((k) => {
+    const c = Cast.CAST[k];
+    if (c && c.skins && Object.prototype.hasOwnProperty.call(c.skins, skinKey)) {
+      nextSkins[k] = skinKey;
+      updated++;
+    }
+  });
+  if (!updated) return false;
+  settings.skins = nextSkins;
+  saveSettings();
+  applySettings('skins');
+  if (!quiet) {
+    Sound.sfx.modeSwitch?.();
+    const tone = skinKey === 'casual' ? 'emerald' : 'amber';
+    PopupFX?.pill('🎀', `OUTFITS // ALL ${skinKey.toUpperCase()}`, `${updated} HEROINES UPDATED`, tone, { always: true });
+    if (Cast.get(settings.companion)?.kind === 'girl') Companion.react('themeChange');
+  }
+  return true;
+}
 const saveSettings = (opts) => Store.set('settings', settings, opts);
 if (!rawBootSettings?.prismV1 || !rawBootSettings?.hyperPopV1 || !VALID_THEMES.has(rawBootSettings?.theme) || !VALID_MUSIC.has(rawBootSettings?.music) || !VALID_POPUPS.has(rawBootSettings?.popups)) {
   if (!rawBootSettings?.prismV1) {
@@ -92,6 +164,18 @@ function setSetting(key, v, quiet) {
       Sound.sfx.modeSwitch?.();
       PopupFX?.pill('↕', v === 'full' ? 'SPRITE // FULL-BODY' : 'SPRITE // CORNER', `${Companion.c.name.toUpperCase()} VIEW`, 'emerald', { always: true });
       Companion.react('themeChange');
+    } else if (key === 'front') {
+      Sound.sfx.modeSwitch?.();
+      const F = Art.FRONTS?.[v] || Art.FRONTS?.classic;
+      const fTone = v === 'cyber' || v === 'kira' || v === 'mio' ? 'emerald' : v === 'ayame' ? 'danger' : v === 'yuki' || v === 'rin' ? 'violet' : 'amber';
+      PopupFX?.pill('♠', `CARD FRONT // ${(F?.name || v).toUpperCase()}`, F?.subtitle || 'DECK FACE ACTIVE', fTone, { always: true });
+      Companion.react('themeChange');
+    } else if (key === 'back') {
+      Sound.sfx.modeSwitch?.();
+      const B = Art.BACKS?.[v] || Art.BACKS?.sakura;
+      const bTone = v === 'cyber' || v === 'kira' || v === 'mio' || v === 'hearts' ? 'emerald' : v === 'ayame' ? 'danger' : v === 'yuki' || v === 'rin' || v === 'stars' || v === 'neko' ? 'violet' : 'amber';
+      PopupFX?.pill('❖', `CARD BACK // ${(B?.name || v).toUpperCase()}`, 'CARD SLEEVE ACTIVE', bTone, { always: true });
+      Companion.react('themeChange');
     } else if (key === 'muted' && v === true) {
       /* toggleOff fired right before muting */
     } else if (typeof v === 'boolean') {
@@ -117,6 +201,18 @@ function applySettings(key) {
   document.body.dataset.theme = settings.theme;
   document.body.classList.toggle('perf-lite', perfLite());
   if (key === 'perf') { StageBG.resize(); FX.resize(); }
+  if (all || key === 'front') {
+    const frontKey = (Art.FRONTS && Object.prototype.hasOwnProperty.call(Art.FRONTS, settings.front)) ? settings.front : 'classic';
+    const F = Art.FRONTS[frontKey];
+    const root = document.documentElement.style;
+    root.setProperty('--card-front-bg', F.bg);
+    root.setProperty('--card-front-border', F.border);
+    root.setProperty('--card-rk-font', F.font);
+    root.setProperty('--card-rk-weight', F.weight || '400');
+    document.body.dataset.cardFront = frontKey;
+    document.body.dataset.cardDark = F.dark ? '1' : '0';
+    if (typeof refreshCardFaces === 'function') refreshCardFaces();
+  }
   if (all || key === 'back') document.documentElement.style.setProperty('--card-back', Art.backDataURI(settings.back));
   const ms = moveMs();
   document.documentElement.style.setProperty('--move', ms + 'ms');
@@ -125,8 +221,27 @@ function applySettings(key) {
   if (all || key === 'theme' || key === 'bgFx' || key === 'anim' || key === 'perf') StageBG.refreshTheme();
   if (settings.popups === 'off' || settings.anim === 'off') PopupFX?.clear();
   DOM.mascot.classList.toggle('hidden', !settings.mascot);
-  if (all || key === 'companion' || key === 'spriteMode') Companion.render();
-  if (key === 'companion') document.querySelectorAll('select[data-voice-select]').forEach((s) => s._fill());
+  if (all || key === 'companion' || key === 'spriteMode' || key === 'skins') Companion.render();
+  if (key === 'companion') {
+    document.querySelectorAll('select[data-voice-select]').forEach((s) => s._fill());
+    document.querySelectorAll('.cast-pick .cast-opt').forEach((x) => {
+      x.classList.toggle('on', x.dataset.partner === settings.companion);
+    });
+  }
+  if (all || key === 'skins') {
+    if (key === 'skins' && typeof buildStartPickers === 'function') buildStartPickers();
+    if (DOM.settingsModal && !DOM.settingsModal.classList.contains('hidden')) {
+      if (typeof refreshSettingsCast === 'function') refreshSettingsCast();
+    }
+  }
+  if (all || key === 'skins' || key === 'companion') {
+    if (DOM.settingsModal && !DOM.settingsModal.classList.contains('hidden')) {
+      if (typeof refreshSettingsOutfit === 'function') refreshSettingsOutfit();
+    }
+    if (DOM.skinsModal && !DOM.skinsModal.classList.contains('hidden')) {
+      if (typeof refreshSkinsModal === 'function') refreshSkinsModal();
+    }
+  }
   if (key === 'mascot') {
     if (settings.mascot) { scheduleMascotMeasure(); updatePeek(); }
     else { mascotBox.w = 0; mascotBox.h = 0; updatePeek(); }

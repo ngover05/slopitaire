@@ -29,8 +29,10 @@ const DOM = {
   startMascot: $('#startMascot'),
   winMascot: $('#winMascot'),
   loseMascot: $('#loseMascot'),
+  skinsMascot: $('#skinsMascot'),
   startScreen: $('#startScreen'),
   settingsModal: $('#settingsModal'),
+  skinsModal: $('#skinsModal'),
   winModal: $('#winModal'),
   loseModal: $('#loseModal'),
   confirmModal: $('#confirmModal'),
@@ -57,6 +59,7 @@ const DOM = {
 const OVERLAYS = {
   startScreen: DOM.startScreen,
   settingsModal: DOM.settingsModal,
+  skinsModal: DOM.skinsModal,
   winModal: DOM.winModal,
   loseModal: DOM.loseModal,
   confirmModal: DOM.confirmModal,

@@ -43,7 +43,9 @@ function detectTouchZone(clientX, clientY, containerEl, mode) {
     if (ry < 0.48) return 'touchTorso';
     return 'touchLegs';
   }
-  if (Companion.c.kind === 'cat') {
+  const partnerKey = (containerEl && containerEl !== Companion.body ? containerEl.dataset?.partner : null) || settings.companion;
+  const partner = (typeof Cast !== 'undefined' && Cast.get) ? Cast.get(partnerKey) : Companion.c;
+  if (partner && partner.kind === 'cat') {
     if (ry < 0.36) return 'touchHead';
     if (ry < 0.58) return 'touchFace';
     if (rx < 0.24 || rx > 0.76) return 'touchHands';
@@ -57,7 +59,7 @@ function detectTouchZone(clientX, clientY, containerEl, mode) {
   return 'touchLegs';
 }
 
-function handleCompanionTouch(e, targetEl, mode, quoteEl) {
+function handleCompanionTouch(e, targetEl, mode, quoteEl, opts = null) {
   if (!targetEl) return null;
   Sound.ensure();
   noteActivity();
@@ -67,21 +69,47 @@ function handleCompanionTouch(e, targetEl, mode, quoteEl) {
   const cx = hasPt ? e.clientX : r ? Math.round(r.left + r.width * 0.5) : Math.round(innerWidth * 0.5);
   const cy = hasPt ? e.clientY : r ? Math.round(r.top + r.height * 0.35) : Math.round(innerHeight * 0.5);
 
+  const charKey = (opts && opts.charKey) || (targetEl !== Companion.body ? targetEl.dataset?.partner : null) || settings.companion;
+  const c = (typeof Cast !== 'undefined' && Cast.get) ? Cast.get(charKey) : Companion.c;
+  const skinKey = (opts && opts.skinKey) || (targetEl !== Companion.body ? targetEl.dataset?.skin : null) || null;
+
   const effMode = mode || (settings.spriteMode === 'full' ? 'full' : 'corner');
   const zone = detectTouchZone(cx, cy, targetEl, effMode);
   const cfg = TOUCH_ZONES[zone] || TOUCH_ZONES.touchHead;
 
-  (Sound.sfx[zone] || Sound.sfx.petGirl)?.(settings.companion);
-  const line = Companion.react(zone, { force: true });
-  const resolvedMood = Companion.c.moods[zone] || (EVENTS[zone] && EVENTS[zone][1]) || 'happy';
+  (Sound.sfx[zone] || Sound.sfx.petGirl)?.(c.key);
+  let line = null;
+  if (c.key === settings.companion) {
+    line = Companion.react(zone, { force: true });
+  } else {
+    line = c.line(zone) || c.line('pet');
+    if (line && !settings.muted && settings.voice) {
+      if (c.kind === 'cat') {
+        Sound.sfx.nya?.();
+      } else if (c.voice && typeof Voice !== 'undefined') {
+        Voice.stop();
+        Voice.speak(line, c.voice, {
+          char: c.key,
+          lang: settings.voiceLang,
+          name: typeof voiceNameFor === 'function' ? voiceNameFor(c.key) : '',
+          slot: c.voice.slot || 0,
+          volume: settings.voiceVol,
+          pri: 4,
+        });
+      }
+    }
+  }
+  const resolvedMood = (c.moods && c.moods[zone]) || (EVENTS[zone] && EVENTS[zone][1]) || 'happy';
 
   targetEl.removeAttribute('title');
   targetEl.parentElement?.removeAttribute?.('title');
   if (targetEl !== Companion.body && targetEl.parentElement) {
     targetEl.parentElement.dataset.mood = resolvedMood;
     const singleImg = targetEl.querySelector('.girl-sprite.is-single .chara-img');
-    if (singleImg && Companion.c.sprites) {
-      const set = Companion.c.sprites.full || Companion.c.sprites.corner;
+    if (singleImg) {
+      const skinObj = typeof c.getSkin === 'function' ? c.getSkin(skinKey) : null;
+      const sp = (skinObj && skinObj.sprites) || c.sprites;
+      const set = sp && (sp.full || sp.corner);
       if (set) singleImg.src = set[resolvedMood] || set.normal;
     }
   }
@@ -90,10 +118,14 @@ function handleCompanionTouch(e, targetEl, mode, quoteEl) {
   void targetEl.offsetWidth;
   targetEl.classList.add(cfg.cls);
 
-  if (quoteEl && line?.show) {
-    quoteEl.textContent = line.show;
+  const effectiveQuoteEl = quoteEl || (targetEl.id === 'skinsMascot' ? $('#skinsPreviewQuote') : null);
+  if (effectiveQuoteEl && line?.show) {
+    effectiveQuoteEl.textContent = line.show;
   } else if (targetEl.id === 'startMascot' && line?.show) {
     toast(line.show);
+  }
+  if (opts && typeof opts.onMood === 'function') {
+    opts.onMood(resolvedMood, line);
   }
 
   if (settings.anim !== 'off') {

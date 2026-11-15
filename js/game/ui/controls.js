@@ -9,7 +9,7 @@ function bindUiSounds() {
     if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
     const t = e.target;
     if (!t || t.nodeType !== 1) return;
-    if (!t.disabled && t.matches('.btn, .cast-opt, .diff-card, .seg button, .back-opt, .chip.is-auto')) {
+    if (!t.disabled && t.matches('.btn, .cast-opt, .diff-card, .seg button, .back-opt, .chip.is-auto, .skin-tab, .skin-card, .skins-mood-btn, .skins-open-chip')) {
       Sound.sfx.hover?.();
     } else if (!drag && t.classList.contains('card') && t.classList.contains('up')) {
       Sound.sfx.cardHover?.();
@@ -31,6 +31,8 @@ function bindControls() {
   DOM.btnHint.onclick = hint;
   const btnAcct = $('#btnAccount');
   if (btnAcct) btnAcct.onclick = () => { Sound.ensure(); openSettings(); };
+  const btnSkins = $('#btnSkins');
+  if (btnSkins) btnSkins.onclick = () => { Sound.ensure(); openSkinsModal(); };
   $('#btnSettings').onclick = () => { Sound.ensure(); openSettings(); Companion.react('settings'); };
   $('#btnSound').onclick = () => {
     Sound.ensure();
@@ -54,10 +56,12 @@ function bindControls() {
     if (validSave(sv)) loadGame(sv); else newGame();
   };
   $('#btnStartSettings').onclick = () => { Sound.ensure(); openSettings(); };
+  const btnStartSkins = $('#btnStartSkins');
+  if (btnStartSkins) btnStartSkins.onclick = () => { Sound.ensure(); openSkinsModal(); };
   $('#btnSettingsNew').onclick = () => { hideOverlay('settingsModal', true); hideOverlay('startScreen', true); requestNewGame(); };
   $('#btnWinNew').onclick = () => { Sound.sfx.click(); newGame(); };
   document.querySelectorAll('[data-close]').forEach((b) => { b.onclick = () => { hideOverlay(b.dataset.close); }; });
-  ['settingsModal', 'winModal', 'loseModal', 'confirmModal'].forEach((id) => {
+  ['settingsModal', 'skinsModal', 'winModal', 'loseModal', 'confirmModal'].forEach((id) => {
     $('#' + id)?.addEventListener('pointerdown', (e) => { if (e.target.id === id) hideOverlay(id); });
   });
   const btnSprite = $('#btnSpriteMode');

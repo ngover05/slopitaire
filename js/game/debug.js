@@ -8,7 +8,7 @@ function installDebugHook() {
       get combo() { return G ? G.chain : 0; },
       get chain() { return G ? G.chain : 0; },
       get autoPaused() { return autoPaused; },
-      cards, settings, setSetting, newGame, moveCards, drawStock, undo,
+      cards, settings, setSetting, skinFor, setGirlSkin, setAllGirlSkins, openSkinsModal, newGame, moveCards, drawStock, undo,
       doMove, tabMove, spiderDeal, pyramidRemove, peakPlay, variantState, isWon, pyrExposed, VSolver,
       autoFoundStep, layout, win, showWinModal, declareLost, showLost, findHints,
       Companion, cutIn, scheduleCheck, detectTouchZone, handleCompanionTouch, FX,

@@ -68,6 +68,19 @@
   .win-stats.result-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .start-actions.result-actions { justify-content: stretch; }
   .start-actions.result-actions .btn { flex: 1 1 calc(50% - 6px); justify-content: center; text-align: center; padding: 9px 10px; font-size: 13.5px; }
+  .skins-panel { padding: 13px 13px 12px; }
+  .skins-header { flex-direction: column; align-items: flex-start; gap: 6px; padding-right: 36px; }
+  .skins-roster { display: flex; overflow-x: auto; gap: 5px; margin: 8px 0; padding-bottom: 2px; scrollbar-width: thin; }
+  .skins-roster .skin-tab { flex: 0 0 66px; padding: 5px 4px 4px; }
+  .skins-roster .skin-tab .st-face { width: 34px; height: 34px; }
+  .skins-body { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .skins-stage { padding: 8px 8px 6px; }
+  .skins-stage .skins-mascot.is-girl { --chara-h: clamp(136px, 20dvh, 175px); }
+  .skins-preview-quote { min-height: 28px; padding: 4px 8px; font-size: 11px; }
+  .skin-card { padding: 8px 10px; gap: 10px; }
+  .skin-card .sc-face { width: 48px; height: 48px; }
+  .skins-foot { margin-top: 8px; padding-top: 8px; }
+  .skins-foot .btn { flex: 1 1 auto; }
 }
 @media (max-width: 480px) {
   #chipDraw { display: none; }
@@ -82,6 +95,14 @@
   .cast-opt .cast-face { width: 46px; height: 46px; margin-bottom: 2px; }
   .cast-opt b { font-size: 11.5px; }
   .cast-opt small { font-size: 9px; letter-spacing: -.1px; }
+  .cast-skin-tag { top: 2px; right: 2px; font-size: 7px; padding: 1px 3.5px; }
+  .skins-open-chip { padding: 2px 7px; font-size: 9.5px; }
+  .skin-tab { padding: 4px 3px; }
+  .skin-tab .st-face { width: 36px; height: 36px; }
+  .skin-tab .st-name { font-size: 10.5px; }
+  .skin-tab .st-badge { font-size: 7.5px; padding: 1px 4px; }
+  .skin-card { padding: 8px 10px; gap: 10px; }
+  .skin-card .sc-face { width: 50px; height: 50px; }
   .diff-pick { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
   .variant-pick { gap: 4px; }
   .variant-card { flex-direction: column; gap: 1px; padding: 4px 2px; border-radius: 10px; }
@@ -94,6 +115,9 @@
   .seg[data-setting="difficulty"] button { padding: 5px 7px; font-size: 11.5px; }
   .seg[data-setting="theme"] button,
   .seg[data-setting="music"] button { padding: 5px 7px; font-size: 11.5px; }
+  .deck-grid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 5px; }
+  .deck-card { width: 38px; height: 53px; }
+  .deck-lbl { font-size: 10px; }
   .stats-table { font-size: 11.5px; }
   .stats-table th, .stats-table td { padding: 5px 2px; }
   .stats-table th { font-size: 10px; letter-spacing: .2px; }
@@ -111,7 +135,13 @@
   .start-panel .title { font-size: clamp(25px, 4.8vw, 32px); margin-top: 1px; }
   .start-panel .tagline { margin: 1px 0 6px; font-size: 11px; }
   .start-panel .start-cast { margin-bottom: 6px; }
-  .start-panel .start-cast-label { font-size: 10.5px; margin-bottom: 3px; }
+  .start-panel .start-cast-head { margin-bottom: 3px; }
+  .start-panel .start-cast-label { font-size: 10.5px; margin-bottom: 0; }
+  .start-panel .skins-open-chip { padding: 1.5px 7px; font-size: 10px; }
+  .skins-panel { padding: 14px 18px 13px; }
+  .skins-roster { margin: 9px 0 9px; }
+  .skins-stage .skins-mascot.is-girl { --chara-h: clamp(190px, 31dvh, 265px); }
+  .skins-foot { margin-top: 10px; padding-top: 10px; }
   .start-panel .cast-pick { gap: 5px; }
   .start-panel .cast-opt { padding: 4px 3px; border-radius: 11px; }
   .start-panel .cast-opt .cast-face { width: 44px; height: 44px; margin-bottom: 2px; }
@@ -167,6 +197,15 @@
   .start-mascot:not(.is-girl) .mascot-body.boing,
   .start-mascot.is-girl .mascot-body,
   .start-mascot.is-girl .mascot-body.boing,
+  .skins-stage .skins-mascot.is-girl .mascot-body,
+  .skins-stage .skins-mascot.is-girl .mascot-body.boing,
+  .skins-stage .skins-mascot.is-girl .mascot-body.react-headpat,
+  .skins-stage .skins-mascot.is-girl .mascot-body.react-boop,
+  .skins-stage .skins-mascot.is-girl .mascot-body.react-highfive,
+  .skins-stage .skins-mascot.is-girl .mascot-body.react-fluster,
+  .skins-stage .skins-mascot.is-girl .mascot-body.react-startle,
+  #skinsMascot[data-partner="kira"]::before,
+  #skinsMascot[data-partner="ayame"]::before,
   .mascot-body.react-headpat,
   .mascot-body.react-boop,
   .mascot-body.react-highfive,

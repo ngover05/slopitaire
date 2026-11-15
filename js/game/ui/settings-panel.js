@@ -20,7 +20,8 @@ const SCHEMA = [
     { key: 'theme', label: 'Theme', type: 'seg', options: THEMES },
     { key: 'bgFx', label: 'Prism stage effects', type: 'toggle', hint: 'Ambient circuit-board backdrop with slowly drifting lights.' },
     { key: 'popups', label: 'Pop-up FX', type: 'seg', options: [['max', 'Hyper'], ['normal', 'Standard'], ['off', 'Minimal']], hint: 'Floating score tags, live medal feed, banners & companion stamps.' },
-    { key: 'back', label: 'Card back', type: 'backs' },
+    { key: 'front', label: 'Card front', type: 'fronts', hint: 'Face art, Aces & court cards (Classic, Cyber, every girl & Mochi).' },
+    { key: 'back', label: 'Card back', type: 'backs', hint: 'Sleeve pattern & emblem on the back of every card (mix & match freely).' },
     { key: 'anim', label: 'Animations', type: 'seg', options: [['normal', 'Normal'], ['fast', 'Fast'], ['off', 'Off']] },
     { key: 'perf', label: 'Graphics quality', type: 'seg', options: [['auto', 'Auto'], ['high', 'High'], ['lite', 'Battery saver']],
       hint: () => `Battery saver drops blur & glow effects and lightens the music synth for smoother play on phones.${settings.perf === 'auto' ? (LOW_POWER_DEVICE ? ' Auto: using Battery saver on this device.' : ' Auto: using High on this device.') : ''}` },
@@ -29,6 +30,7 @@ const SCHEMA = [
   ] },
   { title: 'Companion & voice', items: [
     { key: 'companion', label: 'Partner', type: 'cast' },
+    { key: 'skins', label: 'Outfit', type: 'skin', hint: () => outfitHint() },
     { key: 'spriteMode', label: 'Sprite style', type: 'seg', options: [['corner', 'Corner bust'], ['full', 'Full body']], hint: 'Waist-up in the corner, or full-body standing sprite.' },
     { key: 'mascot', label: 'Show companion', type: 'toggle' },
     { key: 'chatter', label: 'Reactions', type: 'seg', options: [['all', 'Every action'], ['some', 'Some'], ['quiet', 'Big moments']], hint: 'How often your partner talks.' },
@@ -107,17 +109,29 @@ function buildSettings() {
         const pk = makeCastPicker(); pk.classList.add('settings-cast');
         row.appendChild(pk); body.appendChild(row);
         continue;
+      } else if (it.type === 'skin') {
+        row.appendChild(ctl);
+        renderSettingsOutfitRow(row);
+        body.appendChild(row);
+        continue;
+      } else if (it.type === 'fronts') {
+        ctl.appendChild(makeDeckPicker('front', Art.FRONTS, settings.front, 'fronts', 'front-opt', (k, F) => {
+          const sw = document.createElement('span');
+          sw.className = 'deck-card front-swatch';
+          sw.style.setProperty('--card-front-bg', F.bg);
+          sw.style.setProperty('--card-front-border', F.border);
+          sw.style.setProperty('--card-rk-font', F.font);
+          sw.style.setProperty('--card-rk-weight', F.weight || '400');
+          sw.innerHTML = Art.frontPreviewSVG(k);
+          return sw;
+        }));
       } else if (it.type === 'backs') {
-        const wrap = document.createElement('div'); wrap.className = 'backs';
-        Object.keys(Art.BACKS).forEach((k) => {
-          const b = document.createElement('button'); b.type = 'button';
-          b.className = 'back-opt' + (settings.back === k ? ' on' : '');
-          b.title = Art.BACKS[k].name; b.setAttribute('aria-label', Art.BACKS[k].name);
-          b.style.setProperty('--img', Art.backDataURI(k));
-          b.onclick = () => { setSetting('back', k); wrap.querySelectorAll('.back-opt').forEach((x) => x.classList.toggle('on', x === b)); };
-          wrap.appendChild(b);
-        });
-        ctl.appendChild(wrap);
+        ctl.appendChild(makeDeckPicker('back', Art.BACKS, settings.back, 'backs', 'back-opt', (k) => {
+          const sw = document.createElement('span');
+          sw.className = 'deck-card back-swatch';
+          sw.style.setProperty('--img', Art.backDataURI(k));
+          return sw;
+        }));
       }
       row.appendChild(ctl); body.appendChild(row);
     }
@@ -161,25 +175,116 @@ function voiceHint() {
   return "Uses your browser's built-in voices (Chrome & Edge sound best).";
 }
 
+function outfitHint() {
+  const c = Cast.get(settings.companion);
+  if (!c || c.kind !== 'girl') return 'Cyber Lucky Neko — browse outfits for all 7 heroines.';
+  const activeKey = skinFor(c.key);
+  const s = c.getSkin ? c.getSkin(activeKey) : null;
+  return s ? `${c.name}: ${s.name}${s.subtitle ? ' — ' + s.subtitle : ''}` : `${c.name}: Default`;
+}
+
+function renderSettingsOutfitRow(row) {
+  if (!row) return;
+  const c = Cast.get(settings.companion);
+  const isGirl = c && c.kind === 'girl';
+  const hintEl = row.querySelector('.row-h');
+  if (hintEl) hintEl.textContent = outfitHint();
+  const ctl = row.querySelector('.row-c');
+  if (!ctl) return;
+  ctl.innerHTML = '';
+  ctl.classList.add('skin-row-ctl');
+  if (isGirl) {
+    const opts = (c.skinKeys && c.skinKeys.length ? c.skinKeys : ['default']).map((sk) => [sk, c.skins?.[sk]?.name || sk]);
+    const segEl = makeSeg(opts, () => skinFor(c.key), (sk) => {
+      Sound.ensure();
+      setGirlSkin(c.key, sk);
+    });
+    segEl.dataset.setting = 'skins';
+    ctl.appendChild(segEl);
+  } else {
+    const note = document.createElement('span');
+    note.className = 'skin-cat-note';
+    note.textContent = 'Mochi stays classic cyber-neko';
+    ctl.appendChild(note);
+  }
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'btn settings-skins-btn';
+  allBtn.id = 'btnSettingsSkins';
+  allBtn.textContent = '🎀 All Girl Skins…';
+  allBtn.onclick = () => {
+    Sound.ensure();
+    openSkinsModal(settings.companion);
+  };
+  ctl.appendChild(allBtn);
+}
+
+function refreshSettingsOutfit() {
+  renderSettingsOutfitRow($('#settingsBody .row[data-setting="skins"]'));
+}
+
+function refreshSettingsCast() {
+  const existing = $('#settingsBody .settings-cast');
+  if (!existing) return;
+  const fresh = makeCastPicker();
+  fresh.classList.add('settings-cast');
+  existing.replaceWith(fresh);
+}
+
 function makeCastPicker() {
   const wrap = document.createElement('div'); wrap.className = 'cast-pick';
   Cast.keys.forEach((k) => {
     const c = Cast.get(k), b = document.createElement('button');
+    const sk = c.kind === 'girl' ? skinFor(k) : 'default';
+    const hasCustom = c.kind === 'girl' && sk !== 'default';
     b.type = 'button'; b.className = 'cast-opt' + (settings.companion === k ? ' on' : '');
     b.dataset.partner = k;
     b.dataset.mood = 'happy';
-    b.innerHTML = `<div class="cast-face">${c.html('face')}</div><b>${c.name}</b><small>${c.title}</small>`;
+    if (hasCustom) b.dataset.skin = sk;
+    const skinLabel = hasCustom ? (c.skins?.[sk]?.name || sk).toUpperCase() : '';
+    const tag = hasCustom ? `<span class="cast-skin-tag">${esc(skinLabel)}</span>` : '';
+    b.innerHTML = `${tag}<div class="cast-face">${c.html('face')}</div><b>${c.name}</b><small>${c.title}</small>`;
     b.onclick = () => {
       Sound.ensure();
       if (!settings.mascot) setSetting('mascot', true, true);
       setSetting('companion', k, true);
       (Sound.sfx.partnerSelect || Sound.sfx.click)?.(k);
-      document.querySelectorAll('.cast-pick').forEach((p) => p.querySelectorAll('.cast-opt').forEach((x, i) => x.classList.toggle('on', Cast.keys[i] === k)));
+      document.querySelectorAll('.cast-pick').forEach((p) => p.querySelectorAll('.cast-opt').forEach((x) => x.classList.toggle('on', x.dataset.partner === k)));
       const picked = Cast.get(k);
-      const pTone = k === 'kira' || k === 'mio' ? 'emerald' : k === 'ayame' ? 'danger' : k === 'yuki' ? 'violet' : 'amber';
+      const pTone = typeof partnerTone === 'function' ? partnerTone(k) : 'amber';
       PopupFX?.pill('♡', `PARTNER // ${picked.name.toUpperCase()}`, picked.title.toUpperCase(), pTone, { always: true });
       PopupFX?.stamp('HELLO!', picked.moods?.hello || 'happy', pTone === 'danger' ? 'amber' : pTone, true);
       Companion.react('hello');
+    };
+    wrap.appendChild(b);
+  });
+  return wrap;
+}
+
+function makeDeckPicker(kind, map, currentKey, gridClass, optClass, buildThumb) {
+  const wrap = document.createElement('div');
+  wrap.className = `deck-grid ${gridClass}`;
+  Object.keys(map).forEach((k) => {
+    const item = map[k];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `deck-opt ${optClass}` + (currentKey === k ? ' on' : '');
+    b.dataset.deck = k;
+    b.title = item.name;
+    b.setAttribute('aria-label', `Card ${kind}: ${item.name}`);
+    b.setAttribute('aria-pressed', String(currentKey === k));
+    const thumb = buildThumb(k, item);
+    const lbl = document.createElement('span');
+    lbl.className = 'deck-lbl';
+    lbl.textContent = item.name;
+    b.append(thumb, lbl);
+    b.onclick = () => {
+      setSetting(kind, k);
+      wrap.querySelectorAll('.deck-opt').forEach((x) => {
+        const active = x === b;
+        x.classList.toggle('on', active);
+        x.setAttribute('aria-pressed', String(active));
+      });
     };
     wrap.appendChild(b);
   });

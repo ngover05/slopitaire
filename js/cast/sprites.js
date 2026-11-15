@@ -68,21 +68,27 @@ const CastSprites = (() => {
   }
 
   // Renders either Mochi's SVG or TV-anime PNG sprite stacks (zero-flicker GPU mood switching).
-  function spriteHTML(c, mode = 'corner', fixedMood = null) {
+  function spriteHTML(c, mode = 'corner', fixedMood = null, skinOverride = null) {
     if (c.kind === 'cat') return Art.mascotSVG();
+    const skin = typeof c.getSkin === 'function'
+      ? c.getSkin(skinOverride)
+      : { sprites: c.sprites, faceStyle: c.faceStyle };
+    const sprites = (skin && skin.sprites) || c.sprites;
+    const faceStyle = (skin && skin.faceStyle !== undefined) ? skin.faceStyle : c.faceStyle;
+    const cornerSet = (sprites && sprites.corner) || {};
     if (mode === 'face') {
       if (fixedMood) {
-        const src = c.sprites.corner[fixedMood] || c.sprites.corner.normal;
-        return `<div class="chara girl-sprite is-face is-single" style="${c.faceStyle || ''}" aria-hidden="true">` +
+        const src = cornerSet[fixedMood] || cornerSet.normal;
+        return `<div class="chara girl-sprite is-face is-single" style="${faceStyle || ''}" aria-hidden="true">` +
           `<img class="chara-img face-idle is-active" src="${src}" alt="" draggable="false" decoding="async">` +
         `</div>`;
       }
-      return `<div class="chara girl-sprite is-face" style="${c.faceStyle || ''}" aria-hidden="true">` +
-        `<img class="chara-img face-idle" src="${c.sprites.corner.normal}" alt="" draggable="false" decoding="async">` +
-        `<img class="chara-img face-wink" src="${c.sprites.corner.wink}" alt="" draggable="false" decoding="async">` +
+      return `<div class="chara girl-sprite is-face" style="${faceStyle || ''}" aria-hidden="true">` +
+        `<img class="chara-img face-idle" src="${cornerSet.normal}" alt="" draggable="false" decoding="async">` +
+        `<img class="chara-img face-wink" src="${cornerSet.wink}" alt="" draggable="false" decoding="async">` +
       `</div>`;
     }
-    const set = c.sprites[mode] || c.sprites.corner;
+    const set = (sprites && sprites[mode]) || cornerSet;
     if (fixedMood) {
       const src = set[fixedMood] || set.normal;
       return `<div class="chara girl-sprite is-${mode} is-single" aria-hidden="true">` +

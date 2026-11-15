@@ -50,12 +50,22 @@ function buildSlots(variant) {
   board.dataset.variant = variant;
   slotsDirty = true;
 }
+let faceMode = 'std', faceFront = 'classic', useCount = 104;
+function activeFrontKey() {
+  return (typeof settings !== 'undefined' && Art.FRONTS && Object.prototype.hasOwnProperty.call(Art.FRONTS, settings.front)) ? settings.front : 'classic';
+}
+function preloadFrontAssets(frontKey) {
+  const F = Art.FRONTS && Art.FRONTS[frontKey];
+  if (F && Array.isArray(F.portraits) && typeof CastSprites !== 'undefined') CastSprites.queuePreload(F.portraits, true);
+}
 function buildTable() {
+  faceFront = activeFrontKey();
+  preloadFrontAssets(faceFront);
   cards.forEach((c) => {
     const el = document.createElement('div');
     el.className = 'card'; el.dataset.id = c.id;
     el.setAttribute('aria-label', Art.RANKS[c.rank - 1] + ' of ' + SUIT_NAMES[c.suit]);
-    el.innerHTML = `<div class="card-inner"><div class="card-face front">${Art.cardFace(c)}</div><div class="card-face back"></div></div>`;
+    el.innerHTML = `<div class="card-inner"><div class="card-face front">${Art.cardFace(c, faceFront)}</div><div class="card-face back"></div></div>`;
     board.appendChild(el);
     c.el = el;
     c.front = el.querySelector('.front');
@@ -64,18 +74,28 @@ function buildTable() {
 }
 
 // Spider re-skins its 104 cards into 1, 2 or 4 suits; everything else uses the standard id → suit mapping.
-let faceMode = 'std', useCount = 104;
 function applyFaces(variant, suits) {
   const mode = variant === 'spider' ? 'spider' + suits : 'std';
+  const front = activeFrontKey();
+  const frontChanged = front !== faceFront;
   useCount = VARIANTS[variant].deck;
   for (const c of cards) c.el.classList.toggle('unused', c.id >= useCount);
-  if (mode === faceMode) return;
+  if (mode === faceMode && !frontChanged) return;
   faceMode = mode;
+  faceFront = front;
+  if (frontChanged) preloadFrontAssets(front);
   for (const c of cards) {
     const suit = variant === 'spider' ? VSolver.spiderSuit(c.id, suits) : ((c.id % 52) / 13) | 0;
-    if (suit === c.suit) continue;
+    if (!frontChanged && suit === c.suit) continue;
     c.suit = suit; c.red = suit < 2;
-    c.front.innerHTML = Art.cardFace(c);
+    c.front.innerHTML = Art.cardFace(c, front);
     c.el.setAttribute('aria-label', Art.RANKS[c.rank - 1] + ' of ' + SUIT_NAMES[c.suit]);
   }
+}
+function refreshCardFaces() {
+  if (!cards[0] || !cards[0].front) return;
+  const hasG = typeof G !== 'undefined' && G;
+  const v = hasG ? G.variant : settings.variant;
+  const s = hasG ? G.suits : settings.spiderSuits;
+  applyFaces(v, s);
 }

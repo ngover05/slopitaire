@@ -97,3 +97,42 @@ body[data-theme="matcha"] .tagline { color: var(--ink); opacity: .8; }
   font-family: 'Chakra Petch', 'Nunito', sans-serif;
   font-size: 11px; opacity: .62; margin-top: 4px; letter-spacing: .2px;
 }
+
+/* Start screen cast header + outfit chip + mini equipped skin tag */
+.start-cast-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 4px;
+}
+.start-cast-head .start-cast-label { margin-bottom: 0; }
+.skins-open-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--beam-a) 55%, var(--hud-border));
+  background: color-mix(in srgb, var(--beam-a) 13%, var(--chip));
+  color: var(--panel-ink);
+  font: 700 10.5px/1.15 'Chakra Petch', 'Nunito', sans-serif;
+  letter-spacing: .3px; cursor: pointer; white-space: nowrap;
+  transition: transform .13s, border-color .15s, background .15s, box-shadow .15s;
+}
+.skins-open-chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--beam-a);
+  background: color-mix(in srgb, var(--beam-a) 24%, var(--chip));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--beam-a) 32%, transparent);
+}
+.skins-open-chip.has-custom {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--chip));
+}
+.skins-open-chip:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+.cast-opt { position: relative; }
+.cast-skin-tag {
+  position: absolute; top: 3px; right: 3px; z-index: 2; pointer-events: none;
+  padding: 1.5px 4.5px; border-radius: 5px;
+  font: 800 8px/1 'Orbitron', 'Chakra Petch', sans-serif;
+  letter-spacing: .35px; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--beam-b)));
+  color: var(--accent-ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
