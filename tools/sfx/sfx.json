@@ -1,0 +1,9 @@
+{
+  "format": "opus",
+  "kbps": 96,
+  "sampleRate": 48000,
+  "seconds": 4,
+  "floorDb": -80,
+  "gapSeconds": 0.05,
+  "seed": 1
+}

@@ -654,9 +654,12 @@ function runSmokeTest(win) {
         const hasDesktop = !!window.slopDesktop && window.slopDesktop.isElectron === true;
         // 'files' when the pre-rendered soundtrack loaded over app://, 'synth' if it fell back to live synthesis
         const music = (typeof Sound !== 'undefined' && Sound.musicState) ? Sound.musicState().mode : 'missing';
+        // 'files' when every pre-rendered sound effect decoded, 'partial' / 'synth' when some or all fell back
+        const sfx = (typeof Sound !== 'undefined' && Sound.sfxState) ? Sound.sfxState().mode : 'missing';
         return {
-          ready: cards === 104 && hasSolver && hasCast && hasDesktop && music !== 'loading',
+          ready: cards === 104 && hasSolver && hasCast && hasDesktop && music !== 'loading' && sfx !== 'loading',
           music,
+          sfx,
           cards,
           hasSolver,
           hasCast,
@@ -680,6 +683,7 @@ function runSmokeTest(win) {
           hasAccount: state.hasAccount,
           hasDesktop: state.hasDesktop,
           music: state.music,
+          sfx: state.sfx,
           origin: state.origin,
         };
         console.log('ELECTRON_SMOKE_OK ' + JSON.stringify(summary));

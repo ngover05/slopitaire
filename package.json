@@ -13,6 +13,7 @@
     "test:auth": "node server/test-auth.js",
     "test:smoke": "electron . --smoke-test",
     "music": "electron tools/music/main.js",
+    "sfx": "electron tools/sfx/main.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win portable nsis",
     "dist:win": "electron-builder --win portable nsis",

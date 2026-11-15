@@ -1,26 +1,177 @@
-/* Slopitaire audio — the Prism digital SFX suite (40+ synthesized sound effects), built on js/audio/sound.js. */
-// A: the engine's context, SFX bus, config and synthesis primitives (see createSoundEffects() in sound.js)
-function createSoundEffects(A) {
+/* Slopitaire audio — the Prism digital SFX suite (40+ synthesized sound effects), built on js/audio/synth.js.
+ * The game normally plays these from pre-rendered Opus files (tools/sfx -> audio/sfx, listed in js/audio/sfx-files.js);
+ * the synthesis below is what those files are rendered from, and the live fallback where they can't load.
+ *
+ * VARIANTS says how each effect's arguments map to a distinct sound, so every variant can be rendered once:
+ *   key(...args)  -> the normalized arguments the sound depends on (default: none). Must mirror the clamping in the
+ *                    effect; the renderer checks this by fingerprinting the synth calls of every sample.
+ *   sample        -> argument lists to try (an array, or a function returning one); one render per distinct key
+ *   takes         -> renders with different random seeds (noise), picked at random at play time
+ *   gap           -> ms: calls closer together than this are dropped (hover ticks and popup chimes)
+ *   seq(...args)  -> the effect is a timed sequence of parts: [[part, partArgs, offsetSeconds], ...]
+ *   part          -> a piece of a seq effect, not callable from the game */
+const SfxSuite = (() => {
   'use strict';
-  const { cfg, mtof, nowMs, safeHz, tone, supersaw, chordStab, noise, bell } = A;
-  let lastHoverMs = 0, lastCardHoverMs = 0;
-  let lastPopupMs = 0, lastBadgeMs = 0, lastBannerMs = 0, lastStampMs = 0;
-
-  const ok = () => !!(A.ctx && A.ctx.state === 'running' && !cfg.muted && cfg.sfx > 0);
-  const now = () => A.ctx.currentTime + 0.004;
   const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
   const PARTNER_SEMI = {
     sakura: 0, yuki: 2, rin: -1, mio: 4, ayame: -3, kira: -5, kaede: -2, mochi: 5
   };
+  const PARTNERS = Object.keys(PARTNER_SEMI);
   const partnerSemi = (p) => PARTNER_SEMI[String(p || 'sakura').toLowerCase()] || 0;
   const AUTO_SCALE = [
     65, 67, 69, 72, 74, 77, 79, 81, 84, 86, 89, 91,
     93, 96, 98, 100, 101, 103, 105, 108
   ];
+  const ALIASES = { chainMilestone: 'comboMilestone', chainBreak: 'comboBreak' };
+
+  // ---------- variants ----------
+  const cint = (v, lo, hi, d) => clamp(Math.round(Number(v) || d), lo, hi);
+  const partnerKey = (p) => {
+    const k = String(p || 'sakura').toLowerCase();
+    return PARTNER_SEMI[k] != null ? k : 'sakura';
+  };
+  const ints = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => [a + i]);
+  const cross = (as, bs) => as.flatMap((a) => bs.map((b) => [...a, b]));
+  const partnerSample = [...PARTNERS, '', 'Sakura', 'MOCHI', 'nobody', undefined, null].map((p) => [p]);
+  const partner = { key: (p) => [partnerKey(p)], sample: partnerSample };
+
+  const multiPlaceSeq = (count = 2, combo = 0) => {
+    const n = clamp((count | 0) || 2, 2, 13);
+    const cb = cint(combo, 0, 24, 0);
+    const taps = Math.min(n, 7);
+    const out = [['multiThud', [], 0]];
+    for (let i = 0; i < taps; i++) {
+      const at = i * 0.018;
+      out.push(['tapNoise', [i], at], ['tapNote', [Math.min(96, 62 + cb + i * 2), i === taps - 1 && cb >= 4 ? 1 : 0], at]);
+    }
+    return out;
+  };
+  const multiPlaceSample = cross(ints(0, 14), [undefined, 0, 1, 3, 4, 5, ...Array.from({ length: 22 }, (_, i) => i + 6)]);
+  const partArgs = (seq, sample, part) => sample.flatMap((a) => seq(...a).filter((s) => s[0] === part).map((s) => s[1]));
+
+  const VARIANTS = {
+    flip: { takes: 3 },
+    draw: { takes: 3 },
+    place: { key: (c = 0) => [cint(c, 0, 24, 0)], sample: ints(-2, 30) },
+    foundation: {
+      key: (rank = 1, combo = 0) => {
+        const r = clamp((rank | 0) || 1, 1, 13);
+        return [Math.min(94, 69 + PENTA[r - 1] + ((cint(combo, 0, 24, 0) / 4) | 0))];
+      },
+      sample: cross(ints(-1, 15), [undefined, 0, 3, 4, 7, 8, 11, 12, 15, 16, 19, 20, 23, 24, 30]),
+    },
+    comboMilestone: { key: (t = 1) => [cint(t, 1, 4, 1)], sample: ints(-1, 6) },
+    comboBreak: { key: (lost = 5) => [clamp((Number(lost) || 5) / 20, 0.25, 1.2)], sample: ints(0, 30) },
+    hover: { gap: 45 },
+    cardHover: { gap: 55 },
+    multiPick: { key: (c = 2) => [Math.min(10, clamp((c | 0) || 2, 2, 13))], sample: ints(-1, 15) },
+    multiPlace: { seq: multiPlaceSeq },
+    multiThud: { part: true },
+    tapNoise: { part: true, key: (i) => [i | 0], sample: ints(0, 6) },
+    tapNote: { part: true, key: (m, s) => [m, s ? 1 : 0], sample: () => partArgs(multiPlaceSeq, multiPlaceSample, 'tapNote') },
+    revealCard: { key: (r = 1) => [Math.min(92, 71 + PENTA[clamp((r | 0) || 1, 1, 13) - 1])], sample: ints(-1, 15) },
+    comboTick: { key: (c = 1) => [cint(c, 1, 32, 1)], sample: ints(-1, 40) },
+    drawTriple: { takes: 2 },
+    partnerSelect: partner,
+    petGirl: partner,
+    touchHead: partner,
+    touchFace: partner,
+    touchHands: partner,
+    touchTorso: partner,
+    touchLegs: partner,
+    popupScore: {
+      gap: 30,
+      key: (mult = 1) => {
+        const v = clamp(Number(mult) || 1, 1, 4);
+        return [clamp(Math.round((v - 1) * 6), 0, 14), v >= 1.5 ? 1 : 0, v >= 2 ? 1 : 0];
+      },
+      sample: [[], [0], [1.5], [2], ...Array.from({ length: 331 }, (_, i) => [Math.round(90 + i) / 100])],
+    },
+    badgeUnlock: { gap: 65 },
+    bannerSlam: { gap: 80 },
+    reactStamp: { gap: 70 },
+    pairMatch: {
+      key: (c = 0, king = false) => {
+        const cb = cint(c, 0, 24, 0);
+        return [Math.min(92, 67 + PENTA[cb % 13] + ((cb / 13) | 0) * 12), king ? 1 : 0];
+      },
+      sample: cross(ints(-1, 26), [false, true]),
+    },
+    runBank: { key: (len = 3) => [clamp((len | 0) - 1, 2, 9)], sample: [[], ...ints(-1, 12)] },
+    cellPark: { key: (u = 1) => [clamp(u | 0, 1, 4)], sample: [[], ...ints(-1, 6)] },
+    autoStep: {
+      key: (i = 0) => {
+        const idx = Math.max(0, (i | 0) || 0);
+        return [Math.min(104, idx < AUTO_SCALE.length ? AUTO_SCALE[idx] : 96 + PENTA[idx % 7])];
+      },
+      sample: ints(-1, 45),
+    },
+    shuffle: { takes: 3 },
+    deal: {
+      seq: (n = 7, gap = 0.04) => {
+        const count = clamp((n | 0) || 0, 0, 60);
+        const dt = clamp(Number(gap) || 0.04, 0.012, 0.25);
+        return Array.from({ length: count }, (_, i) => ['dealTap', [i % 5, i % 7], i * dt + 0.03]);
+      },
+    },
+    dealTap: { part: true, key: (a, b) => [a | 0, b | 0], sample: cross(ints(0, 4), [0, 1, 2, 3, 4, 5, 6]) },
+    nya: { takes: 4 },
+  };
+
+  // Crisp short prism slap-shimmer for the SFX (the sfxSend voices): returns the send input, wet output -> dest
+  function createEcho(ac, dest) {
+    const echo = ac.createDelay(0.5);
+    echo.delayTime.value = 0.085;
+    const fb = ac.createGain();
+    fb.gain.value = 0.22;
+    const hp = ac.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 900;
+    const wet = ac.createGain();
+    wet.gain.value = 0.24;
+    echo.connect(hp);
+    hp.connect(fb);
+    fb.connect(echo);
+    hp.connect(wet);
+    wet.connect(dest);
+    return echo;
+  }
+
+  return { createEcho, VARIANTS, ALIASES, PARTNERS, PENTA, AUTO_SCALE, partnerSemi };
+})();
+
+// A: the engine's context, SFX bus and synthesis primitives (see sound.js and tools/sfx/render.js).
+// Returns { sfx: the effects, each synthesized at the current time, parts: the pieces of the seq effects (each
+// starting at a given time), now: the start time an effect uses }.
+function createSoundEffects(A) {
+  'use strict';
+  const { VARIANTS, ALIASES, PENTA, AUTO_SCALE, partnerSemi } = SfxSuite;
+  const { mtof, safeHz, tone, supersaw, chordStab, noise, bell } = A;
+  const now = () => A.ctx.currentTime + 0.004;
+
+  // pieces of the sequence effects (VARIANTS[...].seq), each starting at t
+  const parts = {
+    multiThud(t) {
+      tone(420, t, 0.08, { vol: 0.16, glide: 140, glideT: 0.055 });
+    },
+    tapNoise(t, i) {
+      noise(t, 0.022, { ft: 'bandpass', f: 2400 + i * 280, q: 1.2, vol: 0.08 });
+    },
+    tapNote(t, m, send) {
+      tone(mtof(m), t, 0.075, { type: 'triangle', vol: 0.085, a: 0.002, sfxSend: !!send });
+    },
+    dealTap(t, a, b) {
+      noise(t, 0.045, { f: 2500 + a * 260 + Math.random() * 800, q: 1.0, vol: 0.085 });
+      tone(1200 + b * 90, t, 0.028, { type: 'triangle', vol: 0.022 });
+    },
+  };
+  const playSeq = (list) => {
+    const t = now();
+    for (const [p, args, at] of list) parts[p](t + at, ...args);
+  };
 
   const sfx = {
     flip() {
-      if (!ok()) return;
       const t = now();
       noise(t, 0.055, { f: 3800, fEnd: 5600, q: 0.9, vol: 0.15 });
       tone(1450, t, 0.055, { type: 'triangle', vol: 0.065, glide: 2550 });
@@ -28,14 +179,12 @@ function createSoundEffects(A) {
     },
 
     pick() {
-      if (!ok()) return;
       const t = now();
       tone(700, t, 0.068, { type: 'triangle', vol: 0.11, glide: 1250 });
       tone(1400, t + 0.006, 0.048, { type: 'sine', vol: 0.045, glide: 2500 });
     },
 
     place(combo = 0) {
-      if (!ok()) return;
       const t = now();
       const cb = clamp(Math.round(Number(combo) || 0), 0, 24);
       // Punchy tactile tap transient + pitch-shifted prism synth note
@@ -53,7 +202,6 @@ function createSoundEffects(A) {
     },
 
     draw() {
-      if (!ok()) return;
       const t = now();
       noise(t, 0.085, { f: 2500, fEnd: 4600, q: 0.75, vol: 0.12, a: 0.012 });
       tone(680, t, 0.065, { type: 'triangle', vol: 0.055, glide: 1480 });
@@ -61,7 +209,6 @@ function createSoundEffects(A) {
     },
 
     foundation(rank = 1, combo = 0) {
-      if (!ok()) return;
       const t = now();
       const r = clamp((rank | 0) || 1, 1, 13);
       const cb = clamp(Math.round(Number(combo) || 0), 0, 24);
@@ -77,7 +224,6 @@ function createSoundEffects(A) {
     },
 
     comboMilestone(tier = 1) {
-      if (!ok()) return;
       const t = now();
       const tr = clamp(Math.round(Number(tier) || 1), 1, 4);
       const roots = [65, 68, 72, 77]; // Escalates across SURGE, BOOST, BLITZ, APEX!
@@ -100,7 +246,6 @@ function createSoundEffects(A) {
     },
 
     comboBreak(lost = 5) {
-      if (!ok()) return;
       const t = now();
       const sev = clamp((Number(lost) || 5) / 20, 0.25, 1.2);
       // Filter power-down sweep when a high combo drops
@@ -112,7 +257,6 @@ function createSoundEffects(A) {
     },
 
     cutin() {
-      if (!ok()) return;
       const t = now();
       // Anime prism-slash whoosh + sub-bass impact + crystal chime
       noise(t, 0.17, { ft: 'bandpass', f: 5200, fEnd: 850, q: 1.3, vol: 0.17, a: 0.005 });
@@ -124,26 +268,17 @@ function createSoundEffects(A) {
     },
 
     hover() {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastHoverMs < 45) return;
-      lastHoverMs = ms;
       const t = now();
       tone(1900, t, 0.018, { type: 'triangle', vol: 0.032, glide: 2550, a: 0.002 });
     },
 
     cardHover() {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastCardHoverMs < 55) return;
-      lastCardHoverMs = ms;
       const t = now();
       // Silky 12ms (<15ms) micro-tick for hovering face-up cards
       tone(2250, t, 0.012, { type: 'sine', vol: 0.024, glide: 2850, a: 0.0015 });
     },
 
     multiPick(count = 2) {
-      if (!ok()) return;
       const t = now();
       const n = clamp((count | 0) || 2, 2, 13);
       const voices = Math.min(4, n);
@@ -158,24 +293,10 @@ function createSoundEffects(A) {
     },
 
     multiPlace(count = 2, combo = 0) {
-      if (!ok()) return;
-      const t = now();
-      const n = clamp((count | 0) || 2, 2, 13);
-      const cb = clamp(Math.round(Number(combo) || 0), 0, 24);
-      const taps = Math.min(n, 7);
-      for (let i = 0; i < taps; i++) {
-        const st = t + i * 0.018;
-        const m = Math.min(96, 62 + cb + i * 2);
-        noise(st, 0.022, { ft: 'bandpass', f: 2400 + i * 280, q: 1.2, vol: 0.08 });
-        tone(mtof(m), st, 0.075, {
-          type: 'triangle', vol: 0.085, a: 0.002, sfxSend: i === taps - 1 && cb >= 4
-        });
-      }
-      tone(420, t, 0.08, { vol: 0.16, glide: 140, glideT: 0.055 });
+      playSeq(VARIANTS.multiPlace.seq(count, combo));
     },
 
     revealCard(rank = 1) {
-      if (!ok()) return;
       const t = now();
       const r = clamp((rank | 0) || 1, 1, 13);
       const m = Math.min(92, 71 + PENTA[r - 1]);
@@ -187,7 +308,6 @@ function createSoundEffects(A) {
     },
 
     kingLock() {
-      if (!ok()) return;
       const t = now();
       // Deep bass servo-lock + authoritative metallic fifth chime
       tone(190, t, 0.19, { vol: 0.24, glide: 48, glideT: 0.14 });
@@ -198,7 +318,6 @@ function createSoundEffects(A) {
     },
 
     aceIgnition() {
-      if (!ok()) return;
       const t = now();
       // Bright upward prism-spark ignition for foundation Ace
       noise(t, 0.07, { ft: 'highpass', f: 6500, vol: 0.09 });
@@ -209,7 +328,6 @@ function createSoundEffects(A) {
     },
 
     comboTick(combo = 1) {
-      if (!ok()) return;
       const t = now();
       const cb = clamp(Math.round(Number(combo) || 1), 1, 32);
       const hz = mtof(69 + cb * 0.75);
@@ -218,7 +336,6 @@ function createSoundEffects(A) {
     },
 
     comboSave() {
-      if (!ok()) return;
       const t = now();
       // Relieved upward dual-chime when rescuing a nearly-expired combo
       noise(t, 0.08, { ft: 'bandpass', f: 2200, fEnd: 5400, q: 1.2, vol: 0.065, a: 0.015 });
@@ -228,7 +345,6 @@ function createSoundEffects(A) {
     },
 
     drawTriple() {
-      if (!ok()) return;
       const t = now();
       // Crisp rapid 3-tap card fan for Draw-3 mode
       for (let i = 0; i < 3; i++) {
@@ -239,14 +355,12 @@ function createSoundEffects(A) {
     },
 
     stockEmpty() {
-      if (!ok()) return;
       const t = now();
       tone(420, t, 0.065, { type: 'sine', vol: 0.09, glide: 250 });
       noise(t, 0.03, { ft: 'bandpass', f: 950, q: 2.2, vol: 0.07 });
     },
 
     modalOpen() {
-      if (!ok()) return;
       const t = now();
       noise(t, 0.13, { ft: 'bandpass', f: 950, fEnd: 3800, q: 1.1, vol: 0.07, a: 0.025 });
       tone(587.3, t, 0.12, { type: 'triangle', vol: 0.065, glide: 880, a: 0.012, sfxSend: true });
@@ -254,28 +368,24 @@ function createSoundEffects(A) {
     },
 
     modalClose() {
-      if (!ok()) return;
       const t = now();
       noise(t, 0.11, { ft: 'bandpass', f: 3400, fEnd: 780, q: 1.1, vol: 0.065, a: 0.015 });
       tone(880, t, 0.11, { type: 'triangle', vol: 0.06, glide: 523.25, a: 0.008 });
     },
 
     toggleOn() {
-      if (!ok()) return;
       const t = now();
       tone(987.8, t, 0.04, { type: 'triangle', vol: 0.07 });
       tone(1318.5, t + 0.032, 0.06, { type: 'sine', vol: 0.08, glide: 1480 });
     },
 
     toggleOff() {
-      if (!ok()) return;
       const t = now();
       tone(1174.7, t, 0.04, { type: 'triangle', vol: 0.065 });
       tone(784, t + 0.032, 0.06, { type: 'sine', vol: 0.07, glide: 698.5 });
     },
 
     partnerSelect(key = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const k = String(key || 'sakura').toLowerCase();
       if (k === 'yuki') {
@@ -337,7 +447,6 @@ function createSoundEffects(A) {
     },
 
     petGirl(key = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const k = String(key || 'sakura').toLowerCase();
       if (k === 'mio') {
@@ -371,7 +480,6 @@ function createSoundEffects(A) {
     },
 
     touchHead(partner = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const s = partnerSemi(partner);
       // Soft warm velvet dual-chime pat-pat (撫で撫で)
@@ -388,7 +496,6 @@ function createSoundEffects(A) {
     },
 
     touchFace(partner = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const s = partnerSemi(partner);
       const mul = Math.pow(2, s / 24);
@@ -399,7 +506,6 @@ function createSoundEffects(A) {
     },
 
     touchHands(partner = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const s = partnerSemi(partner);
       // Crisp harmonic prism high-five / link chord
@@ -413,7 +519,6 @@ function createSoundEffects(A) {
     },
 
     touchTorso(partner = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const s = partnerSemi(partner);
       // Anime flustered doki-doki! double-pulse + sparkly blush flourish
@@ -427,7 +532,6 @@ function createSoundEffects(A) {
     },
 
     touchLegs(partner = 'sakura') {
-      if (!ok()) return;
       const t = now();
       const s = partnerSemi(partner);
       const mul = Math.pow(2, s / 24);
@@ -439,7 +543,6 @@ function createSoundEffects(A) {
     },
 
     halfway() {
-      if (!ok()) return;
       const t = now();
       // Uplifting midpoint progress chime (26/52 foundation cards)
       tone(165, t, 0.18, { vol: 0.18, glide: 55, glideT: 0.13 });
@@ -451,7 +554,6 @@ function createSoundEffects(A) {
     },
 
     almostWon() {
-      if (!ok()) return;
       const t = now();
       // Exciting climax shimmer (44/52 foundation cards)
       noise(t, 0.14, { ft: 'bandpass', f: 1800, fEnd: 6400, q: 1.3, vol: 0.08, a: 0.03 });
@@ -463,7 +565,6 @@ function createSoundEffects(A) {
     },
 
     newRecord() {
-      if (!ok()) return;
       const t = now();
       // Golden prism Lydian arpeggio burst on setting a new record
       chordStab([60, 67, 72, 76, 83], t, 0.45, {
@@ -475,10 +576,6 @@ function createSoundEffects(A) {
     },
 
     popupScore(mult = 1) {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastPopupMs < 30) return;
-      lastPopupMs = ms;
       const t = now() + 0.018;
       const mVal = clamp(Number(mult) || 1, 1, 4);
       const semi = clamp(Math.round((mVal - 1) * 6), 0, 14);
@@ -491,10 +588,6 @@ function createSoundEffects(A) {
     },
 
     badgeUnlock() {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastBadgeMs < 65) return;
-      lastBadgeMs = ms;
       const t = now();
       // Glassy futuristic accolade / medal unlock triad
       [79, 83, 86, 91].forEach((m, i) => {
@@ -504,10 +597,6 @@ function createSoundEffects(A) {
     },
 
     bannerSlam() {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastBannerMs < 80) return;
-      lastBannerMs = ms;
       const t = now();
       // Kinetic sub-HUD callout banner wipe + crisp fifth lock
       tone(155, t, 0.11, { vol: 0.13, glide: 54, glideT: 0.085 });
@@ -517,10 +606,6 @@ function createSoundEffects(A) {
     },
 
     reactStamp() {
-      if (!ok()) return;
-      const ms = nowMs();
-      if (ms - lastStampMs < 70) return;
-      lastStampMs = ms;
       const t = now();
       // Playful holographic companion reaction stamp pop
       tone(680, t, 0.032, { type: 'sine', vol: 0.052, glide: 1520, a: 0.002 });
@@ -529,7 +614,6 @@ function createSoundEffects(A) {
     },
 
     modeSwitch() {
-      if (!ok()) return;
       const t = now();
       tone(784, t, 0.075, { type: 'triangle', vol: 0.09, glide: 1175 });
       tone(1175, t + 0.052, 0.11, { type: 'sine', vol: 0.1, glide: 1568, sfxSend: true });
@@ -537,7 +621,6 @@ function createSoundEffects(A) {
     },
 
     clearCol() {
-      if (!ok()) return;
       const t = now();
       supersaw(440, t, 0.22, { glide: 1760, glideT: 0.2, vol: 0.085, lp: 6500, spread: 14, sfxSend: true });
       [72, 76, 79, 84].forEach((m, i) => {
@@ -546,7 +629,6 @@ function createSoundEffects(A) {
     },
 
     suitDone() {
-      if (!ok()) return;
       const t = now();
       const notes = [72, 76, 79, 84, 79, 84, 88, 96];
       tone(150, t, 0.22, { vol: 0.22, glide: 45, glideT: 0.15 });
@@ -563,7 +645,6 @@ function createSoundEffects(A) {
     // ---------- variant SFX (Pyramid / TriPeaks / FreeCell) ----------
     // Pyramid pair: two bells a fifth apart that meet on one chord; climbs with the combo. Kings get a low thud.
     pairMatch(combo = 0, king = false) {
-      if (!ok()) return;
       const t = now();
       const cb = clamp(Math.round(Number(combo) || 0), 0, 24);
       const m = Math.min(92, 67 + PENTA[cb % 13] + ((cb / 13) | 0) * 12);
@@ -576,7 +657,6 @@ function createSoundEffects(A) {
 
     // Pyramid row gone: a rising sweep into a bright stack of bells
     rowClear() {
-      if (!ok()) return;
       const t = now();
       supersaw(330, t, 0.2, { glide: 1320, glideT: 0.18, vol: 0.08, lp: 6800, spread: 16, sfxSend: true });
       [76, 79, 83, 88, 91].forEach((m, i) => bell(mtof(m), t + 0.05 + i * 0.045, 0.32, 0.07, A.sfxBus, false, true));
@@ -584,7 +664,6 @@ function createSoundEffects(A) {
 
     // TriPeaks summit: deep boom, then a fanfare arpeggio
     peakClear() {
-      if (!ok()) return;
       const t = now();
       tone(110, t, 0.3, { vol: 0.22, glide: 40, glideT: 0.25 });
       noise(t, 0.2, { ft: 'bandpass', f: 900, fEnd: 5200, q: 1.2, vol: 0.08, a: 0.03 });
@@ -597,7 +676,6 @@ function createSoundEffects(A) {
 
     // TriPeaks run cashed in: a coin-counter ripple, longer runs get more ticks
     runBank(len = 3) {
-      if (!ok()) return;
       const t = now();
       const n = clamp((len | 0) - 1, 2, 9);
       for (let i = 0; i < n; i++) {
@@ -610,7 +688,6 @@ function createSoundEffects(A) {
 
     // FreeCell: parking a card in a cell; the pitch drops as the cells fill up
     cellPark(used = 1) {
-      if (!ok()) return;
       const t = now();
       const u = clamp(used | 0, 1, 4);
       tone(520 - u * 60, t, 0.07, { type: 'triangle', vol: 0.1, glide: 300 - u * 30, glideT: 0.05 });
@@ -619,7 +696,6 @@ function createSoundEffects(A) {
     },
 
     autoStep(i = 0) {
-      if (!ok()) return;
       const t = now();
       const idx = Math.max(0, (i | 0) || 0);
       const m = idx < AUTO_SCALE.length
@@ -632,7 +708,6 @@ function createSoundEffects(A) {
     },
 
     warning() {
-      if (!ok()) return;
       const t = now();
       for (let i = 0; i < 2; i++) {
         const pt = t + i * 0.105;
@@ -642,14 +717,12 @@ function createSoundEffects(A) {
     },
 
     invalid() {
-      if (!ok()) return;
       const t = now();
       tone(392, t, 0.11, { type: 'sawtooth', vol: 0.09, glide: 320, lp: 1400 });
       tone(311, t + 0.1, 0.17, { type: 'sawtooth', vol: 0.095, glide: 210, lp: 1100 });
     },
 
     shuffle() {
-      if (!ok()) return;
       const t = now();
       for (let i = 0; i < 18; i++) {
         noise(t + i * 0.028, 0.038, { f: 1900 + i * 140 + Math.random() * 900, q: 1.2, vol: 0.1 });
@@ -658,19 +731,10 @@ function createSoundEffects(A) {
     },
 
     deal(n = 7, gap = 0.04) {
-      if (!ok()) return;
-      const t = now();
-      const count = clamp((n | 0) || 0, 0, 60);
-      const dt = clamp(Number(gap) || 0.04, 0.012, 0.25);
-      for (let i = 0; i < count; i++) {
-        const st = t + i * dt + 0.03;
-        noise(st, 0.045, { f: 2500 + (i % 5) * 260 + Math.random() * 800, q: 1.0, vol: 0.085 });
-        tone(1200 + (i % 7) * 90, st, 0.028, { type: 'triangle', vol: 0.022 });
-      }
+      playSeq(VARIANTS.deal.seq(n, gap));
     },
 
     hint() {
-      if (!ok()) return;
       const t = now();
       bell(1318.5, t, 0.38, 0.095, A.sfxBus, false, true);
       bell(1760, t + 0.075, 0.44, 0.095, A.sfxBus, false, true);
@@ -678,21 +742,18 @@ function createSoundEffects(A) {
     },
 
     click() {
-      if (!ok()) return;
       const t = now();
       tone(920, t, 0.052, { type: 'triangle', vol: 0.08, glide: 1480 });
       tone(2200, t + 0.005, 0.028, { type: 'sine', vol: 0.03 });
     },
 
     undo() {
-      if (!ok()) return;
       const t = now();
       tone(820, t, 0.13, { vol: 0.11, glide: 420, type: 'triangle' });
       noise(t, 0.1, { f: 2800, fEnd: 900, q: 1.0, vol: 0.06, a: 0.03 });
     },
 
     recycle() {
-      if (!ok()) return;
       const t = now();
       noise(t, 0.22, { f: 1400, fEnd: 3800, q: 0.7, vol: 0.11, a: 0.06 });
       tone(380, t, 0.22, { vol: 0.08, glide: 980, type: 'triangle' });
@@ -700,7 +761,6 @@ function createSoundEffects(A) {
     },
 
     nya() {
-      if (!ok()) return;
       const t = now();
       const o = A.ctx.createOscillator(), f = A.ctx.createBiquadFilter(), g = A.ctx.createGain();
       const lfo = A.ctx.createOscillator(), lg = A.ctx.createGain();
@@ -730,7 +790,6 @@ function createSoundEffects(A) {
     },
 
     lose() {
-      if (!ok()) return;
       const t = now();
       [67, 64, 62, 59, 55].forEach((m, i) => {
         tone(mtof(m), t + i * 0.19, 0.4, { type: 'triangle', vol: 0.11, a: 0.015 });
@@ -739,7 +798,6 @@ function createSoundEffects(A) {
     },
 
     win() {
-      if (!ok()) return;
       const t = now();
       // Grand Prism Victory fanfare!
       noise(t, 0.16, { ft: 'bandpass', f: 1600, fEnd: 7200, q: 1.4, vol: 0.11, a: 0.04 });
@@ -771,8 +829,7 @@ function createSoundEffects(A) {
   };
 
   // Backwards-compatible aliases
-  sfx.chainMilestone = sfx.comboMilestone;
-  sfx.chainBreak = sfx.comboBreak;
+  for (const [alias, name] of Object.entries(ALIASES)) sfx[alias] = sfx[name];
 
-  return sfx;
+  return { sfx, parts, now };
 }

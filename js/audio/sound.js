@@ -1,5 +1,6 @@
 /* Slopitaire // PRISM audio — futuristic digital Web Audio synthesizer, dynamic combo layering & spectrum telemetry.
- * The SFX suite lives in js/audio/sfx.js, the synth voices in js/audio/synth.js, the music track data in
+ * The SFX suite lives in js/audio/sfx.js (normally played from pre-rendered Opus files: tools/sfx -> audio/sfx,
+ * listed in js/audio/sfx-files.js), the synth voices in js/audio/synth.js, the music track data in
  * js/audio/tracks.js and the score in js/audio/score.js. Music normally plays from pre-rendered Opus loops
  * (tools/music -> audio/music, listed in js/audio/music-files.js), one per combo tier, crossfaded in sync; the
  * live step sequencer is the fallback where those can't load or decode. */
@@ -119,21 +120,9 @@ const Sound = (() => {
       sfxBus = ctx.createGain();
       sfxBus.connect(master);
 
-      // Crisp short prism slap-shimmer bus for futuristic digital SFX
-      sfxEcho = ctx.createDelay(0.5);
-      sfxEcho.delayTime.value = 0.085;
-      const sfxFb = ctx.createGain();
-      sfxFb.gain.value = 0.22;
-      const sfxHp = ctx.createBiquadFilter();
-      sfxHp.type = 'highpass';
-      sfxHp.frequency.value = 900;
-      const sfxWet = ctx.createGain();
-      sfxWet.gain.value = 0.24;
-      sfxEcho.connect(sfxHp);
-      sfxHp.connect(sfxFb);
-      sfxFb.connect(sfxEcho);
-      sfxHp.connect(sfxWet);
-      sfxWet.connect(sfxBus);
+      // Crisp short prism slap-shimmer bus for futuristic digital SFX (used by live synthesis only: the
+      // pre-rendered effects already contain it)
+      sfxEcho = SfxSuite.createEcho(ctx, sfxBus);
 
       musicOut = ctx.createGain();
       musicOut.connect(master);
@@ -148,6 +137,7 @@ const Sound = (() => {
 
       applyGains();
       if (cfg.track !== 'off' && !cfg.muted) startMusic();
+      loadSfx();
     }
     if (!pausedByPage) tryResume();
     return true;
@@ -260,12 +250,100 @@ const Sound = (() => {
   });
 
   // ---------- Prism Futuristic Digital SFX Suite (js/audio/sfx.js) ----------
+  // Every variant of every effect is pre-rendered (tools/sfx) into one Opus file per effect, listed in
+  // js/audio/sfx-files.js; an effect plays its slice of that file. Until the file has decoded, or where Opus or the
+  // file isn't available, the effect is synthesized live from the same code the files were rendered from.
 
-  const sfx = createSoundEffects({
+  const synthSfx = createSoundEffects({
     get ctx() { return ctx; },
     get sfxBus() { return sfxBus; },
-    cfg, mtof, nowMs, safeHz, tone, supersaw, chordStab, noise, bell,
-  });
+    mtof, safeHz, tone, supersaw, chordStab, noise, bell,
+  }).sfx;
+  const SFX = (typeof window !== 'undefined' && window.SFX_FILES) || null;
+  const sfxBufs = {}; // effect -> decoded AudioBuffer
+  let sfxLoad = null, sfxLoaded = false, sfxFailed = 0;
+
+  const sfxOk = () => !!(ctx && ctx.state === 'running' && !cfg.muted && cfg.sfx > 0);
+
+  // fetch and decode every effect's file in the background, two at a time, in manifest order (the common ones first)
+  function loadSfx() {
+    if (sfxLoad || !SFX || !SFX.effects || typeof fetch !== 'function' || !canPlayOpus()) return;
+    const names = Object.keys(SFX.effects);
+    let i = 0;
+    const next = () => {
+      if (i >= names.length) return null;
+      const name = names[i++], e = SFX.effects[name];
+      return fetch(`${SFX.dir}/${e.file}?v=${e.v}`)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.arrayBuffer();
+        })
+        .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)))
+        .then((b) => { sfxBufs[name] = b; }, () => { sfxFailed++; })
+        .then(next);
+    };
+    sfxLoad = Promise.all([next(), next()]).then(() => { sfxLoaded = true; });
+  }
+
+  // the slice of an effect's file that plays these arguments (one of its takes), or null if it isn't loaded
+  function sfxSlice(name, args) {
+    const buf = sfxBufs[name];
+    if (!buf) return null;
+    const spec = SfxSuite.VARIANTS[name];
+    const takes = SFX.effects[name].vars[spec && spec.key ? spec.key(...args).join(' ') : ''];
+    if (!takes) return null;
+    const [start, len] = takes[takes.length > 1 ? (Math.random() * takes.length) | 0 : 0];
+    return { buf, start: start / SFX.sampleRate, dur: len / SFX.sampleRate };
+  }
+
+  function playSlice(s, when) {
+    const src = ctx.createBufferSource();
+    src.buffer = s.buf;
+    src.connect(sfxBus);
+    src.start(when, s.start, s.dur);
+  }
+
+  function playSfxFile(name, spec, args) {
+    if (!SFX || !SFX.effects) return false;
+    if (spec.seq) {
+      const list = spec.seq(...args);
+      const slices = list.map(([part, a]) => sfxSlice(part, a));
+      if (slices.some((x) => !x)) return false;
+      const t = ctx.currentTime;
+      list.forEach(([, , at], k) => playSlice(slices[k], t + at));
+      return true;
+    }
+    const s = sfxSlice(name, args);
+    if (!s) return false;
+    playSlice(s, ctx.currentTime);
+    return true;
+  }
+
+  const sfx = {};
+  for (const name of Object.keys(synthSfx)) {
+    if (SfxSuite.ALIASES[name]) continue;
+    const spec = SfxSuite.VARIANTS[name] || {};
+    let lastMs = -Infinity;
+    sfx[name] = (...args) => {
+      if (!sfxOk()) return;
+      if (spec.gap) {
+        const ms = nowMs();
+        if (ms - lastMs < spec.gap) return;
+        lastMs = ms;
+      }
+      if (!playSfxFile(name, spec, args)) synthSfx[name](...args);
+    };
+  }
+  for (const [alias, name] of Object.entries(SfxSuite.ALIASES)) sfx[alias] = sfx[name];
+
+  // debugging: how the sound effects are being played
+  function sfxState() {
+    const total = SFX && SFX.effects ? Object.keys(SFX.effects).length : 0;
+    const decoded = Object.keys(sfxBufs).length;
+    const mode = !total || !canPlayOpus() ? 'synth' : !sfxLoad ? 'off' : !sfxLoaded ? 'loading'
+      : decoded === total ? 'files' : 'partial';
+    return { mode, decoded, total, failed: sfxFailed };
+  }
 
   // ---------- Music tracks (tempo, chords, phrases: js/audio/tracks.js) ----------
 
@@ -547,6 +625,7 @@ const Sound = (() => {
     getTelemetry,
     setIntensity,
     musicState,
+    sfxState,
     TRACKS
   };
 })();
