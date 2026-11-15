@@ -1,0 +1,140 @@
+/* Slopitaire — companion mood motions and Mochi's SVG expressions */
+/* Mood micro-motions on active .chara-img (bottom-safe for corner vs airborne for full-body) */
+[data-mood="happy"] .girl-sprite.is-corner .chara-img.m-happy { transform: scale(1.018, 1.026); }
+[data-mood="happy"] .girl-sprite.is-full .chara-img.m-happy { transform: translateY(-4px) scale(1.02); }
+[data-mood="special"] .girl-sprite.is-corner .chara-img.m-special { transform: translateY(3.5px) scale(1.03, 1.038) rotate(-1deg); }
+[data-mood="special"] .girl-sprite.is-full .chara-img.m-special { transform: translateY(-6px) scale(1.028) rotate(-1.2deg); }
+[data-mood="wink"] .girl-sprite.is-corner .chara-img.m-wink { transform: translateY(5.5px) rotate(1.7deg) scale(1.014); }
+[data-mood="wink"] .girl-sprite.is-full .chara-img.m-wink { transform: translateY(-2px) rotate(2deg) scale(1.015); }
+[data-mood="thinking"] .girl-sprite.is-corner .chara-img.m-thinking { transform: translateY(4.5px) rotate(-1.4deg) scale(1.005); }
+[data-mood="thinking"] .girl-sprite.is-full .chara-img.m-thinking { transform: rotate(-1.8deg) translateX(-2px); }
+[data-mood="sad"] .girl-sprite.is-corner .chara-img.m-sad { transform: translateY(3px) scale(.99, .968) rotate(.7deg); }
+[data-mood="sad"] .girl-sprite.is-full .chara-img.m-sad { transform: translateY(3px) scale(.985, .97) rotate(.8deg); }
+[data-mood="oops"] .girl-sprite.is-corner .chara-img.m-oops { animation: moodOopsCorner .38s ease; }
+[data-mood="oops"] .girl-sprite.is-full .chara-img.m-oops { animation: moodOopsFull .38s ease; }
+[data-mood="hype"] .girl-sprite.is-corner .chara-img.m-hype { transform: translateY(4.5px) scale(1.035, 1.045) rotate(-1deg); animation: moodHypeCorner .46s cubic-bezier(.25, 1.55, .45, 1); }
+[data-mood="hype"] .girl-sprite.is-full .chara-img.m-hype { transform: translateY(-8px) scale(1.034) rotate(-1.2deg); animation: moodHypeFull .48s cubic-bezier(.25, 1.55, .45, 1); }
+[data-mood="smug"] .girl-sprite.is-corner .chara-img.m-smug { transform: translateY(5px) scale(1.016, 1.022) rotate(1.4deg); }
+[data-mood="smug"] .girl-sprite.is-full .chara-img.m-smug { transform: translateY(-3px) scale(1.016) rotate(1.6deg); }
+[data-mood="shock"] .girl-sprite.is-corner .chara-img.m-shock { transform: translateY(3px) scale(.992, 1.025); animation: moodShockCorner .44s ease; }
+[data-mood="shock"] .girl-sprite.is-full .chara-img.m-shock { transform: translateY(-3px) scale(.99, 1.02); animation: moodShockFull .44s ease; }
+[data-mood="cheer"] .girl-sprite.is-corner .chara-img.m-cheer { transform: translateY(4px) scale(1.024, 1.032) rotate(-.9deg); }
+[data-mood="cheer"] .girl-sprite.is-full .chara-img.m-cheer { transform: translateY(-5px) scale(1.024) rotate(-1deg); }
+
+/* Mochi SVG expressions (all 11 moods covered) */
+.chara .eyes-happy, .chara .eyes-oops, .chara .eyes-sad, .chara .eyes-wink, .chara .mouth-open, .chara .mouth-sad { display: none; }
+.chara .eyes-open { animation: blink 4.5s infinite; transform-box: fill-box; transform-origin: center; }
+.mochi .m-tail { animation: tail 1.6s ease-in-out infinite alternate; transform-origin: 100px 92px; }
+[data-mood="happy"] .chara .eyes-open,
+[data-mood="oops"] .chara .eyes-open,
+[data-mood="sad"] .chara .eyes-open,
+[data-mood="wink"] .chara .eyes-open,
+[data-mood="thinking"] .chara .eyes-open,
+[data-mood="special"] .chara .eyes-open,
+[data-mood="hype"] .chara .eyes-open,
+[data-mood="smug"] .chara .eyes-open,
+[data-mood="shock"] .chara .eyes-open,
+[data-mood="cheer"] .chara .eyes-open { display: none; }
+[data-mood="happy"] .chara .eyes-happy,
+[data-mood="special"] .chara .eyes-happy,
+[data-mood="hype"] .chara .eyes-happy,
+[data-mood="cheer"] .chara .eyes-happy { display: inline; }
+[data-mood="oops"] .chara .eyes-oops,
+[data-mood="shock"] .chara .eyes-oops { display: inline; }
+[data-mood="sad"] .chara .eyes-sad { display: inline; }
+[data-mood="wink"] .chara .eyes-wink,
+[data-mood="thinking"] .chara .eyes-wink,
+[data-mood="smug"] .chara .eyes-wink { display: inline; }
+[data-mood="happy"] .chara .mouth-w,
+[data-mood="oops"] .chara .mouth-w,
+[data-mood="sad"] .chara .mouth-w,
+[data-mood="special"] .chara .mouth-w,
+[data-mood="hype"] .chara .mouth-w,
+[data-mood="shock"] .chara .mouth-w,
+[data-mood="cheer"] .chara .mouth-w { display: none; }
+[data-mood="happy"] .chara .mouth-open,
+[data-mood="oops"] .chara .mouth-open,
+[data-mood="special"] .chara .mouth-open,
+[data-mood="hype"] .chara .mouth-open,
+[data-mood="shock"] .chara .mouth-open,
+[data-mood="cheer"] .chara .mouth-open { display: inline; }
+[data-mood="sad"] .chara .mouth-sad { display: inline; }
+/* Mochi lip flap while speaking */
+.talking .chara .mouth-sad { display: none; }
+.talking .chara .mouth-w { display: inline; animation: flapA .26s linear infinite; }
+.talking .chara .mouth-open { display: inline; animation: flapB .26s linear infinite; }
+@keyframes flapA { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes flapB { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+
+@keyframes bobGirlCorner {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.012, 1.018); }
+}
+@keyframes boingGirlCorner {
+  0% { transform: scale(1, 1); }
+  28% { transform: scale(1.05, .94); }
+  62% { transform: translateY(3.5px) scale(.975, 1.045) rotate(-1deg); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes talkGirlCorner {
+  0% { transform: scale(1, 1); }
+  100% { transform: translateY(2.5px) scale(1.012, 1.022) rotate(.6deg); }
+}
+@keyframes bobGirlFull {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  50% { transform: translateY(-6px) rotate(.6deg) scale(1.008, 1.01); }
+}
+@keyframes boingGirlFull {
+  0% { transform: translateY(0) scale(1, 1); }
+  24% { transform: translateY(2px) scale(1.05, .94); }
+  58% { transform: translateY(-14px) scale(.97, 1.04) rotate(-1.2deg); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes boingGirlStart {
+  0% { transform: translateY(0) scale(1, 1); }
+  28% { transform: translateY(2px) scale(1.04, .95); }
+  62% { transform: translateY(-7px) scale(.985, 1.02) rotate(-.8deg); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes talkGirlFull {
+  0% { transform: translateY(0) scale(1, 1); }
+  100% { transform: translateY(-5px) scale(1.01, 1.015) rotate(.7deg); }
+}
+@keyframes moodOopsCorner {
+  0% { transform: scale(1, 1); }
+  22% { transform: translateY(4.5px) translateX(-5px) scale(1.02, 1.035) rotate(-1.4deg); }
+  48% { transform: translateY(4.5px) translateX(5px) scale(1.01, .985) rotate(1.4deg); }
+  74% { transform: translateY(2.5px) translateX(-3px) rotate(-.7deg); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes moodOopsFull {
+  0% { transform: translateY(0) scale(1); }
+  22% { transform: translateY(-6px) translateX(-5px) scale(1.015, 1.02) rotate(-1.8deg); }
+  48% { transform: translateY(-2px) translateX(5px) rotate(1.8deg); }
+  74% { transform: translateX(-3px) rotate(-.8deg); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes moodHypeCorner {
+  0% { transform: scale(1, 1); }
+  38% { transform: translateY(5px) scale(1.052, 1.064) rotate(-1.2deg); }
+  100% { transform: translateY(4.5px) scale(1.035, 1.045) rotate(-1deg); }
+}
+@keyframes moodHypeFull {
+  0% { transform: translateY(0) scale(1); }
+  36% { transform: translateY(-13px) scale(1.048) rotate(-1.6deg); }
+  100% { transform: translateY(-8px) scale(1.034) rotate(-1.2deg); }
+}
+@keyframes moodShockCorner {
+  0% { transform: scale(1, 1); }
+  18% { transform: translateY(5.5px) translateX(-6px) scale(.975, 1.048) rotate(-1.5deg); }
+  42% { transform: translateY(5.5px) translateX(6px) scale(1.015, .985) rotate(1.5deg); }
+  68% { transform: translateY(4px) translateX(-3px) scale(.995, 1.03) rotate(-.8deg); }
+  100% { transform: translateY(3px) scale(.992, 1.025); }
+}
+@keyframes moodShockFull {
+  0% { transform: translateY(0) scale(1); }
+  18% { transform: translateY(-9px) translateX(-6px) scale(.975, 1.045) rotate(-1.8deg); }
+  42% { transform: translateY(-2px) translateX(6px) scale(1.01, .985) rotate(1.8deg); }
+  68% { transform: translateY(-4px) translateX(-3px) rotate(-.9deg); }
+  100% { transform: translateY(-3px) scale(.99, 1.02); }
+}

@@ -1,11 +1,11 @@
 # Voice line generator
 
-Renders every companion line in `js/cast.js` with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
-into `audio/voice/<companion>/<en|ja>/<id>.mp3` (or `.opus`) and rewrites `js/voice-clips.js` so the game knows which clips exist.
+Renders every companion line in `js/cast/` with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
+into `audio/voice/<companion>/<en|ja>/<id>.mp3` (or `.opus`) and rewrites `js/cast/voice-clips.js` so the game knows which clips exist.
 
 The clip id is the FNV-1a hash of the line's *spoken* text, after the game's own `Voice.speakable()` cleanup.
-`extract-lines.js` runs the real `cast.js` in a sandbox to get that text, so the generator and the game always
-agree on file names. Edit a line in `cast.js`, re-run the generator, and only that line is rendered.
+`extract-lines.js` runs the real cast scripts (`js/cast/`, in `index.html` order) in a sandbox to get that text, so the generator and the game always
+agree on file names. Edit a line in `js/cast/characters/<name>.js`, re-run the generator, and only that line is rendered.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ agree on file names. Edit a line in `cast.js`, re-run the generator, and only th
 python3 tools/voice/generate.py setup     # once per machine: builds tools/voice/.venv
 python3 tools/voice/generate.py doctor    # shows the hardware it found and how it will use it
 python3 tools/voice/generate.py status    # what is missing / stale / orphaned
-python3 tools/voice/generate.py           # renders what is needed, updates js/voice-clips.js
+python3 tools/voice/generate.py           # renders what is needed, updates js/cast/voice-clips.js
 ```
 
 Requirements: Python 3.10–3.12 and Node.js. ffmpeg is **not** needed: MP3 is encoded in-process with LAME, and
@@ -30,7 +30,7 @@ Set it in `voices.json` (`"output": {"format": "opus"}`) or for one run with `--
 | Size (5,402 clips) | ~120 MB (~23 KB/clip) | 63 MB (~12 KB/clip) |
 | Plays in | everything | Chromium / Electron, Firefox, Safari 18.4+ |
 
-The manifest records the extension for each companion/language (`"ext": "opus"`), and `cast.js` checks
+The manifest records the extension for each companion/language (`"ext": "opus"`), and `js/cast/voice.js` checks
 `canPlayType()` first, so a browser that can't play Opus falls back to Web Speech instead of failing silently.
 Switching formats renders a full new set beside the old files. Once that finishes, `generate --prune` deletes
 the old-format copies, but only for lines that already have a clip in the new format. To switch back without
@@ -101,14 +101,14 @@ re-renders exactly those clips. Each clip's settings fingerprint is stored in `v
 
 | Command | What it does |
 |---|---|
-| `generate` (default) | Renders missing and stale clips. `--char sakura --lang ja` narrows it; `--format mp3\|opus` and `--kbps N` override the output for this run; `--force` re-renders everything selected; `--prune` deletes clips whose line was removed from `cast.js` plus old-format copies; `--dry-run` lists the work; `--limit N` renders at most N clips. |
+| `generate` (default) | Renders missing and stale clips. `--char sakura --lang ja` narrows it; `--format mp3\|opus` and `--kbps N` override the output for this run; `--force` re-renders everything selected; `--prune` deletes clips whose line was removed from `js/cast/` plus old-format copies; `--dry-run` lists the work; `--limit N` renders at most N clips. |
 | `status [-v]` | Per companion/language counts. `-v` lists each line. Needs only Python and Node. |
 | `doctor` | Python/torch/GPU/RAM report and the worker plan. |
 | `bench` | Tunes the worker count for this machine (see above). |
 | `preview` | Renders a single piece of text to `tools/voice/.preview/` (`--out x.opus` / `.mp3` / `.wav`). |
 | `match` | For existing clips whose settings were lost: renders sample lines with every Kokoro voice, estimates speed from duration, and ranks voices by spectral distance to the clips (~0.5 means an exact match). If no stock voice comes within `--exact`, it also tries two-voice blends of the `--blends K` closest. |
 | `adopt` | Records the existing clips as made with the current `voices.json`, so they count as ok rather than *adopted*. Use it after `match`. |
-| `manifest [--format F]` | Rebuilds `js/voice-clips.js` from what's on disk. |
+| `manifest [--format F]` | Rebuilds `js/cast/voice-clips.js` from what's on disk. |
 | `fetch` | Downloads the model and every voice pack (`setup` runs it). |
 
 Clip states: **ok** (rendered with the current settings), **missing** (no file yet), **stale** (settings changed

@@ -1,7 +1,7 @@
 'use strict';
 
 // Stats are kept per game variant and difficulty. Klondike keeps the bare difficulty keys it always had;
-// the other variants use '<variant>_<difficulty>' (e.g. 'spider_hard'). Must match statKey() in js/game.js.
+// the other variants use '<variant>_<difficulty>' (e.g. 'spider_hard'). Must match statKey() in js/game/config.js.
 const BASE_DIFFICULTIES = ['easy', 'medium', 'hard', 'auto'];
 const VARIANTS = ['spider', 'freecell', 'pyramid', 'tripeaks'];
 const DIFFICULTIES = [

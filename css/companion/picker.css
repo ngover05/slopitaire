@@ -1,0 +1,96 @@
+/* Slopitaire — companion picker */
+/* ---------- companion picker (8-partner 4x2 grid) ---------- */
+.cast-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cast-opt {
+  min-width: 0;
+  border: 2px solid var(--hud-border); background: var(--chip); color: inherit; border-radius: 13px; padding: 5px 4px;
+  cursor: pointer; font: 700 12px 'Chakra Petch', 'Nunito', sans-serif;
+  transition: transform .15s, border-color .15s, box-shadow .15s, background .15s;
+}
+.cast-opt:hover:not(.on) {
+  transform: translateY(-2px); border-color: var(--beam-a);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--beam-a) 30%, transparent);
+}
+.cast-opt:focus-visible { outline: 3px solid var(--glow); }
+.cast-opt .cast-face {
+  width: 54px; height: 54px; margin: 0 auto 3px; display: grid; place-items: center;
+  overflow: hidden; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--beam-a) 26%, var(--panel)), var(--panel));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hud-border) 80%, #fff);
+}
+.cast-opt .cast-face .mochi {
+  width: 86%; height: 86%; filter: none; overflow: visible;
+  transition: transform .18s cubic-bezier(.3, 1.5, .5, 1);
+}
+.cast-opt:hover .cast-face .mochi,
+.cast-opt:focus-visible .cast-face .mochi { transform: scale(1.07) rotate(-3deg); }
+.cast-opt:hover .cast-face .mochi .eyes-happy,
+.cast-opt:focus-visible .cast-face .mochi .eyes-happy { display: none; }
+.cast-opt:hover .cast-face .mochi .eyes-wink,
+.cast-opt:focus-visible .cast-face .mochi .eyes-wink { display: inline; }
+.girl-sprite.is-face {
+  position: relative; width: 100%; height: 100%; max-width: none; display: block; filter: none !important;
+}
+.girl-sprite.is-face .chara-img {
+  position: absolute; width: var(--fw, 160%); left: var(--fl, -30%); top: var(--ft, -3%);
+  height: auto; max-width: none; object-position: 50% 0%; transform-origin: 50% 28%;
+  transition: opacity .15s ease, transform .2s cubic-bezier(.3, 1.5, .5, 1);
+}
+.girl-sprite.is-face .chara-img.face-idle { opacity: 1; }
+.girl-sprite.is-face .chara-img.face-wink { opacity: 0; }
+.cast-opt:hover .girl-sprite.is-face .chara-img.face-idle,
+.cast-opt:focus-visible .girl-sprite.is-face .chara-img.face-idle { opacity: 0; }
+.cast-opt:hover .girl-sprite.is-face .chara-img.face-wink,
+.cast-opt:focus-visible .girl-sprite.is-face .chara-img.face-wink { opacity: 1; transform: scale(1.04); }
+.cast-opt b {
+  display: block; font-family: 'Chakra Petch', 'Mochiy Pop One', sans-serif; font-weight: 700;
+  font-size: 12.5px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cast-opt small {
+  display: block; opacity: .76; font-size: 10px; line-height: 1.15;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cast-opt.on {
+  border-color: var(--accent); transform: translateY(-2px);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 65%, transparent), 0 0 16px color-mix(in srgb, var(--accent) 32%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+}
+.settings-cast { width: 100%; margin-top: 6px; gap: 7px; }
+.start-cast { margin: 0 0 9px; }
+.start-cast-label {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase; opacity: .85; margin-bottom: 4px;
+}
+@keyframes bob { 50% { transform: translateY(-4px) scale(1.02, .98); } }
+@keyframes boing { 30% { transform: scale(1.2, .8); } 60% { transform: scale(.9, 1.12) translateY(-8px); } }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes tail { to { transform: rotate(14deg); } }
+
+.bubble {
+  --bub-accent: var(--beam-a);
+  --bub-edge: color-mix(in srgb, var(--beam-b) 75%, var(--accent));
+  position: absolute; right: 72%; bottom: 84%; z-index: 4;
+  width: max-content; max-width: min(248px, 56vw);
+  background: var(--bubble-bg); color: var(--bubble-ink);
+  border: 2px solid var(--bub-accent); border-radius: 16px;
+  padding: 7px 13px; font-weight: 800; font-size: 13.5px; line-height: 1.28;
+  box-shadow:
+    0 3px 0 var(--bub-edge),
+    0 0 16px color-mix(in srgb, var(--bub-accent) 30%, transparent),
+    0 8px 20px rgba(4, 12, 20, .32);
+  opacity: 0; transform: translateY(8px) scale(.82); transform-origin: 90% 100%;
+  transition: opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1); pointer-events: none;
+}
+#mascot[data-partner="kira"] .bubble { --bub-accent: #2ce8a2; --bub-edge: #ffb638; }
+#mascot[data-partner="ayame"] .bubble { --bub-accent: #ff3366; --bub-edge: #be123c; }
+#mascot[data-partner="mio"] .bubble { --bub-accent: #6ef7c8; --bub-edge: #38c998; }
+#mascot[data-partner="kaede"] .bubble { --bub-accent: #ffbe55; --bub-edge: #e08e26; }
+.mascot.is-girl .bubble { right: 78%; bottom: 68%; z-index: 4; }
+.mascot.is-girl.is-full .bubble { right: 82%; bottom: 72%; }
+.bubble::after {
+  content: ''; position: absolute; right: 12px; bottom: -8px; width: 13px; height: 13px;
+  background: var(--bubble-bg);
+  border-right: 2px solid var(--bub-accent); border-bottom: 2px solid var(--bub-accent);
+  transform: rotate(45deg);
+}
+.bubble.show { opacity: 1; transform: none; }

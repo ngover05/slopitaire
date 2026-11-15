@@ -1,0 +1,133 @@
+/* Slopitaire // PRISM — theme palettes (body[data-theme]) */
+:root,
+body[data-theme="prism"] {
+  --move: 220ms;
+  --flip: 300ms;
+  --bg1: #0a131a;
+  --bg2: #122330;
+  --dot: rgba(44, 232, 162, .14);
+  --ink: #ecf8f5;
+  --accent: #2ce8a2;
+  --accent2: #ffb638;
+  --accent-ink: #061812;
+  --beam-a: #2ce8a2;
+  --beam-b: #ffb638;
+  --panel: rgba(12, 24, 34, .88);
+  --panel-ink: #ecf8f5;
+  --chip: rgba(19, 38, 52, .78);
+  --hud-border: rgba(44, 232, 162, .42);
+  --slot: rgba(11, 24, 34, .5);
+  --slot-b: rgba(44, 232, 162, .5);
+  --slot-ink: rgba(44, 232, 162, .55);
+  --petal1: #2ce8a2;
+  --petal2: #ffb638;
+  --glow: #ffe169;
+  --good: #4dffb5;
+  --bubble-bg: #0f202c;
+  --bubble-ink: #ecf8f5;
+  color-scheme: dark;
+}
+
+body[data-theme="night"] {
+  --bg1: #121329;
+  --bg2: #1c1e3c;
+  --dot: rgba(157, 140, 255, .15);
+  --ink: #f0efff;
+  --accent: #9d8cff;
+  --accent2: #ff8e6e;
+  --accent-ink: #121028;
+  --beam-a: #9d8cff;
+  --beam-b: #ff8e6e;
+  --panel: rgba(20, 22, 46, .88);
+  --panel-ink: #f0efff;
+  --chip: rgba(28, 31, 64, .8);
+  --hud-border: rgba(157, 140, 255, .44);
+  --slot: rgba(18, 20, 44, .46);
+  --slot-b: rgba(157, 140, 255, .5);
+  --slot-ink: rgba(157, 140, 255, .52);
+  --petal1: #ff8e6e;
+  --petal2: #9d8cff;
+  --glow: #ffd97d;
+  --good: #5be8b5;
+  --bubble-bg: #1b1d3d;
+  --bubble-ink: #f0efff;
+  color-scheme: dark;
+}
+
+body[data-theme="sakura"] {
+  --bg1: #fff1f5;
+  --bg2: #ffdbe5;
+  --dot: rgba(255, 92, 138, .2);
+  --ink: #4a2035;
+  --accent: #ff5c8a;
+  --accent2: #2ec4b6;
+  --accent-ink: #ffffff;
+  --beam-a: #ff5c8a;
+  --beam-b: #2ec4b6;
+  --panel: rgba(255, 248, 250, .91);
+  --panel-ink: #4a2035;
+  --chip: rgba(255, 255, 255, .84);
+  --hud-border: rgba(255, 92, 138, .4);
+  --slot: rgba(255, 255, 255, .44);
+  --slot-b: rgba(255, 92, 138, .55);
+  --slot-ink: rgba(255, 92, 138, .54);
+  --petal1: #ffb8cd;
+  --petal2: #ff7fa3;
+  --glow: #ffca3a;
+  --good: #2ec4b6;
+  --bubble-bg: #ffffff;
+  --bubble-ink: #4a2035;
+  color-scheme: light;
+}
+
+body[data-theme="ramune"] {
+  --bg1: #eef5ff;
+  --bg2: #cde0ff;
+  --dot: rgba(41, 121, 255, .18);
+  --ink: #16325c;
+  --accent: #2979ff;
+  --accent2: #ffab00;
+  --accent-ink: #ffffff;
+  --beam-a: #2979ff;
+  --beam-b: #ffab00;
+  --panel: rgba(245, 250, 255, .91);
+  --panel-ink: #16325c;
+  --chip: rgba(255, 255, 255, .84);
+  --hud-border: rgba(41, 121, 255, .4);
+  --slot: rgba(255, 255, 255, .44);
+  --slot-b: rgba(41, 121, 255, .55);
+  --slot-ink: rgba(41, 121, 255, .52);
+  --petal1: #ffffff;
+  --petal2: #9ec5ff;
+  --glow: #ffab00;
+  --good: #00bfa5;
+  --bubble-bg: #ffffff;
+  --bubble-ink: #16325c;
+  color-scheme: light;
+}
+
+body[data-theme="matcha"] {
+  --bg1: #f0fbf5;
+  --bg2: #c8eedb;
+  --dot: rgba(31, 184, 121, .19);
+  --ink: #164430;
+  --accent: #1fb879;
+  --accent2: #ff7f50;
+  --accent-ink: #ffffff;
+  --beam-a: #1fb879;
+  --beam-b: #ff7f50;
+  --panel: rgba(245, 254, 249, .91);
+  --panel-ink: #164430;
+  --chip: rgba(255, 255, 255, .84);
+  --hud-border: rgba(31, 184, 121, .4);
+  --slot: rgba(255, 255, 255, .44);
+  --slot-b: rgba(31, 184, 121, .55);
+  --slot-ink: rgba(31, 184, 121, .52);
+  --petal1: #c8f5dc;
+  --petal2: #ffd0bd;
+  --glow: #ffb703;
+  --good: #ff7f50;
+  --bubble-bg: #ffffff;
+  --bubble-ink: #164430;
+  color-scheme: light;
+}

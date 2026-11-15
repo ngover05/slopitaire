@@ -1,0 +1,178 @@
+/* Slopitaire — COMBO HUD (#comboHud) and its tiers */
+/* ---------- Top Digital COMBO HUD (#comboHud) ---------- */
+.combo-hud {
+  position: relative; flex: 0 0 auto;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  min-width: 152px; padding: 3px 16px 5px;
+  background: linear-gradient(180deg, rgba(10, 22, 30, .95), rgba(6, 14, 20, .98));
+  color: #e8f8f3;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  box-shadow: inset 0 0 16px rgba(44, 232, 162, .12);
+  transition: filter .2s ease;
+}
+.combo-hud::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--beam-a), var(--beam-b)) top / 100% 2px no-repeat,
+    linear-gradient(90deg, var(--beam-a), var(--beam-b)) bottom / 100% 1.5px no-repeat;
+  opacity: .86;
+}
+.combo-hud::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border-left: 3px solid var(--beam-a);
+  border-right: 3px solid var(--beam-b);
+  opacity: .76;
+}
+.combo-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  line-height: 1;
+}
+.combo-lbl {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 900;
+  font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase;
+  color: rgba(202, 242, 230, .74);
+}
+.combo-tier {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 900;
+  font-size: 8.5px; letter-spacing: .8px; text-transform: uppercase;
+  padding: 1.5px 5px; border-radius: 3px;
+  background: rgba(44, 232, 162, .13); color: rgba(168, 245, 216, .86);
+  border: 1px solid rgba(44, 232, 162, .32);
+  transition: background .18s, color .18s, border-color .18s, box-shadow .18s;
+}
+.combo-mult {
+  font-family: 'Chakra Petch', 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 10.5px; color: #ffffff; font-variant-numeric: tabular-nums; opacity: .88;
+}
+.combo-main {
+  display: flex; align-items: baseline; justify-content: center;
+  line-height: 1; margin: 1px 0;
+}
+.combo-count {
+  font-family: 'Orbitron', 'Chakra Petch', monospace; font-weight: 900;
+  font-size: clamp(20px, 2.2vw, 25px); line-height: 1; letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  color: #bcefe0;
+  text-shadow: 0 0 8px rgba(44, 232, 162, .28);
+  transition: color .15s, text-shadow .15s;
+}
+.combo-meter {
+  position: relative; width: 100%; height: 4px; border-radius: 2px; overflow: hidden;
+  background: rgba(255, 255, 255, .14);
+}
+.combo-fill {
+  width: 100%; height: 100%;
+  transform: scaleX(0); transform-origin: 0 50%; will-change: transform;
+  background: linear-gradient(90deg, var(--beam-a), var(--beam-b));
+  box-shadow: 0 0 8px var(--beam-a);
+}
+
+/* Tier 0: IDLE / ACTIVE */
+.combo-hud[data-tier="0"] { opacity: .92; }
+
+/* Tier 1: SURGE (5-9) — Electric Mint-Emerald */
+.combo-hud[data-tier="1"] {
+  filter: drop-shadow(0 0 8px rgba(44, 232, 162, .36));
+}
+.combo-hud[data-tier="1"] .combo-tier {
+  background: rgba(44, 232, 162, .24); color: #8affcf; border-color: #2ce8a2;
+  box-shadow: 0 0 8px rgba(44, 232, 162, .45);
+}
+.combo-hud[data-tier="1"] .combo-count {
+  color: #ebfff7;
+  text-shadow: 0 0 10px #2ce8a2, 0 0 20px rgba(44, 232, 162, .62);
+}
+
+/* Tier 2: BOOST (10-19) — Emerald-to-Lime Solar Charge */
+.combo-hud[data-tier="2"] {
+  filter: drop-shadow(0 0 10px rgba(168, 240, 70, .44));
+}
+.combo-hud[data-tier="2"] .combo-tier {
+  background: linear-gradient(90deg, rgba(44, 232, 162, .3), rgba(206, 245, 76, .34));
+  color: #f4ffd6; border-color: #bdf552;
+  box-shadow: 0 0 10px rgba(189, 245, 82, .5);
+}
+.combo-hud[data-tier="2"] .combo-count {
+  color: #f8ffeb;
+  text-shadow: -1.5px 0 10px #2ce8a2, 1.5px 0 12px #c8f542, 0 0 22px rgba(200, 245, 66, .68);
+}
+.combo-hud[data-tier="2"] .combo-fill {
+  background: linear-gradient(90deg, #2ce8a2, #c8f542, #ffb638);
+}
+
+/* Tier 3: BLITZ (20-29) — Solar Amber & Tangerine Blaze */
+.combo-hud[data-tier="3"] {
+  filter: drop-shadow(0 0 12px rgba(255, 182, 56, .62)) drop-shadow(0 0 6px rgba(255, 112, 67, .45));
+}
+.combo-hud[data-tier="3"] .combo-tier {
+  background: linear-gradient(90deg, #ffb638, #ff6b35);
+  color: #1a0c04; border-color: #ffe09e;
+  box-shadow: 0 0 12px rgba(255, 182, 56, .8);
+}
+.combo-hud[data-tier="3"] .combo-count {
+  color: #fffaf0;
+  text-shadow: -2px 0 10px #2ce8a2, 2px 0 12px #ffb638, 0 0 26px rgba(255, 152, 36, .92);
+}
+.combo-hud[data-tier="3"] .combo-fill {
+  background: linear-gradient(90deg, #2ce8a2, #ffb638, #ff6b35);
+}
+
+/* Tier 4: APEX! (30+) — Golden-Emerald Prism Aura */
+.combo-hud[data-tier="4"] {
+  animation: apexPrism 2.2s linear infinite;
+  filter: drop-shadow(0 0 14px rgba(255, 225, 105, .72)) drop-shadow(0 0 20px rgba(44, 232, 162, .6));
+}
+.combo-hud[data-tier="4"] .combo-tier {
+  background: linear-gradient(90deg, #2ce8a2, #ffe169, #ff7f50);
+  color: #081812; border-color: #ffffff;
+  box-shadow: 0 0 14px #ffe169;
+}
+.combo-hud[data-tier="4"] .combo-count {
+  color: #fffdf0;
+  text-shadow: -2px 0 12px #2ce8a2, 2px 0 12px #ff7f50, 0 0 26px #ffe169;
+}
+.combo-hud[data-tier="4"] .combo-fill {
+  background: linear-gradient(90deg, #2ce8a2, #ffe169, #ff7f50, #2ce8a2);
+  box-shadow: 0 0 12px #ffe169;
+}
+
+/* Dynamic Combo Animations: .pulse, .danger, .break */
+.combo-hud.pulse .combo-count {
+  animation: comboPulse .18s cubic-bezier(.2, 1.6, .4, 1);
+}
+.combo-hud.danger .combo-fill {
+  background: linear-gradient(90deg, #ff4757, #ffa502) !important;
+  animation: comboDanger .28s ease-in-out infinite alternate;
+}
+.combo-hud.danger .combo-tier {
+  border-color: #ff5c6c; color: #ffadb5;
+}
+.combo-hud.break {
+  animation: comboBreak .42s cubic-bezier(.36, .07, .19, .97);
+}
+.combo-hud.break .combo-count {
+  color: #ff6b6b;
+  text-shadow: -2px 0 0 #ffb638, 2px 0 0 #ff4757, 0 0 18px #ff4757;
+}
+
+@keyframes apexPrism {
+  0% { filter: hue-rotate(0deg) drop-shadow(0 0 13px rgba(255, 225, 105, .68)) drop-shadow(0 0 18px rgba(44, 232, 162, .55)); }
+  50% { filter: hue-rotate(36deg) drop-shadow(0 0 16px rgba(44, 232, 162, .75)) drop-shadow(0 0 22px rgba(255, 182, 56, .68)); }
+  100% { filter: hue-rotate(0deg) drop-shadow(0 0 13px rgba(255, 225, 105, .68)) drop-shadow(0 0 18px rgba(44, 232, 162, .55)); }
+}
+@keyframes comboPulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.16); filter: brightness(1.3); }
+  100% { transform: scale(1); }
+}
+@keyframes comboDanger {
+  from { opacity: 1; filter: brightness(1.25); box-shadow: 0 0 12px #ff4757; }
+  to { opacity: .42; filter: brightness(.85); box-shadow: 0 0 4px #ff4757; }
+}
+@keyframes comboBreak {
+  0%, 100% { transform: translateX(0) skewX(0deg); }
+  18% { transform: translateX(-6px) skewX(-8deg); filter: drop-shadow(0 0 14px #ff4757); }
+  36% { transform: translateX(6px) skewX(8deg); }
+  56% { transform: translateX(-4px) skewX(-4deg); }
+  76% { transform: translateX(3px) skewX(3deg); }
+}

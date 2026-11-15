@@ -1,0 +1,284 @@
+/* Slopitaire — companion mascot, TV-anime sprites and body-touch reactions */
+/* ---------- mascot & TV-anime sprites (100% verified layout preserved) ---------- */
+.mascot {
+  position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 8000; pointer-events: none;
+  transition: opacity .25s, transform .35s cubic-bezier(.3, 1.4, .5, 1);
+}
+.mascot:not(.is-girl) { width: clamp(92px, 12vw, 148px); }
+.mascot.is-girl {
+  width: auto; bottom: 0; right: max(8px, env(safe-area-inset-right));
+  --chara-h: clamp(240px, 44dvh, 430px); max-width: 42vw;
+}
+.mascot.is-girl.is-full {
+  bottom: max(6px, env(safe-area-inset-bottom)); right: max(10px, env(safe-area-inset-right));
+  --chara-h: clamp(290px, 56dvh, 540px); max-width: 38vw;
+}
+.mascot.peek { transform: translateY(52%); }
+.mascot.is-full.peek { transform: translateY(48%); }
+.mascot.peek.talking,
+.mascot.is-full.peek.talking { transform: translateY(26%); }
+
+.mascot-body, .mascot-mode-btn { pointer-events: auto; }
+body.is-dragging .mascot { opacity: .22; }
+body.is-dragging .mascot-body,
+body.is-dragging .mascot-mode-btn { pointer-events: none; }
+
+.mascot-body {
+  position: relative; isolation: isolate;
+  cursor: pointer; width: fit-content; max-width: 100%; margin-left: auto;
+  animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%;
+}
+.mascot-body.boing { animation: boing .5s ease, bob 3.2s ease-in-out .5s infinite; }
+
+/* Corner-mode girls sit flush on bottom: 0 — scale/pivot from 50% 100% without ever lifting skirt hem upward */
+.mascot.is-girl:not(.is-full) .mascot-body {
+  animation: bobGirlCorner 3.4s ease-in-out infinite;
+}
+.mascot.is-girl:not(.is-full) .mascot-body.boing {
+  animation: boingGirlCorner .48s cubic-bezier(.3, 1.5, .5, 1), bobGirlCorner 3.4s ease-in-out .48s infinite;
+}
+.mascot.is-girl:not(.is-full).talking .girl-sprite {
+  animation: talkGirlCorner .4s ease-in-out infinite alternate;
+}
+
+/* Full-body girls have visible shoes, so vertical hop/float feels lively */
+.mascot.is-girl.is-full .mascot-body,
+.start-mascot.is-girl .mascot-body {
+  margin-inline: auto;
+  animation: bobGirlFull 3.2s ease-in-out infinite;
+}
+.mascot.is-girl.is-full .mascot-body.boing {
+  animation: boingGirlFull .52s cubic-bezier(.28, 1.5, .48, 1), bobGirlFull 3.2s ease-in-out .52s infinite;
+}
+.start-mascot.is-girl .mascot-body.boing {
+  animation: boingGirlStart .44s ease-out, bobGirlFull 3.2s ease-in-out .44s infinite;
+}
+.mascot.is-girl.is-full.talking .girl-sprite {
+  animation: talkGirlFull .38s ease-in-out infinite alternate;
+}
+
+/* ---------- 5-Zone Companion Body-Touch Physical Reactions ---------- */
+/* Base / Mochi (cat) & Full-Body Heroines */
+.mascot-body.react-headpat,
+.mascot:not(.is-girl) .mascot-body.react-headpat,
+.start-mascot:not(.is-girl) .mascot-body.react-headpat {
+  animation: reactHeadpatFull .58s cubic-bezier(.28, 1.35, .45, 1), bob 3.2s ease-in-out .58s infinite;
+}
+.mascot-body.react-boop,
+.mascot:not(.is-girl) .mascot-body.react-boop,
+.start-mascot:not(.is-girl) .mascot-body.react-boop {
+  animation: reactBoopFull .5s cubic-bezier(.25, 1.55, .45, 1), bob 3.2s ease-in-out .5s infinite;
+}
+.mascot-body.react-highfive,
+.mascot:not(.is-girl) .mascot-body.react-highfive,
+.start-mascot:not(.is-girl) .mascot-body.react-highfive {
+  animation: reactHighfiveFull .54s cubic-bezier(.22, 1.55, .42, 1), bob 3.2s ease-in-out .54s infinite;
+}
+.mascot-body.react-fluster,
+.mascot:not(.is-girl) .mascot-body.react-fluster,
+.start-mascot:not(.is-girl) .mascot-body.react-fluster {
+  animation: reactFlusterFull .56s ease-in-out, bob 3.2s ease-in-out .56s infinite;
+}
+.mascot-body.react-startle,
+.mascot:not(.is-girl) .mascot-body.react-startle,
+.start-mascot:not(.is-girl) .mascot-body.react-startle {
+  animation: reactStartleFull .52s cubic-bezier(.2, 1.5, .4, 1), bob 3.2s ease-in-out .52s infinite;
+}
+
+/* Corner-mode heroines (strictly translateY >= 0 so skirt hem stays 100% flush on bottom: 0) */
+.mascot.is-girl:not(.is-full) .mascot-body.react-headpat {
+  animation: reactHeadpatCorner .58s cubic-bezier(.28, 1.35, .45, 1), bobGirlCorner 3.4s ease-in-out .58s infinite;
+}
+.mascot.is-girl:not(.is-full) .mascot-body.react-boop {
+  animation: reactBoopCorner .5s cubic-bezier(.25, 1.55, .45, 1), bobGirlCorner 3.4s ease-in-out .5s infinite;
+}
+.mascot.is-girl:not(.is-full) .mascot-body.react-highfive {
+  animation: reactHighfiveCorner .54s cubic-bezier(.22, 1.55, .42, 1), bobGirlCorner 3.4s ease-in-out .54s infinite;
+}
+.mascot.is-girl:not(.is-full) .mascot-body.react-fluster {
+  animation: reactFlusterCorner .56s ease-in-out, bobGirlCorner 3.4s ease-in-out .56s infinite;
+}
+.mascot.is-girl:not(.is-full) .mascot-body.react-startle {
+  animation: reactStartleCorner .52s cubic-bezier(.2, 1.5, .4, 1), bobGirlCorner 3.4s ease-in-out .52s infinite;
+}
+
+/* Full-body heroines (#mascot.is-full, #winMascot) */
+.mascot.is-girl.is-full .mascot-body.react-headpat,
+#winMascot.react-headpat,
+.win-panel .result-mascot.react-headpat .mascot-body {
+  animation: reactHeadpatFull .58s cubic-bezier(.28, 1.35, .45, 1), bobGirlFull 3.2s ease-in-out .58s infinite;
+}
+.mascot.is-girl.is-full .mascot-body.react-boop,
+#winMascot.react-boop,
+.win-panel .result-mascot.react-boop .mascot-body {
+  animation: reactBoopFull .5s cubic-bezier(.25, 1.55, .45, 1), bobGirlFull 3.2s ease-in-out .5s infinite;
+}
+.mascot.is-girl.is-full .mascot-body.react-highfive,
+#winMascot.react-highfive,
+.win-panel .result-mascot.react-highfive .mascot-body {
+  animation: reactHighfiveFull .54s cubic-bezier(.22, 1.55, .42, 1), bobGirlFull 3.2s ease-in-out .54s infinite;
+}
+.mascot.is-girl.is-full .mascot-body.react-fluster,
+#winMascot.react-fluster,
+.win-panel .result-mascot.react-fluster .mascot-body {
+  animation: reactFlusterFull .56s ease-in-out, bobGirlFull 3.2s ease-in-out .56s infinite;
+}
+.mascot.is-girl.is-full .mascot-body.react-startle,
+#winMascot.react-startle,
+.win-panel .result-mascot.react-startle .mascot-body {
+  animation: reactStartleFull .52s cubic-bezier(.2, 1.5, .4, 1), bobGirlFull 3.2s ease-in-out .52s infinite;
+}
+
+/* Start-screen heroines (#startMascot — calibrated top headroom so zero panel clipping) */
+#startMascot.react-headpat,
+.start-panel .start-mascot.react-headpat .mascot-body {
+  animation: reactHeadpatFull .58s cubic-bezier(.28, 1.35, .45, 1), bobGirlFull 3.2s ease-in-out .58s infinite;
+}
+#startMascot.react-boop,
+.start-panel .start-mascot.react-boop .mascot-body {
+  animation: reactBoopFull .5s cubic-bezier(.25, 1.55, .45, 1), bobGirlFull 3.2s ease-in-out .5s infinite;
+}
+#startMascot.react-highfive,
+.start-panel .start-mascot.react-highfive .mascot-body {
+  animation: reactHighfiveStart .52s cubic-bezier(.22, 1.5, .42, 1), bobGirlFull 3.2s ease-in-out .52s infinite;
+}
+#startMascot.react-fluster,
+.start-panel .start-mascot.react-fluster .mascot-body {
+  animation: reactFlusterFull .56s ease-in-out, bobGirlFull 3.2s ease-in-out .56s infinite;
+}
+#startMascot.react-startle,
+.start-panel .start-mascot.react-startle .mascot-body {
+  animation: reactStartleStart .5s cubic-bezier(.2, 1.45, .4, 1), bobGirlFull 3.2s ease-in-out .5s infinite;
+}
+
+/* Lose-screen companion (#loseMascot — flows back into sympathetic lostDroop) */
+#loseMascot.react-headpat,
+.lose-panel .result-mascot.react-headpat .mascot-body {
+  animation: reactHeadpatFull .58s cubic-bezier(.28, 1.35, .45, 1), lostDroop 3.4s ease-in-out .58s infinite;
+}
+#loseMascot.react-boop,
+.lose-panel .result-mascot.react-boop .mascot-body {
+  animation: reactBoopFull .5s cubic-bezier(.25, 1.55, .45, 1), lostDroop 3.4s ease-in-out .5s infinite;
+}
+#loseMascot.react-highfive,
+.lose-panel .result-mascot.react-highfive .mascot-body {
+  animation: reactHighfiveFull .54s cubic-bezier(.22, 1.55, .42, 1), lostDroop 3.4s ease-in-out .54s infinite;
+}
+#loseMascot.react-fluster,
+.lose-panel .result-mascot.react-fluster .mascot-body {
+  animation: reactFlusterFull .56s ease-in-out, lostDroop 3.4s ease-in-out .56s infinite;
+}
+#loseMascot.react-startle,
+.lose-panel .result-mascot.react-startle .mascot-body {
+  animation: reactStartleFull .52s cubic-bezier(.2, 1.5, .4, 1), lostDroop 3.4s ease-in-out .52s infinite;
+}
+
+@keyframes reactHeadpatCorner {
+  0% { transform: scale(1, 1) rotate(0deg); }
+  25% { transform: translateY(2px) scale(1.048, .932) rotate(-2.2deg); filter: drop-shadow(0 0 14px rgba(255, 225, 105, .52)); }
+  58% { transform: translateY(1px) scale(.99, 1.022) rotate(2deg); filter: drop-shadow(0 0 12px rgba(255, 225, 105, .38)); }
+  82% { transform: translateY(1.5px) scale(1.02, .978) rotate(-1deg); }
+  100% { transform: scale(1, 1) rotate(0deg); }
+}
+@keyframes reactBoopCorner {
+  0% { transform: scale(1, 1) rotate(0deg); }
+  28% { transform: translateY(2.5px) translateX(6px) scale(1.022, .972) rotate(2.8deg); filter: drop-shadow(0 0 12px rgba(255, 182, 56, .48)); }
+  64% { transform: translateY(1.5px) translateX(-4px) scale(.988, 1.032) rotate(-1.7deg); }
+  100% { transform: scale(1, 1) rotate(0deg); }
+}
+@keyframes reactHighfiveCorner {
+  0% { transform: scale(1, 1); }
+  24% { transform: translateY(2px) scale(1.045, .94); }
+  58% { transform: scale(.972, 1.068) rotate(-1.3deg); filter: drop-shadow(0 0 18px rgba(44, 232, 162, .72)) drop-shadow(0 0 24px rgba(255, 209, 102, .45)); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes reactFlusterCorner {
+  0%, 100% { transform: scale(1, 1) translateX(0); }
+  16% { transform: translateY(2px) translateX(-6px) scale(1.015, .982) rotate(-1.4deg); filter: drop-shadow(0 0 16px rgba(255, 92, 138, .66)); }
+  34% { transform: translateY(2px) translateX(6px) scale(1.015, .982) rotate(1.4deg); filter: drop-shadow(0 0 18px rgba(255, 92, 138, .72)); }
+  52% { transform: translateY(1.5px) translateX(-5px) rotate(-1.1deg); filter: drop-shadow(0 0 14px rgba(255, 92, 138, .55)); }
+  70% { transform: translateY(1px) translateX(4px) rotate(.9deg); }
+  86% { transform: translateX(-2px); }
+}
+@keyframes reactStartleCorner {
+  0% { transform: scale(1, 1); }
+  20% { transform: translateY(2.5px) scale(1.06, .918); }
+  52% { transform: translateX(7px) scale(.964, 1.076) rotate(1.7deg); filter: drop-shadow(0 0 16px rgba(255, 77, 109, .58)); }
+  78% { transform: translateY(1.5px) translateX(-2px) scale(1.01, .99) rotate(-.6deg); }
+  100% { transform: scale(1, 1); }
+}
+
+@keyframes reactHeadpatFull {
+  0% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+  25% { transform: translateY(4px) scale(1.048, .934) rotate(-2.2deg); filter: drop-shadow(0 0 14px rgba(255, 225, 105, .52)); }
+  58% { transform: translateY(-3px) scale(.99, 1.02) rotate(2deg); filter: drop-shadow(0 0 12px rgba(255, 225, 105, .38)); }
+  82% { transform: translateY(2px) scale(1.02, .98) rotate(-1deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+}
+@keyframes reactBoopFull {
+  0% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+  28% { transform: translateX(7px) translateY(-3px) scale(1.022, .976) rotate(3.2deg); filter: drop-shadow(0 0 12px rgba(255, 182, 56, .48)); }
+  64% { transform: translateX(-4px) translateY(-7px) scale(.988, 1.028) rotate(-2deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+}
+@keyframes reactHighfiveFull {
+  0% { transform: translateY(0) scale(1, 1); }
+  22% { transform: translateY(3px) scale(1.05, .94); }
+  56% { transform: translateY(-16px) scale(.97, 1.046) rotate(-1.5deg); filter: drop-shadow(0 0 18px rgba(44, 232, 162, .75)) drop-shadow(0 0 26px rgba(255, 209, 102, .48)); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes reactHighfiveStart {
+  0% { transform: translateY(0) scale(1, 1); }
+  22% { transform: translateY(2px) scale(1.04, .95); }
+  56% { transform: translateY(-7px) scale(.98, 1.03) rotate(-1.2deg); filter: drop-shadow(0 0 16px rgba(44, 232, 162, .7)) drop-shadow(0 0 22px rgba(255, 209, 102, .42)); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes reactFlusterFull {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1, 1); }
+  16% { transform: translateY(-2px) translateX(-7px) scale(1.015, .985) rotate(-1.6deg); filter: drop-shadow(0 0 16px rgba(255, 92, 138, .68)); }
+  34% { transform: translateY(-3px) translateX(7px) scale(1.015, .985) rotate(1.6deg); filter: drop-shadow(0 0 18px rgba(255, 92, 138, .74)); }
+  52% { transform: translateY(-2px) translateX(-5px) rotate(-1.2deg); filter: drop-shadow(0 0 14px rgba(255, 92, 138, .55)); }
+  70% { transform: translateX(5px) rotate(1deg); }
+  86% { transform: translateX(-2px); }
+}
+@keyframes reactStartleFull {
+  0% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(3px) scale(1.06, .92); }
+  50% { transform: translateY(-18px) translateX(7px) scale(.96, 1.052) rotate(2deg); filter: drop-shadow(0 0 16px rgba(255, 77, 109, .62)); }
+  78% { transform: translateY(-2px) translateX(-2px) scale(1.01, .99) rotate(-.6deg); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes reactStartleStart {
+  0% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(2px) scale(1.05, .93); }
+  50% { transform: translateY(-7.5px) translateX(6px) scale(.97, 1.035) rotate(1.6deg); filter: drop-shadow(0 0 15px rgba(255, 77, 109, .58)); }
+  78% { transform: translateX(-2px) rotate(-.5deg); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+.mascot-mode-btn {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.chara { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 4px 8px rgba(6, 14, 24, .28)); }
+
+/* Zero-flicker CSS-grid sprite stack */
+.girl-sprite {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  width: fit-content; max-width: 100%;
+  align-items: end; justify-items: center;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 6px 14px rgba(18, 28, 42, .24));
+}
+body[data-theme="night"] .girl-sprite:not(.is-face) {
+  filter: drop-shadow(0 6px 18px rgba(6, 6, 20, .58)) drop-shadow(0 0 3px rgba(157, 140, 255, .28));
+}
+body[data-theme="prism"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-2px 0 3px rgba(44, 232, 162, .34))
+    drop-shadow(2px 0 3px rgba(255, 182, 56, .3))
+    drop-shadow(0 8px 20px rgba(3, 10, 16, .68));
+}

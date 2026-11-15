@@ -1,0 +1,253 @@
+/* Slopitaire — responsive layout (kept after the component styles it overrides) */
+/* ---------- responsive ---------- */
+@media (max-width: 760px) {
+  .topbar { gap: 5px 6px; padding: 5px 8px; padding-top: max(5px, env(safe-area-inset-top)); }
+  .sub, .btn .lbl { display: none; }
+  .actions { order: 2; margin-left: auto; gap: 4px; }
+  .btn { padding: 5px 9px; }
+  .btn-account { padding: 5px 8px; gap: 5px; }
+  .start-account-bar { padding: 7px 10px; gap: 6px 8px; margin: 8px 0 4px; font-size: 12px; }
+  .logo { font-size: 17px; }
+  .combo-hud {
+    order: 3; min-width: 120px; padding: 2px 11px 4px; gap: 1px;
+    clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  }
+  .combo-lbl { font-size: 8px; letter-spacing: .8px; }
+  .combo-tier { font-size: 7.5px; padding: 1px 4px; letter-spacing: .4px; }
+  .combo-mult { font-size: 9.5px; }
+  .combo-count { font-size: 18px; letter-spacing: 1.2px; }
+  .combo-meter { height: 3px; }
+  .hud {
+    order: 4; flex: 1 1 0; min-width: 0;
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 4px;
+  }
+  .hud::-webkit-scrollbar { display: none; }
+  .chip { font-size: 11.5px; padding: 2px 7px; }
+  .chip b { font-size: 11px; }
+  #chipDeal { display: none; }
+  .row { flex-wrap: wrap; }
+  .row-c { margin-left: auto; }
+  .diff-card .dc-desc { display: none; }
+  .mascot:not(.is-girl) { width: clamp(78px, 20vw, 108px); }
+  .mascot.is-girl {
+    right: max(4px, env(safe-area-inset-right));
+    --chara-h: clamp(170px, 32dvh, 245px); max-width: 46vw;
+  }
+  .mascot.is-girl.is-full {
+    right: max(4px, env(safe-area-inset-right));
+    --chara-h: clamp(205px, 39dvh, 295px); max-width: 44vw;
+  }
+  .bubble { max-width: min(200px, 54vw); font-size: 13px; padding: 6px 10px; }
+  .mascot.is-girl .bubble { right: 66%; bottom: 72%; }
+  .mascot.is-girl.is-full .bubble { right: 70%; bottom: 75%; }
+  .cutin-girl { right: 2%; bottom: -72px; --chara-h: clamp(195px, 32dvh, 260px); }
+  .cutin-text { left: 5%; font-size: clamp(22px, 6.2vw, 40px); }
+  .event-feed { left: max(8px, env(safe-area-inset-left)); top: 86px; gap: 4px; max-width: min(215px, 60vw); }
+  .event-pill { padding: 4px 9px 4px 7px; gap: 6px; }
+  .event-pill .ep-ic { width: 20px; height: 20px; font-size: 11.5px; }
+  .event-pill .ep-title { font-size: 9.5px; }
+  .event-pill .ep-sub { font-size: 9px; }
+  .callout-banner { top: 84px; padding: 5px 18px 6px; min-width: 156px; }
+  .callout-banner .cb-kicker { font-size: 8px; letter-spacing: 1.4px; }
+  .callout-banner .cb-title { font-size: clamp(13.5px, 4vw, 17px); }
+  .pop-float { padding: 2.5px 8px 3px; }
+  .pop-float .pf-main { font-size: 12px; }
+  .pop-float[data-kind="ace"] .pf-main,
+  .pop-float[data-kind="king"] .pf-main,
+  .pop-float[data-kind="clear"] .pf-main,
+  .pop-float[data-kind="clutch"] .pf-main { font-size: 13px; }
+}
+@media (max-width: 640px) {
+  .react-pop { display: none !important; }
+  .result-panel { padding: 15px 15px 16px; }
+  .result-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .result-hero { padding: 8px 10px 9px; }
+  .result-panel .start-mascot.result-mascot { width: 106px; margin: 4px auto 0; }
+  .result-panel .start-mascot.result-mascot.is-girl { --chara-h: clamp(148px, 22dvh, 188px); margin-top: 2px; }
+  .hero-pedestal { width: 68%; height: 22px; margin: -14px auto -4px; }
+  .win-stats.result-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .start-actions.result-actions { justify-content: stretch; }
+  .start-actions.result-actions .btn { flex: 1 1 calc(50% - 6px); justify-content: center; text-align: center; padding: 9px 10px; font-size: 13.5px; }
+}
+@media (max-width: 480px) {
+  #chipDraw { display: none; }
+  .overlay { padding: 10px; }
+  .panel { max-height: calc(100dvh - 20px); padding: 14px 14px; }
+  .start-panel { padding: 10px 12px 11px; }
+  .start-panel .start-mascot.is-girl { margin: 7px auto 0; --chara-h: clamp(106px, 15dvh, 132px); }
+  .start-panel .title { font-size: clamp(26px, 7.2vw, 32px); }
+  .start-panel .tagline { margin: 2px 0 7px; font-size: 10.5px; letter-spacing: 1px; }
+  .cast-pick { gap: 5px; }
+  .cast-opt { padding: 4px 2px; border-radius: 11px; }
+  .cast-opt .cast-face { width: 46px; height: 46px; margin-bottom: 2px; }
+  .cast-opt b { font-size: 11.5px; }
+  .cast-opt small { font-size: 9px; letter-spacing: -.1px; }
+  .diff-pick { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .variant-pick { gap: 4px; }
+  .variant-card { flex-direction: column; gap: 1px; padding: 4px 2px; border-radius: 10px; }
+  .variant-card .vc-name { font-size: 9.5px; letter-spacing: 0; }
+  .variant-tagline { white-space: normal; font-size: 10.5px; }
+  .diff-card { padding: 5px 3px; border-radius: 11px; }
+  .diff-card .dc-ic { font-size: 17px; }
+  .diff-card .dc-name { font-size: 11px; letter-spacing: .15px; }
+  .seg[data-setting="difficulty"] { gap: 2px; padding: 2px; }
+  .seg[data-setting="difficulty"] button { padding: 5px 7px; font-size: 11.5px; }
+  .seg[data-setting="theme"] button,
+  .seg[data-setting="music"] button { padding: 5px 7px; font-size: 11.5px; }
+  .stats-table { font-size: 11.5px; }
+  .stats-table th, .stats-table td { padding: 5px 2px; }
+  .stats-table th { font-size: 10px; letter-spacing: .2px; }
+}
+@media (max-width: 360px) {
+  .seg[data-setting="music"] { grid-template-columns: minmax(0, 1fr); }
+  .seg[data-setting="difficulty"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-height: 830px) {
+  .overlay { padding: 8px; }
+  .panel { max-height: calc(100dvh - 16px); }
+  .start-panel { padding: 8px 18px 9px; }
+  .start-panel .start-mascot { width: 82px; margin: 2px auto 0; }
+  .start-panel .start-mascot.is-girl { margin: 8px auto 0; --chara-h: clamp(98px, 14.2dvh, 124px); }
+  .start-panel .title { font-size: clamp(25px, 4.8vw, 32px); margin-top: 1px; }
+  .start-panel .tagline { margin: 1px 0 6px; font-size: 11px; }
+  .start-panel .start-cast { margin-bottom: 6px; }
+  .start-panel .start-cast-label { font-size: 10.5px; margin-bottom: 3px; }
+  .start-panel .cast-pick { gap: 5px; }
+  .start-panel .cast-opt { padding: 4px 3px; border-radius: 11px; }
+  .start-panel .cast-opt .cast-face { width: 44px; height: 44px; margin-bottom: 2px; }
+  .start-panel .cast-opt b { font-size: 12px; line-height: 1.12; }
+  .start-panel .cast-opt small { font-size: 9.5px; line-height: 1.12; }
+  .start-panel .diff-pick { gap: 6px; }
+  .start-panel .diff-card { padding: 5px 4px; border-radius: 11px; }
+  .start-panel .diff-card .dc-ic { font-size: 17px; }
+  .start-panel .diff-card .dc-name { font-size: 12px; }
+  .start-panel .diff-card .dc-desc { font-size: 9.5px; line-height: 1.15; }
+  .start-panel .draw-pick { margin: 6px 0; font-size: 12.5px; }
+  .start-panel .draw-pick .seg button { padding: 4px 9px; font-size: 12px; }
+  .start-panel .start-account-bar { margin: 6px 0 4px; padding: 6px 10px; font-size: 11.5px; }
+  .start-panel .btn.big { padding: 7px 18px; font-size: 14px; }
+  .start-panel .linkish { margin-top: 5px; font-size: 12.5px; }
+  .start-panel .kbd-help { margin-top: 3px; font-size: 10.5px; }
+  .result-panel { padding: 15px 18px; }
+  .result-grid { grid-template-columns: minmax(175px, 210px) minmax(0, 1fr); gap: 14px; }
+  .result-panel .start-mascot.result-mascot { width: 112px; margin-top: 4px; }
+  .result-panel .start-mascot.result-mascot.is-girl { --chara-h: clamp(168px, 27dvh, 222px); margin-top: 2px; }
+  .result-data { gap: 8px; }
+  .result-title { font-size: clamp(22px, 3.2vw, 30px); }
+  .rank-badge { width: 52px; height: 52px; font-size: 23px; border-radius: 13px; }
+  .rank-badge[data-grade="S+"] { font-size: 20px; }
+  .score-hero { padding: 7px 12px 8px; }
+  .score-hero .sh-val { font-size: clamp(24px, 3.6vw, 34px); }
+  .lose-progress { padding: 8px 12px 10px; }
+  .result-stats .win-stat { padding: 6px 8px; }
+  .result-stats .win-stat b { font-size: 15px; }
+  .start-actions.result-actions .btn.big { padding: 8px 16px; font-size: 14px; }
+  .lose-panel .result-actions .btn { padding: 8px 12px; font-size: 13px; }
+}
+@media (max-width: 640px) and (max-height: 830px) {
+  .result-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-height: 620px) {
+  .start-panel .start-mascot.is-girl { --chara-h: 82px; margin-top: 6px; }
+  .start-panel .diff-card .dc-desc,
+  .start-panel .kbd-help { display: none; }
+}
+@media (max-height: 520px) {
+  .start-panel .start-mascot { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .petals { display: none; }
+  .mascot-body,
+  .mascot-body.boing,
+  .mascot.is-girl:not(.is-full) .mascot-body,
+  .mascot.is-girl:not(.is-full) .mascot-body.boing,
+  .mascot.is-girl.is-full .mascot-body,
+  .mascot.is-girl.is-full .mascot-body.boing,
+  .start-mascot:not(.is-girl) .mascot-body,
+  .start-mascot:not(.is-girl) .mascot-body.boing,
+  .start-mascot.is-girl .mascot-body,
+  .start-mascot.is-girl .mascot-body.boing,
+  .mascot-body.react-headpat,
+  .mascot-body.react-boop,
+  .mascot-body.react-highfive,
+  .mascot-body.react-fluster,
+  .mascot-body.react-startle,
+  .mascot.is-girl:not(.is-full) .mascot-body.react-headpat,
+  .mascot.is-girl:not(.is-full) .mascot-body.react-boop,
+  .mascot.is-girl:not(.is-full) .mascot-body.react-highfive,
+  .mascot.is-girl:not(.is-full) .mascot-body.react-fluster,
+  .mascot.is-girl:not(.is-full) .mascot-body.react-startle,
+  .mascot.is-girl.is-full .mascot-body.react-headpat,
+  .mascot.is-girl.is-full .mascot-body.react-boop,
+  .mascot.is-girl.is-full .mascot-body.react-highfive,
+  .mascot.is-girl.is-full .mascot-body.react-fluster,
+  .mascot.is-girl.is-full .mascot-body.react-startle,
+  #startMascot.react-headpat,
+  #startMascot.react-boop,
+  #startMascot.react-highfive,
+  #startMascot.react-fluster,
+  #startMascot.react-startle,
+  #winMascot.react-headpat,
+  #winMascot.react-boop,
+  #winMascot.react-highfive,
+  #winMascot.react-fluster,
+  #winMascot.react-startle,
+  #loseMascot.react-headpat,
+  #loseMascot.react-boop,
+  #loseMascot.react-highfive,
+  #loseMascot.react-fluster,
+  #loseMascot.react-startle,
+  .start-mascot.react-headpat .mascot-body,
+  .start-mascot.react-boop .mascot-body,
+  .start-mascot.react-highfive .mascot-body,
+  .start-mascot.react-fluster .mascot-body,
+  .start-mascot.react-startle .mascot-body,
+  .mascot.is-girl:not(.is-full).talking .girl-sprite,
+  .mascot.is-girl.is-full.talking .girl-sprite,
+  body[data-partner="kira"] .chara.girl-sprite:not(.is-face),
+  body [data-partner="kira"] .chara.girl-sprite:not(.is-face),
+  body[data-partner="ayame"] .chara.girl-sprite:not(.is-face),
+  body [data-partner="ayame"] .chara.girl-sprite:not(.is-face),
+  #mascot[data-partner="kira"] .mascot-body::before,
+  #startMascot[data-partner="kira"]::before,
+  .start-mascot[data-partner="kira"] .mascot-body::before,
+  #winMascot[data-partner="kira"]::before,
+  #loseMascot[data-partner="kira"]::before,
+  #cutin[data-partner="kira"] .cutin-girl::before,
+  #mascot[data-partner="ayame"] .mascot-body::before,
+  #startMascot[data-partner="ayame"]::before,
+  .start-mascot[data-partner="ayame"] .mascot-body::before,
+  #winMascot[data-partner="ayame"]::before,
+  #loseMascot[data-partner="ayame"]::before,
+  #cutin[data-partner="ayame"] .cutin-girl::before,
+  .chip.diff-auto,
+  #chipDiff.is-auto,
+  .lose-panel .result-mascot .mascot-body,
+  .result-rays::before,
+  .lose-hazard::before,
+  .lose-hazard::after,
+  .hero-pedestal,
+  .lose-title.result-title,
+  .rank-badge,
+  .rank-badge::after,
+  .result-stats .win-stat,
+  .lost-mascot .girl-sprite,
+  .chara-img,
+  .chara .eyes-open,
+  .mochi .m-tail,
+  .combo-hud[data-tier="4"],
+  .combo-hud.danger .combo-fill,
+  .callout-banner.show,
+  .autofinish { animation: none !important; }
+  .pop-float { animation-duration: .65s; }
+  .touch-ripple { animation-duration: .22s; }
+  .girl-sprite .chara-img { transition: opacity .08s linear; transform: none !important; }
+  .acct-dot[data-state="syncing"] { animation: none !important; }
+}
+
+.voice-select {
+  max-width: 220px; font: 700 12.5px 'Chakra Petch', 'Nunito', sans-serif;
+  color: var(--panel-ink); background: var(--chip);
+  border: 1.5px solid var(--hud-border); border-radius: 8px; padding: 6px 8px; cursor: pointer;
+}
+.voice-select:focus-visible { outline: 2px solid var(--glow); }

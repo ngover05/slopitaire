@@ -1,0 +1,63 @@
+/* Slopitaire — anime cut-in */
+/* ---------- Prism tactical anime cut-in ---------- */
+.cutin { position: fixed; left: 0; right: 0; top: 50%; height: 0; z-index: 9300; pointer-events: none; }
+.cutin-band {
+  position: absolute; left: -5%; right: -5%; top: -95px; height: 190px; overflow: hidden;
+  transform: skewY(-5deg) scaleY(0);
+  background:
+    linear-gradient(90deg, rgba(8, 18, 26, .86) 0%, rgba(14, 32, 44, .58) 52%, rgba(8, 18, 26, .8) 100%),
+    repeating-linear-gradient(
+      -55deg,
+      var(--beam-b) 0 18px,
+      #0b1822 18px 36px,
+      var(--beam-a) 36px 44px,
+      #0b1822 44px 62px
+    );
+  border-top: 5px solid var(--beam-a);
+  border-bottom: 5px solid var(--beam-b);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--beam-a) 50%, transparent),
+    0 12px 44px rgba(4, 10, 18, .65),
+    inset 0 0 32px color-mix(in srgb, var(--beam-b) 42%, transparent);
+}
+.cutin-girl {
+  position: absolute; top: auto; bottom: -62px; right: 8%; width: auto;
+  isolation: isolate;
+  --chara-h: clamp(250px, 38dvh, 340px);
+  transform: translateX(140%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 84%, transparent 100%);
+}
+.cutin-girl .chara,
+.cutin-girl .girl-sprite {
+  position: relative; z-index: 1;
+  filter:
+    drop-shadow(-4px 0 0 var(--beam-a))
+    drop-shadow(4px 0 0 var(--beam-b))
+    drop-shadow(0 8px 20px rgba(4, 10, 18, .55));
+}
+#cutin[data-partner="kira"] .cutin-band {
+  border-top-color: #2ce8a2;
+  border-bottom-color: #ffb638;
+  box-shadow: 0 0 32px rgba(44, 232, 162, .56), 0 12px 44px rgba(4, 10, 18, .68), inset 0 0 32px rgba(255, 182, 56, .42);
+}
+#cutin[data-partner="ayame"] .cutin-band {
+  border-top-color: #ff3366;
+  border-bottom-color: #fb7185;
+  box-shadow: 0 0 32px rgba(255, 51, 102, .56), 0 12px 44px rgba(14, 4, 10, .72), inset 0 0 32px rgba(190, 18, 60, .44);
+}
+.cutin-girl .mochi { width: clamp(170px, 26dvh, 230px); height: auto; }
+.cutin-text {
+  position: absolute; left: 8%; top: 50%; transform: skewY(5deg) translate(-130%, -50%);
+  font-family: 'Orbitron', 'Mochiy Pop One', sans-serif; font-weight: 900; font-style: italic;
+  font-size: clamp(28px, 6.2vw, 58px); letter-spacing: 1.5px;
+  color: #ffffff; white-space: nowrap;
+  -webkit-text-stroke: 3px #07131a; paint-order: stroke fill;
+  text-shadow: -3px -2px 0 var(--beam-a), 4px 4px 0 var(--beam-b), 0 0 24px var(--beam-a);
+}
+.cutin.play .cutin-band { animation: band 1.8s cubic-bezier(.2,.9,.3,1) forwards; }
+.cutin.play .cutin-girl { animation: girlIn 1.8s cubic-bezier(.2,.9,.3,1) forwards; }
+.cutin.play .cutin-text { animation: textIn 1.8s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes band { 0% { transform: skewY(-5deg) scaleY(0); } 12%, 82% { transform: skewY(-5deg) scaleY(1); } 100% { transform: skewY(-5deg) scaleY(0); } }
+@keyframes girlIn { 0%, 6% { transform: translateX(140%); } 22% { transform: translateX(-4%); } 78% { transform: translateX(4%); opacity: 1; } 100% { transform: translateX(-160%); opacity: 0; } }
+@keyframes textIn { 0%, 10% { transform: skewY(5deg) translate(-130%, -50%); } 26% { transform: skewY(5deg) translate(4%, -50%) scale(1.08); } 34%, 80% { transform: skewY(5deg) translate(0, -50%); opacity: 1; } 100% { transform: skewY(5deg) translate(160%, -50%); opacity: 0; } }

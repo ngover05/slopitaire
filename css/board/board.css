@@ -1,0 +1,109 @@
+/* Slopitaire — board, slots, cards and the per-variant tables */
+/* ---------- board, tech bracket slots & cards ---------- */
+.board { position: relative; flex: 1; min-height: 0; z-index: 2; touch-action: none; }
+.board.empty .card, .board.empty .slot { visibility: hidden; }
+
+.slot {
+  position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch);
+  border: 1.5px dashed var(--slot-b); border-radius: calc(var(--cw) * .1);
+  background: var(--slot);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--slot-ink);
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 900; font-size: calc(var(--cw) * .31);
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--beam-a) 10%, transparent);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.slot::after {
+  content: ''; position: absolute; inset: 3px; border-radius: calc(var(--cw) * .07); pointer-events: none;
+  background:
+    linear-gradient(var(--beam-a), var(--beam-a)) top left / 8px 1.5px no-repeat,
+    linear-gradient(var(--beam-a), var(--beam-a)) top left / 1.5px 8px no-repeat,
+    linear-gradient(var(--beam-b), var(--beam-b)) top right / 8px 1.5px no-repeat,
+    linear-gradient(var(--beam-b), var(--beam-b)) top right / 1.5px 8px no-repeat,
+    linear-gradient(var(--beam-b), var(--beam-b)) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(var(--beam-b), var(--beam-b)) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(var(--beam-a), var(--beam-a)) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(var(--beam-a), var(--beam-a)) bottom right / 1.5px 8px no-repeat;
+  opacity: .65;
+}
+.slot-waste { border-color: transparent; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.slot-waste::after { display: none; }
+.slot-stock { cursor: pointer; }
+.slot-stock:hover:not(.dead) { border-color: var(--beam-a); box-shadow: 0 0 14px color-mix(in srgb, var(--beam-a) 32%, transparent); }
+.slot-stock.dead { opacity: .45; cursor: default; }
+.slot.drop-ok {
+  border-color: var(--good); border-style: solid;
+  background: color-mix(in srgb, var(--good) 24%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--good) 55%, transparent), inset 0 0 12px color-mix(in srgb, var(--good) 35%, transparent);
+}
+.slot.hint { animation: slotPulse .8s ease-in-out 2; }
+body[data-combo-tier="3"] .slot-found,
+body[data-combo-tier="4"] .slot-found {
+  border-color: color-mix(in srgb, var(--beam-a) 75%, #fff);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--beam-a) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--beam-b) 22%, transparent);
+}
+
+.card {
+  position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch);
+  transition: transform var(--move) cubic-bezier(.22,.9,.32,1.08);
+  will-change: transform; cursor: pointer; touch-action: none;
+}
+.card-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform var(--flip) ease; }
+.card:not(.up) .card-inner { transform: rotateY(180deg); }
+.card-face {
+  position: absolute; inset: 0; border-radius: calc(var(--cw) * .1); overflow: hidden;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  box-shadow: 0 2px 5px rgba(5, 12, 20, .28), 0 1px 2px rgba(5, 12, 20, .18);
+  transition: box-shadow .15s;
+}
+.front {
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+  border: 1px solid rgba(135, 165, 160, .45);
+}
+.back {
+  transform: rotateY(180deg);
+  background: var(--card-back) center / 100% 100% no-repeat;
+  border: 1px solid color-mix(in srgb, var(--hud-border) 70%, #ffffff);
+}
+.cardsvg { display: block; width: 100%; height: 100%; }
+.cardsvg .rk { font-family: 'Mochiy Pop One', 'Nunito', sans-serif; font-size: 21px; font-weight: 400; }
+
+.card.dragging { transition: none; cursor: grabbing; }
+.card.dragging .card-face {
+  box-shadow:
+    0 0 0 2px var(--beam-a),
+    0 14px 28px rgba(4, 10, 18, .48),
+    0 0 20px color-mix(in srgb, var(--beam-a) 52%, transparent);
+}
+.card.drop-ok .front {
+  box-shadow: 0 0 0 3px var(--good), 0 0 18px var(--good);
+}
+.card.hint .card-face { animation: hintPulse .8s ease-in-out 2; }
+.card.up.shake .card-inner { animation: shake .36s ease; }
+.card.celebrate .card-inner { animation: hop .6s ease 3; }
+.no-anim .card, .no-anim .card-inner { transition: none !important; }
+
+/* ---------- variants: Spider / FreeCell / Pyramid / TriPeaks ---------- */
+.card.unused { display: none; }
+.slot-cell { border-style: solid; border-color: color-mix(in srgb, var(--beam-b) 45%, var(--slot-b)); }
+.slot-cell .slot-ic { opacity: .55; }
+.board[data-variant="spider"] .slot-found .slot-ic,
+.board[data-variant="pyramid"] .slot-found .slot-ic { font-size: calc(var(--cw) * .24); letter-spacing: .5px; }
+.board[data-variant="tripeaks"] .slot-waste,
+.board[data-variant="pyramid"] .slot-waste { border: 1.5px dashed var(--slot-b); }
+/* Pyramid: cards still covered by the row below sit a little dimmer */
+.board[data-variant="pyramid"] .card.covered .front { filter: brightness(.84) saturate(.8); }
+.card.selected .card-inner { transform: translateY(-8%); }
+.card.selected .front {
+  box-shadow: 0 0 0 3px var(--accent), 0 8px 18px rgba(4, 10, 18, .4), 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+@keyframes hintPulse { 50% { box-shadow: 0 0 0 3px var(--glow), 0 0 24px 6px var(--glow); } }
+@keyframes slotPulse { 50% { box-shadow: 0 0 0 3px var(--glow), 0 0 24px 6px var(--glow); border-color: var(--glow); } }
+@keyframes shake { 20% { transform: translateX(-6px) rotate(-3deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+@keyframes hop { 40% { transform: translateY(-14px) rotate(-4deg); } 70% { transform: translateY(0) rotate(3deg); } }
+
+/* game proven unwinnable */
+.board.lost .card { filter: grayscale(.65) brightness(.96); }
+.board.lost .card, .board.lost .slot { cursor: default; }

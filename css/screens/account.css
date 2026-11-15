@@ -1,0 +1,345 @@
+/* Slopitaire — account & cloud sync */
+/* ---------- account & cloud sync ---------- */
+.btn-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 185px;
+}
+.btn-account.is-signed-in {
+  border-color: color-mix(in srgb, var(--glow) 45%, var(--hud-border));
+}
+.btn-account .lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 108px;
+}
+.acct-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.acct-g-svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  flex-shrink: 0;
+}
+.acct-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.acct-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--chip);
+  border: 1.5px solid color-mix(in srgb, var(--glow) 55%, transparent);
+}
+.acct-avatar.lg {
+  width: 44px;
+  height: 44px;
+  border-width: 2px;
+}
+.acct-avatar-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 11px 'Chakra Petch', 'Nunito', sans-serif;
+  color: #fff;
+  background: linear-gradient(135deg, #4285F4, #7c5cff);
+  border: 1.5px solid color-mix(in srgb, var(--glow) 55%, transparent);
+  flex-shrink: 0;
+}
+.acct-avatar-fallback.lg {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  border-width: 2px;
+}
+.acct-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94a3b8;
+  border: 1.5px solid rgba(15, 23, 42, .55);
+}
+.acct-dot[data-state="synced"] {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, .65);
+}
+.acct-dot[data-state="syncing"] {
+  background: #38bdf8;
+  animation: acctPulse 1s ease-in-out infinite;
+}
+.acct-dot[data-state="offline"] { background: #f59e0b; }
+.acct-dot[data-state="error"] { background: #ef4444; }
+.acct-dot[data-state="signed_out"],
+.acct-dot[data-state="unconfigured"] { background: #94a3b8; }
+
+@keyframes acctPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.28); opacity: .65; }
+}
+
+.start-account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin: 10px 0 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--chip) 78%, transparent);
+  border: 1px solid var(--hud-border);
+  font-size: 12.5px;
+  color: var(--panel-ink);
+  box-sizing: border-box;
+}
+.start-account-bar.is-signed-in {
+  border-color: color-mix(in srgb, var(--glow) 45%, var(--hud-border));
+}
+.sab-left,
+.sab-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.sab-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+.sab-guest-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel-ink) 45%, transparent);
+  flex-shrink: 0;
+}
+.sab-guest-text {
+  font-weight: 600;
+  opacity: .84;
+}
+.acct-mini-btn {
+  font: 700 11.5px 'Chakra Petch', 'Nunito', sans-serif;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--chip);
+  color: var(--panel-ink);
+  border: 1px solid var(--hud-border);
+  cursor: pointer;
+  transition: filter .14s ease, border-color .14s ease;
+}
+.acct-mini-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  border-color: var(--glow);
+}
+.acct-mini-btn:disabled {
+  opacity: .55;
+  cursor: default;
+}
+.acct-mini-btn:focus-visible { outline: 2px solid var(--glow); }
+.acct-setup-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-ink) 10%, transparent);
+  border: 1px solid var(--hud-border);
+  color: var(--panel-ink);
+  opacity: .84;
+}
+
+.acct-section {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hud-border) 65%, transparent);
+}
+.acct-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--chip) 76%, transparent);
+  border: 1px solid var(--hud-border);
+  color: var(--panel-ink);
+}
+.acct-top {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-wrap: wrap;
+}
+.acct-guest-emblem {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--chip) 90%, #fff 10%);
+  border: 1.5px solid var(--hud-border);
+  flex-shrink: 0;
+}
+.acct-guest-emblem .acct-g-svg {
+  width: 22px;
+  height: 22px;
+}
+.acct-info {
+  flex: 1 1 150px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.acct-name {
+  font: 700 14.5px/1.2 'Chakra Petch', 'Nunito', sans-serif;
+  color: var(--panel-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-email {
+  font-size: 12px;
+  opacity: .76;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: 700 11.5px 'Chakra Petch', 'Nunito', sans-serif;
+  border: 1px solid var(--hud-border);
+  background: color-mix(in srgb, var(--panel-ink) 8%, transparent);
+  color: var(--panel-ink);
+  white-space: nowrap;
+}
+.acct-status-badge.compact {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.acct-status-badge[data-state="synced"] {
+  border-color: rgba(34, 197, 94, .45);
+  background: rgba(34, 197, 94, .14);
+}
+.acct-status-badge[data-state="syncing"] {
+  border-color: rgba(56, 189, 248, .5);
+  background: rgba(56, 189, 248, .14);
+}
+.acct-status-badge[data-state="offline"] {
+  border-color: rgba(245, 158, 11, .45);
+  background: rgba(245, 158, 11, .14);
+}
+.acct-status-badge[data-state="error"] {
+  border-color: rgba(239, 68, 68, .48);
+  background: rgba(239, 68, 68, .14);
+}
+.acct-meta {
+  font-size: 12px;
+  opacity: .8;
+  line-height: 1.35;
+}
+.acct-hint-warn {
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, .14);
+  border: 1px solid rgba(245, 158, 11, .42);
+  line-height: 1.35;
+}
+.acct-err {
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, .15);
+  border: 1px solid rgba(239, 68, 68, .45);
+  line-height: 1.35;
+}
+.acct-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(15, 23, 42, .18);
+  background: #fff;
+  color: #1f2937;
+  font: 700 13px 'Nunito', system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .14);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.google-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
+  transform: translateY(-1px);
+}
+.google-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.google-btn:disabled {
+  opacity: .6;
+  cursor: default;
+}
+.google-btn:focus-visible { outline: 2px solid var(--glow); outline-offset: 1px; }
+.google-btn.compact {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  gap: 6px;
+}
+.acct-server-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--hud-border) 60%, transparent);
+}
+.acct-server-row label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: .88;
+}
+.acct-input {
+  flex: 1 1 170px;
+  min-width: 0;
+  font: 600 12.5px 'Chakra Petch', 'Nunito', sans-serif;
+  color: var(--panel-ink);
+  background: var(--chip);
+  border: 1.5px solid var(--hud-border);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.acct-input:focus-visible { outline: 2px solid var(--glow); }

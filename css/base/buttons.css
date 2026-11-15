@@ -1,0 +1,50 @@
+/* Slopitaire — buttons */
+/* ---------- futuristic tactical buttons ---------- */
+.actions { display: flex; align-items: center; gap: 6px; }
+.btn {
+  position: relative;
+  font: 700 13.5px/1.1 'Chakra Petch', 'Nunito', sans-serif; letter-spacing: .3px;
+  color: var(--ink);
+  background: var(--chip);
+  border: 1.5px solid var(--hud-border); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--hud-border) 85%, transparent), inset 0 1px 0 rgba(255, 255, 255, .12);
+  transition: transform .08s, box-shadow .12s, border-color .15s, background .15s, filter .15s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--beam-a);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--beam-a) 65%, transparent), 0 0 14px color-mix(in srgb, var(--beam-a) 35%, transparent);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--beam-a) 55%, transparent);
+}
+.btn:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn.primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, var(--beam-b)));
+  color: var(--accent-ink);
+  border-color: color-mix(in srgb, #ffffff 55%, var(--accent));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000), 0 0 18px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+.btn.primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+  border-color: #ffffff;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 55%, #000), 0 0 24px color-mix(in srgb, var(--accent) 62%, transparent);
+}
+.btn.big {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 700;
+  font-size: 15.5px; letter-spacing: .8px; text-transform: uppercase;
+  padding: 10px 24px; border-radius: 10px;
+}
+.btn .ic { font-size: 15px; line-height: 1; }
+.btn .badge {
+  position: absolute; top: -7px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 9px; background: var(--accent); color: var(--accent-ink);
+  font: 700 10.5px/15px 'Orbitron', sans-serif; text-align: center;
+  border: 1.5px solid #fff; box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.btn .badge:empty { display: none; }

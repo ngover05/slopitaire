@@ -1,0 +1,209 @@
+/* Slopitaire — per-partner aura FX ([data-partner]) */
+/* Bespoke Partner Aura FX ([data-partner="<key>"]) */
+/* Subtle signature rim tints for Sakura, Yuki, Rin, Mio & Kaede */
+body[data-partner="sakura"] .girl-sprite:not(.is-face),
+body [data-partner="sakura"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3px rgba(255, 107, 157, .48))
+    drop-shadow(1.8px 0 3px rgba(255, 209, 102, .42))
+    drop-shadow(0 8px 20px rgba(8, 12, 22, .52));
+}
+body[data-partner="yuki"] .girl-sprite:not(.is-face),
+body [data-partner="yuki"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(92, 168, 255, .52))
+    drop-shadow(1.8px 0 3px rgba(194, 224, 255, .44))
+    drop-shadow(0 8px 20px rgba(4, 12, 24, .56));
+}
+body[data-partner="rin"] .girl-sprite:not(.is-face),
+body [data-partner="rin"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(255, 123, 58, .54))
+    drop-shadow(1.8px 0 3px rgba(255, 209, 92, .48))
+    drop-shadow(0 8px 20px rgba(10, 10, 20, .56));
+}
+/* Mio: Shy Soundscape — soft seafoam-mint & pearl glow */
+body[data-partner="mio"] .girl-sprite:not(.is-face),
+body [data-partner="mio"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(110, 247, 200, .64))
+    drop-shadow(1.8px 0 3.5px rgba(255, 241, 184, .54))
+    drop-shadow(0 0 13px rgba(110, 247, 200, .34))
+    drop-shadow(0 7px 18px rgba(6, 16, 24, .48));
+}
+#mascot[data-partner="mio"] .mascot-body::before,
+#startMascot[data-partner="mio"]::before,
+.start-mascot[data-partner="mio"] .mascot-body::before,
+#winMascot[data-partner="mio"]::before,
+#loseMascot[data-partner="mio"]::before,
+#cutin[data-partner="mio"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(110, 247, 200, .2) 0%, rgba(255, 241, 184, .1) 46%, transparent 74%);
+}
+/* Kaede: Warm Onee-san — soothing amber-gold & honey glow */
+body[data-partner="kaede"] .girl-sprite:not(.is-face),
+body [data-partner="kaede"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(255, 190, 85, .68))
+    drop-shadow(1.8px 0 3.5px rgba(255, 224, 150, .56))
+    drop-shadow(0 0 14px rgba(255, 182, 56, .36))
+    drop-shadow(0 7px 18px rgba(12, 12, 20, .48));
+}
+#mascot[data-partner="kaede"] .mascot-body::before,
+#startMascot[data-partner="kaede"]::before,
+.start-mascot[data-partner="kaede"] .mascot-body::before,
+#winMascot[data-partner="kaede"]::before,
+#loseMascot[data-partner="kaede"]::before,
+#cutin[data-partner="kaede"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(255, 190, 85, .22) 0%, rgba(255, 224, 150, .1) 46%, transparent 74%);
+}
+
+/* High-tier combo & hype surge aura */
+body[data-combo-tier="3"] .chara.girl-sprite:not(.is-face),
+body[data-combo-tier="4"] .chara.girl-sprite:not(.is-face),
+[data-mood="hype"] .chara.girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-2.5px 0 6px var(--beam-a))
+    drop-shadow(2.5px 0 6px var(--beam-b))
+    drop-shadow(0 8px 22px rgba(3, 10, 16, .62));
+}
+
+/* Ayame: Devoted Obsession — hypnotic crimson-rose velvet pulse */
+body[data-partner="ayame"] .chara.girl-sprite:not(.is-face),
+body [data-partner="ayame"] .chara.girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-2px 0 2px rgba(255, 51, 102, .82))
+    drop-shadow(2px 0 2px rgba(251, 113, 133, .72))
+    drop-shadow(0 0 14px rgba(225, 29, 72, .52))
+    drop-shadow(0 8px 20px rgba(16, 4, 12, .64));
+  animation: ayameRimPulse 3s ease-in-out infinite alternate;
+}
+#mascot.is-girl:not(.is-full)[data-partner="ayame"].talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlCorner .4s ease-in-out infinite alternate, ayameRimPulse 3s ease-in-out infinite alternate;
+}
+#mascot.is-girl.is-full[data-partner="ayame"].talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlFull .38s ease-in-out infinite alternate, ayameRimPulse 3s ease-in-out infinite alternate;
+}
+#mascot[data-partner="ayame"] .mascot-body::before,
+#startMascot[data-partner="ayame"]::before,
+.start-mascot[data-partner="ayame"] .mascot-body::before,
+#winMascot[data-partner="ayame"]::before,
+#loseMascot[data-partner="ayame"]::before,
+#cutin[data-partner="ayame"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 6% -12% 0 -12%; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 58% 54% at 50% 50%, rgba(255, 51, 102, .26) 0%, rgba(190, 18, 60, .14) 48%, transparent 76%);
+  animation: ayameFieldPulse 3s ease-in-out infinite alternate;
+}
+
+/* Kira: Aura Netrunner — signature animated electric-emerald & solar-gold digital hacker aura */
+body[data-partner="kira"] .chara.girl-sprite:not(.is-face),
+body [data-partner="kira"] .chara.girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-2px 0 0 rgba(44, 232, 162, .94))
+    drop-shadow(2px 0 0 rgba(255, 225, 105, .9))
+    drop-shadow(0 0 12px rgba(44, 232, 162, .62))
+    drop-shadow(0 0 22px rgba(255, 182, 56, .38))
+    drop-shadow(0 8px 20px rgba(3, 12, 18, .65));
+  animation: kiraRimPulse 2.4s ease-in-out infinite alternate;
+}
+body[data-combo-tier="3"] [data-partner="kira"] .chara.girl-sprite:not(.is-face),
+body[data-combo-tier="4"] [data-partner="kira"] .chara.girl-sprite:not(.is-face),
+[data-partner="kira"][data-mood="hype"] .chara.girl-sprite:not(.is-face) {
+  animation-duration: 1.45s;
+}
+#mascot.is-girl:not(.is-full)[data-partner="kira"].talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlCorner .4s ease-in-out infinite alternate, kiraRimPulse 2.4s ease-in-out infinite alternate;
+}
+#mascot.is-girl.is-full[data-partner="kira"].talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlFull .38s ease-in-out infinite alternate, kiraRimPulse 2.4s ease-in-out infinite alternate;
+}
+#mascot[data-partner="kira"] .mascot-body::before,
+#startMascot[data-partner="kira"]::before,
+.start-mascot[data-partner="kira"] .mascot-body::before,
+#winMascot[data-partner="kira"]::before,
+#loseMascot[data-partner="kira"]::before,
+#cutin[data-partner="kira"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 3% -15% 0 -15%; z-index: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(77, 255, 181, .22) 0px,
+      rgba(77, 255, 181, .22) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    radial-gradient(ellipse 60% 56% at 50% 48%, rgba(44, 232, 162, .38) 0%, rgba(255, 182, 56, .24) 46%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 58% 55% at 50% 50%, #000 22%, rgba(0, 0, 0, .55) 56%, transparent 78%);
+  mask-image: radial-gradient(ellipse 58% 55% at 50% 50%, #000 22%, rgba(0, 0, 0, .55) 56%, transparent 78%);
+  animation: kiraFieldPulse 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes kiraRimPulse {
+  0% {
+    filter:
+      drop-shadow(-2px 0 0 rgba(44, 232, 162, .92))
+      drop-shadow(2px 0 0 rgba(255, 225, 105, .86))
+      drop-shadow(0 0 10px rgba(44, 232, 162, .56))
+      drop-shadow(0 0 18px rgba(255, 182, 56, .32))
+      drop-shadow(0 8px 20px rgba(3, 12, 18, .64));
+  }
+  100% {
+    filter:
+      drop-shadow(-2.5px -1px 0 rgba(77, 255, 181, 1))
+      drop-shadow(2.5px 1px 0 rgba(255, 182, 56, .96))
+      drop-shadow(0 0 18px rgba(44, 232, 162, .82))
+      drop-shadow(0 0 28px rgba(255, 214, 92, .5))
+      drop-shadow(0 8px 22px rgba(3, 12, 18, .68));
+  }
+}
+@keyframes kiraFieldPulse {
+  0% { opacity: .68; transform: scale(.96, .98); }
+  100% { opacity: 1; transform: scale(1.05, 1.03); }
+}
+@keyframes ayameRimPulse {
+  0% {
+    filter:
+      drop-shadow(-1.8px 0 2px rgba(255, 51, 102, .76))
+      drop-shadow(1.8px 0 2px rgba(251, 113, 133, .66))
+      drop-shadow(0 0 11px rgba(225, 29, 72, .44))
+      drop-shadow(0 8px 20px rgba(16, 4, 12, .62));
+  }
+  100% {
+    filter:
+      drop-shadow(-2.4px 0 3px rgba(255, 51, 102, .95))
+      drop-shadow(2.4px 0 3px rgba(253, 164, 175, .84))
+      drop-shadow(0 0 19px rgba(225, 29, 72, .7))
+      drop-shadow(0 8px 22px rgba(16, 4, 12, .66));
+  }
+}
+@keyframes ayameFieldPulse {
+  0% { opacity: .62; transform: scale(.96); }
+  100% { opacity: .96; transform: scale(1.04); }
+}
+
+.girl-sprite .chara-img {
+  grid-area: 1 / 1; display: block;
+  height: var(--chara-h, 320px); width: auto; max-width: 100%; min-width: 0;
+  object-fit: contain; object-position: 50% 100%;
+  opacity: 0; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  transform-origin: 50% 100%;
+  transition: opacity .12s ease, transform .22s cubic-bezier(.3, 1.5, .5, 1);
+}
+.girl-sprite.is-single .chara-img.is-active,
+[data-mood="normal"] .girl-sprite .chara-img.m-normal,
+[data-mood="happy"] .girl-sprite .chara-img.m-happy,
+[data-mood="wink"] .girl-sprite .chara-img.m-wink,
+[data-mood="oops"] .girl-sprite .chara-img.m-oops,
+[data-mood="sad"] .girl-sprite .chara-img.m-sad,
+[data-mood="thinking"] .girl-sprite .chara-img.m-thinking,
+[data-mood="special"] .girl-sprite .chara-img.m-special,
+[data-mood="hype"] .girl-sprite .chara-img.m-hype,
+[data-mood="smug"] .girl-sprite .chara-img.m-smug,
+[data-mood="shock"] .girl-sprite .chara-img.m-shock,
+[data-mood="cheer"] .girl-sprite .chara-img.m-cheer {
+  opacity: 1;
+}

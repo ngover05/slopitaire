@@ -8,7 +8,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Mochiy+Pop+One&family=Nunito:wght@600;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- stylesheets: order is the cascade order -->
+  <link rel="stylesheet" href="css/base/themes.css">
+  <link rel="stylesheet" href="css/base/base.css">
+  <link rel="stylesheet" href="css/fx/stage.css">
+  <link rel="stylesheet" href="css/hud/topbar.css">
+  <link rel="stylesheet" href="css/hud/combo-hud.css">
+  <link rel="stylesheet" href="css/base/buttons.css">
+  <link rel="stylesheet" href="css/board/board.css">
+  <link rel="stylesheet" href="css/companion/mascot.css">
+  <link rel="stylesheet" href="css/companion/auras.css">
+  <link rel="stylesheet" href="css/companion/moods.css">
+  <link rel="stylesheet" href="css/companion/cut-in.css">
+  <link rel="stylesheet" href="css/companion/picker.css">
+  <link rel="stylesheet" href="css/fx/feedback.css">
+  <link rel="stylesheet" href="css/fx/popups.css">
+  <link rel="stylesheet" href="css/screens/overlays.css">
+  <link rel="stylesheet" href="css/screens/start-screen.css">
+  <link rel="stylesheet" href="css/screens/results.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/screens/account.css">
 </head>
 <body data-theme="prism" data-combo-tier="0" data-chain-tier="0">
   <canvas id="bgCanvas" class="bg-canvas" aria-hidden="true"></canvas>
@@ -171,13 +190,95 @@
     </div>
   </div>
 
-  <script defer src="js/art.js"></script>
-  <script defer src="js/audio.js"></script>
-  <script defer src="js/voice-clips.js"></script>
-  <script defer src="js/cast.js"></script>
-  <script defer src="js/solver.js"></script>
-  <script defer src="js/variant-solver.js"></script>
-  <script defer src="js/account.js"></script>
-  <script defer src="js/game.js"></script>
+  <!-- Classic deferred scripts that share one global scope, so the order matters: each file may use what an
+       earlier file declares while it loads, and anything at all once the page has loaded. -->
+  <!-- shared helpers -->
+  <script defer src="js/core/util.js"></script>
+  <script defer src="js/core/storage.js"></script>
+  <!-- artwork & audio -->
+  <script defer src="js/art/art.js"></script>
+  <script defer src="js/audio/tracks.js"></script>
+  <script defer src="js/audio/sfx.js"></script>
+  <script defer src="js/audio/sound.js"></script>
+  <!-- companion cast: voice clips, sprites, one file per character, then the cast engine -->
+  <script defer src="js/cast/voice-clips.js"></script>
+  <script defer src="js/cast/voice.js"></script>
+  <script defer src="js/cast/sprites.js"></script>
+  <script defer src="js/cast/characters/sakura.js"></script>
+  <script defer src="js/cast/characters/yuki.js"></script>
+  <script defer src="js/cast/characters/rin.js"></script>
+  <script defer src="js/cast/characters/mio.js"></script>
+  <script defer src="js/cast/characters/ayame.js"></script>
+  <script defer src="js/cast/characters/kira.js"></script>
+  <script defer src="js/cast/characters/kaede.js"></script>
+  <script defer src="js/cast/characters/mochi.js"></script>
+  <script defer src="js/cast/cast.js"></script>
+  <!-- solvers (also run inside the analysis Web Worker) -->
+  <script defer src="js/solver/klondike-solver.js"></script>
+  <script defer src="js/solver/variant-solver.js"></script>
+  <!-- optional account sign-in & cloud sync -->
+  <script defer src="js/account/format.js"></script>
+  <script defer src="js/account/state.js"></script>
+  <script defer src="js/account/backup.js"></script>
+  <script defer src="js/account/ui.js"></script>
+  <script defer src="js/account/api.js"></script>
+  <script defer src="js/account/sync.js"></script>
+  <script defer src="js/account/auth.js"></script>
+  <script defer src="js/account/account.js"></script>
+  <!-- game: definitions, settings & state -->
+  <script defer src="js/game/config.js"></script>
+  <script defer src="js/game/settings.js"></script>
+  <script defer src="js/game/dom.js"></script>
+  <script defer src="js/game/table.js"></script>
+  <script defer src="js/game/deck.js"></script>
+  <script defer src="js/game/state.js"></script>
+  <script defer src="js/game/save.js"></script>
+  <script defer src="js/game/stats.js"></script>
+  <script defer src="js/game/clock.js"></script>
+  <!-- game: table layout, rules, scoring & moves -->
+  <script defer src="js/game/layout/layout.js"></script>
+  <script defer src="js/game/layout/variant-layouts.js"></script>
+  <script defer src="js/game/rules/cover.js"></script>
+  <script defer src="js/game/rules/rules.js"></script>
+  <script defer src="js/game/scoring/combo.js"></script>
+  <script defer src="js/game/scoring/feedback.js"></script>
+  <script defer src="js/game/moves/klondike.js"></script>
+  <script defer src="js/game/moves/tableau.js"></script>
+  <script defer src="js/game/moves/spider.js"></script>
+  <script defer src="js/game/moves/pyramid.js"></script>
+  <script defer src="js/game/moves/tripeaks.js"></script>
+  <script defer src="js/game/moves/moves.js"></script>
+  <!-- game: solver analysis, assists & game flow -->
+  <script defer src="js/game/analysis/analyzer.js"></script>
+  <script defer src="js/game/analysis/deal-finder.js"></script>
+  <script defer src="js/game/analysis/loss-check.js"></script>
+  <script defer src="js/game/assist/hints.js"></script>
+  <script defer src="js/game/assist/auto-finish.js"></script>
+  <script defer src="js/game/assist/autopilot.js"></script>
+  <script defer src="js/game/flow/new-game.js"></script>
+  <script defer src="js/game/flow/game-over.js"></script>
+  <!-- game: input, companion, effects & UI -->
+  <script defer src="js/game/input/tap.js"></script>
+  <script defer src="js/game/input/drag.js"></script>
+  <script defer src="js/game/input/keyboard.js"></script>
+  <script defer src="js/game/companion/companion.js"></script>
+  <script defer src="js/game/companion/touch.js"></script>
+  <script defer src="js/game/companion/cut-in.js"></script>
+  <script defer src="js/game/fx/effects.js"></script>
+  <script defer src="js/game/fx/popups.js"></script>
+  <script defer src="js/game/fx/stage.js"></script>
+  <script defer src="js/game/fx/petals.js"></script>
+  <script defer src="js/game/ui/hud.js"></script>
+  <script defer src="js/game/ui/toast.js"></script>
+  <script defer src="js/game/ui/overlays.js"></script>
+  <script defer src="js/game/ui/win-modal.js"></script>
+  <script defer src="js/game/ui/lose-modal.js"></script>
+  <script defer src="js/game/ui/settings-panel.js"></script>
+  <script defer src="js/game/ui/start-screen.js"></script>
+  <script defer src="js/game/ui/controls.js"></script>
+  <!-- game: startup (keep last) -->
+  <script defer src="js/game/sync.js"></script>
+  <script defer src="js/game/debug.js"></script>
+  <script defer src="js/game/main.js"></script>
 </body>
 </html>

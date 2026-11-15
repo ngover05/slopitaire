@@ -1,0 +1,76 @@
+/* Slopitaire — auto-finish button, toast, shuffle note, #fx layer and touch ripples */
+/* ---------- auto finish / toast / shuffle note ---------- */
+.autofinish {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 7000;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.autofinish:hover:not(:disabled) { transform: translateX(-50%) translateY(-1px); }
+@keyframes pulse {
+  50% {
+    box-shadow:
+      0 3px 0 color-mix(in srgb, var(--accent) 55%, #000),
+      0 0 0 8px color-mix(in srgb, var(--beam-a) 26%, transparent),
+      0 0 24px var(--accent);
+  }
+}
+.toast {
+  position: fixed; left: 50%; top: 68px; transform: translate(-50%, -10px); z-index: 10600;
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  background: var(--panel); color: var(--panel-ink);
+  border: 2px solid var(--beam-a); border-radius: 10px;
+  padding: 8px 18px; font-weight: 700; font-size: 14px; letter-spacing: .3px;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--beam-a) 32%, transparent), 0 8px 24px rgba(4, 10, 18, .4);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.shuffle-note {
+  position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%); z-index: 9400;
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  background: var(--panel); color: var(--panel-ink);
+  border: 2px solid var(--beam-a); border-radius: 16px;
+  padding: 14px 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--beam-a) 32%, transparent), 0 10px 30px rgba(4, 10, 18, .45);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.spin { display: inline-block; animation: spin 1s linear infinite; font-size: 22px; color: var(--beam-a); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 10400; }
+
+/* Expanding holographic body-touch click ring (.touch-ripple) */
+.touch-ripple {
+  --tr-col: #2ce8a2;
+  position: fixed; left: 0; top: 0;
+  width: 68px; height: 68px; border-radius: 50%;
+  pointer-events: none; z-index: 10450;
+  border: 2.5px solid var(--tr-col);
+  background: radial-gradient(circle, color-mix(in srgb, var(--tr-col) 36%, transparent) 0%, transparent 68%);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--tr-col) 68%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--tr-col) 45%, transparent);
+  transform: translate3d(-50%, -50%, 0) scale(.2);
+  animation: touchRippleOut .52s cubic-bezier(.16, .88, .3, 1) forwards;
+}
+.touch-ripple::after {
+  content: ''; position: absolute; inset: 18%; border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--tr-col) 85%, #ffffff);
+  opacity: .9;
+}
+.touch-ripple[data-zone="touchHead"],
+.touch-ripple[data-zone="head"] { --tr-col: #ffe169; }
+.touch-ripple[data-zone="touchFace"],
+.touch-ripple[data-zone="face"] { --tr-col: #ffb638; }
+.touch-ripple[data-zone="touchHands"],
+.touch-ripple[data-zone="hands"] { --tr-col: #2ce8a2; }
+.touch-ripple[data-zone="touchTorso"],
+.touch-ripple[data-zone="torso"] { --tr-col: #ff5c8a; }
+.touch-ripple[data-zone="touchLegs"],
+.touch-ripple[data-zone="legs"] { --tr-col: #ff4d6d; }
+
+@keyframes touchRippleOut {
+  0% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(.2) rotate(0deg); }
+  65% { opacity: .88; transform: translate3d(-50%, -50%, 0) scale(1.06) rotate(22deg); }
+  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(1.38) rotate(36deg); }
+}
