@@ -3070,6 +3070,7 @@
       const h = document.createElement('h3'); h.textContent = sec.title; body.appendChild(h);
       for (const it of sec.items) {
         const row = document.createElement('div'); row.className = 'row';
+        row.dataset.setting = it.key;
         const hint = typeof it.hint === 'function' ? it.hint() : it.hint;
         row.innerHTML = `<div class="row-l"><div class="row-t">${it.label}</div>${hint ? `<div class="row-h">${hint}</div>` : ''}</div>`;
         const ctl = document.createElement('div'); ctl.className = 'row-c';
