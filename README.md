@@ -1,6 +1,6 @@
 # Slopitaire // PRISM ◈✿
 
-High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork, and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
+High-tech **futuristic anime Klondike solitaire** featuring the **Prism Core** tactical interface, an ambient circuit-board backdrop, a **4-Layer Hyper Pop-Up FX System**, **8 fully voiced companions**, optional **Google OAuth2 cloud sync**, and a **Windows & Linux Electron desktop app**. Every card face is crisp generated SVG, all **151 heroine sprite & showcase PNGs** are studio-cleaned transparent TV-anime artwork, and every music track and **49+ digital sound effects** are synthesized live with the Web Audio API.
 
 ---
 
@@ -139,7 +139,7 @@ Guest play works completely without configuring credentials—if `.env` omits `G
 
 ## 🖥️ Desktop App (Electron)
 
-Slopitaire can be run and packaged as a native **Windows desktop application** (`Slopitaire // PRISM`, `1360×860`, `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`) serving assets over a custom `app://slopitaire` protocol with ASAR-unpacked `audio/` for native MP3 Range streaming.
+Slopitaire can be run and packaged as a native **Windows and Linux desktop application** (`Slopitaire // PRISM`, `1360×860`, `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`) serving assets over a custom `app://slopitaire` protocol with ASAR-unpacked `audio/` for native MP3 Range streaming.
 
 ### Desktop Features
 - **System-Browser Google OAuth2:** Signs in via your default browser using an ephemeral `127.0.0.1` loopback callback (`/auth/callback`), exchanges the single-use ticket for a bearer token, and stores credentials encrypted via Electron `safeStorage` in `userData/auth.json`.
@@ -156,15 +156,29 @@ npm install
 npm start
 
 # Run the headless smoke check (verifies 52 cards, Solver, Cast, Account, slopDesktop, app://slopitaire)
-npx electron . --smoke-test
+npm run test:smoke
 
-# Build unpacked desktop directory (dist/win-unpacked/)
+# Build unpacked desktop directory for the current OS (dist/win-unpacked/ or dist/linux-unpacked/)
 npm run pack
 
 # Package Windows x64 Portable .exe & NSIS Installer in dist/
 # (On non-admin Windows PowerShell, disable winCodeSign auto-discovery:)
-$env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npm run dist
+$env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npm run dist:win
+
+# Package Linux x64 AppImage & .deb in dist/ (run on Linux)
+npm run dist:linux
 ```
+
+### Linux
+
+`npm run dist:linux` produces:
+
+- **`dist/Slopitaire-<version>-x86_64.AppImage`**: portable, no install needed. Run `chmod +x Slopitaire-*.AppImage && ./Slopitaire-*.AppImage`. Some distros need `libfuse2` (`sudo apt install libfuse2t64` on Ubuntu 24.04+).
+- **`dist/Slopitaire-<version>-amd64.deb`**: for Debian, Ubuntu and Mint. Install with `sudo apt install ./dist/Slopitaire-*-amd64.deb`. It installs to `/opt/Slopitaire`, adds a `Slopitaire` menu entry under Games, and sets up the Chromium sandbox helper and AppArmor profile.
+
+Linux keeps user data in `~/.config/slopitaire/` (`config.json`, `auth.json`, `progress-backup.json`). `safeStorage` encrypts the auth token through the desktop keyring (GNOME Keyring / KWallet via libsecret). If no keyring is running, Electron falls back to its weaker built-in key.
+
+`npm run dist` still builds the Windows targets so existing workflows keep working.
 
 ---
 

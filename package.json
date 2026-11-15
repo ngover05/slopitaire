@@ -4,13 +4,18 @@
   "private": true,
   "description": "Slopitaire // PRISM — Futuristic anime Klondike solitaire desktop & web app",
   "author": "Slopitaire",
+  "homepage": "https://github.com/ngover05/slopitaire",
+  "desktopName": "slopitaire.desktop",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "server": "node server/index.js --static",
     "test:auth": "node server/test-auth.js",
+    "test:smoke": "electron . --smoke-test",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win portable nsis"
+    "dist": "electron-builder --win portable nsis",
+    "dist:win": "electron-builder --win portable nsis",
+    "dist:linux": "electron-builder --linux AppImage deb"
   },
   "build": {
     "appId": "com.slopitaire.prism",
@@ -55,6 +60,51 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
+    },
+    "linux": {
+      "icon": "electron/icon.png",
+      "category": "Game",
+      "synopsis": "Futuristic anime Klondike solitaire",
+      "executableName": "slopitaire",
+      "maintainer": "Slopitaire",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "Slopitaire",
+          "GenericName": "Solitaire",
+          "Keywords": "solitaire;klondike;cards;game;",
+          "StartupWMClass": "slopitaire"
+        }
+      },
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "deb": {
+      "packageCategory": "games",
+      "depends": [
+        "libgtk-3-0 | libgtk-3-0t64",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0 | libatspi2.0-0t64",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
     }
   },
   "devDependencies": {
