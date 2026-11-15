@@ -4,7 +4,8 @@
 function buildPetals() {
   const box = $('#petals'); box.innerHTML = '';
   if (!settings.petals || settings.anim === 'off') return;
-  for (let i = 0; i < 18; i++) {
+  const n = perfLite() ? 8 : 18;
+  for (let i = 0; i < n; i++) {
     const p = document.createElement('div'); p.className = 'petal';
     const dur = 10 + Math.random() * 12;
     p.style.left = (Math.random() * 105 - 5) + 'vw';

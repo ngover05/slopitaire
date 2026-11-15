@@ -6,7 +6,7 @@ const FX = (() => {
   let parts = [], raf = null, W = 0, H = 0, dpr = 1;
   const COLORS = ['#2ce8a2', '#ffb638', '#ffe169', '#4dffb5', '#ff8e6e', '#9d8cff', '#ff5c8a', '#ffffff'];
   function resize() {
-    dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+    dpr = perfLite() ? 1 : Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr;
   }
   resize(); addEventListener('resize', resize);
@@ -32,7 +32,7 @@ const FX = (() => {
     }
   }
   function celebrate() {
-    const n = settings.anim === 'off' ? 60 : 210;
+    const n = settings.anim === 'off' ? 60 : perfLite() ? 110 : 210;
     for (let i = 0; i < n; i++) {
       add({ x: Math.random() * W, y: -20 - Math.random() * H * 0.8, vx: (Math.random() - 0.5) * 2.2, vy: 1 + Math.random() * 2.6,
         g: 0.02, life: 0, max: 420 + Math.random() * 240, size: 5 + Math.random() * 7, rot: Math.random() * 6,
@@ -75,7 +75,7 @@ const FX = (() => {
     if (w) raf = requestAnimationFrame(loop);
     else { cx.clearRect(0, 0, W, H); raf = null; }
   }
-  return { burst, hearts, celebrate };
+  return { burst, hearts, celebrate, resize };
 })();
 function sparkleAt(el) {
   const r = el.getBoundingClientRect();

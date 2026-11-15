@@ -38,9 +38,15 @@ const Sound = (() => {
     return buf;
   }
 
-  const cfg = { muted: false, sfx: 0.7, music: 0.5, track: 'pulse' };
+  // lite: phones & low-power devices — a larger output buffer, a deeper schedule and fewer voices per note
+  const cfg = { muted: false, sfx: 0.7, music: 0.5, track: 'pulse', lite: false };
   let timer = null, nextT = 0, step = 0, phrases = null, loopN = 0, ducked = false;
-  let intensity = 0, musicStartT = 0;
+  let intensity = 0, musicStartT = 0, pausedByPage = false;
+
+  // How far ahead the step scheduler queues notes. The scheduler runs on the main thread, so any stall longer than
+  // this (layout, a busy frame, a throttled timer on a phone) leaves a gap in the music.
+  const lookahead = () => (cfg.lite ? 0.5 : 0.22);
+  const tickMs = () => (cfg.lite ? 45 : 25);
 
   // Preallocated ring buffer of scheduled kick timestamps for zero-alloc beat telemetry
   const kickQueue = new Float64Array(8);
@@ -85,11 +91,52 @@ const Sound = (() => {
     return TRACKS[cfg.track] || TRACKS.pulse;
   }
 
+  // ---------- Autoplay unlock ----------
+  // Browsers keep an AudioContext suspended until a user gesture. Only some events count as one (on Android a touch
+  // pointerdown does not, its touchend / pointerup / click does), so listen for all of them and keep listening until
+  // the context is actually running.
+  const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
+  let unlockArmed = false;
+  function onUnlockGesture() {
+    ensure();
+    if (ctx && ctx.state === 'running') disarmUnlock();
+  }
+  function armUnlock() {
+    if (unlockArmed) return;
+    unlockArmed = true;
+    for (const ev of UNLOCK_EVENTS) window.addEventListener(ev, onUnlockGesture, { capture: true, passive: true });
+  }
+  function disarmUnlock() {
+    if (!unlockArmed) return;
+    unlockArmed = false;
+    for (const ev of UNLOCK_EVENTS) window.removeEventListener(ev, onUnlockGesture, { capture: true });
+  }
+  function tryResume() {
+    if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
+    try {
+      const p = ctx.resume();
+      if (p && p.then) p.then(() => { if (ctx.state === 'running') disarmUnlock(); }, () => {});
+    } catch (e) { /* resume refused without a gesture: the unlock listeners retry */ }
+  }
+
+  // called once at startup: create the context and start the music right away where the browser allows it
+  // (Electron, or a site the user has already granted sound), otherwise on the first interaction
+  function boot() {
+    if (!ensure()) return;
+    if (ctx.state !== 'running') armUnlock();
+  }
+
   function ensure() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return false;
-      ctx = new AC();
+      // 'balanced' gives phones a larger output buffer, so a busy audio thread doesn't underrun and crackle
+      try { ctx = new AC({ latencyHint: cfg.lite ? 'balanced' : 'interactive' }); } catch (e) { ctx = new AC(); }
+      ctx.onstatechange = () => {
+        if (ctx.state === 'running') disarmUnlock();
+        // iOS 'interrupted' (a call, Siri) or a suspend we didn't ask for: resume on the next touch
+        else if (ctx.state !== 'closed' && !pausedByPage && !document.hidden) armUnlock();
+      };
 
       master = ctx.createGain();
       comp = ctx.createDynamicsCompressor();
@@ -164,7 +211,7 @@ const Sound = (() => {
       applyGains();
       if (cfg.track !== 'off' && !cfg.muted) startMusic();
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (!pausedByPage) tryResume();
     return true;
   }
 
@@ -182,12 +229,13 @@ const Sound = (() => {
 
   function configure(o) {
     if (!o) return;
-    const prevTrack = cfg.track, prevMuted = cfg.muted;
+    const prevTrack = cfg.track, prevMuted = cfg.muted, prevLite = cfg.lite;
     Object.assign(cfg, o);
+    cfg.lite = !!cfg.lite;
     if (!ctx) return;
     applyGains();
     if (cfg.muted || cfg.track === 'off') stopMusic();
-    else if (prevTrack !== cfg.track || prevMuted !== cfg.muted || !timer) startMusic();
+    else if (prevTrack !== cfg.track || prevMuted !== cfg.muted || prevLite !== cfg.lite || !timer) startMusic();
   }
 
   function setIntensity(tier) {
@@ -299,7 +347,7 @@ const Sound = (() => {
     const d = Math.max(0.015, Number(dur) || 0.12);
     const hz = safeHz(f);
     const spread = o.spread || 16;
-    const detunes = o.voices === 2 ? [-spread * 0.7, spread * 0.7] : [-spread, 0, spread];
+    const detunes = (o.voices === 2 || cfg.lite) ? [-spread * 0.7, spread * 0.7] : [-spread, 0, spread];
     const fl = ctx.createBiquadFilter();
     fl.type = 'lowpass';
     const cut = safeHz(o.lp || 6200);
@@ -362,7 +410,9 @@ const Sound = (() => {
     if (o.sfxSend && sfxEcho) g.connect(sfxEcho);
 
     const wave = o.type || 'sawtooth';
-    for (let i = 0; i < midis.length; i++) {
+    // lite: three voices are enough (the fourth note is usually the root an octave up)
+    const nVoices = cfg.lite ? Math.min(3, midis.length) : midis.length;
+    for (let i = 0; i < nVoices; i++) {
       const osc = ctx.createOscillator();
       osc.type = wave;
       osc.frequency.setValueAtTime(safeHz(mtof(midis[i])), t0);
@@ -411,7 +461,7 @@ const Sound = (() => {
     const hz = safeHz(f);
     tone(hz, t, dur, { vol, bus, send, sfxSend });
     if (hz * 2 < nyquist()) tone(hz * 2, t, dur * 0.58, { vol: vol * 0.36, bus, send, sfxSend });
-    if (hz * 3.01 < nyquist()) tone(hz * 3.01, t, dur * 0.32, { vol: vol * 0.14, bus, send });
+    if (!cfg.lite && hz * 3.01 < nyquist()) tone(hz * 3.01, t, dur * 0.32, { vol: vol * 0.14, bus, send });
   }
 
   // ---------- Prism Futuristic Digital SFX Suite (js/audio/sfx.js) ----------
@@ -438,7 +488,7 @@ const Sound = (() => {
       bus
     });
     tone(1150, t, 0.022, { type: 'triangle', vol: 0.11, glide: 170, glideT: 0.018, a: 0.001, bus });
-    noise(t, 0.016, { ft: 'highpass', f: 3500, vol: 0.05, a: 0.001, bus });
+    if (!cfg.lite) noise(t, 0.016, { ft: 'highpass', f: 3500, vol: 0.05, a: 0.001, bus });
     if (hard) {
       tone(155, t, 0.15, {
         type: 'sawtooth', vol: 0.13, glide: 48, glideT: 0.11, lp: 380, lpEnd: 120, q: 2.0, bus
@@ -452,8 +502,8 @@ const Sound = (() => {
   }
 
   function snareDrive(t, vol, bus) {
-    noise(t, 0.11, { ft: 'bandpass', f: 2300, q: 0.85, vol, a: 0.002, bus });
-    noise(t + 0.01, 0.085, { ft: 'highpass', f: 4200, vol: vol * 0.55, a: 0.002, bus });
+    noise(t, 0.11, { ft: 'bandpass', f: 2300, q: 0.85, vol: cfg.lite ? vol * 1.15 : vol, a: 0.002, bus });
+    if (!cfg.lite) noise(t + 0.01, 0.085, { ft: 'highpass', f: 4200, vol: vol * 0.55, a: 0.002, bus });
     tone(235, t, 0.075, { type: 'triangle', vol: vol * 0.85, glide: 125, glideT: 0.055, bus });
   }
 
@@ -727,9 +777,11 @@ const Sound = (() => {
     const tr = activeTrack();
     if (!tr || !ctx || !musicBus) return;
     const e16 = 60 / tr.bpm / 4;
+    // fell far behind (the tab was frozen): skip ahead instead of firing a burst of stale notes
     if (nextT < ctx.currentTime - 0.35) nextT = ctx.currentTime + 0.03;
+    const horizon = ctx.currentTime + lookahead();
     let guard = 0;
-    while (nextT < ctx.currentTime + 0.14 && guard++ < 10) {
+    while (nextT < horizon && guard++ < 24) {
       if (step > 0 && step % 64 === 0) {
         loopN++;
         if (loopN % 2 === 0) phrases = buildPhrases(tr);
@@ -758,7 +810,7 @@ const Sound = (() => {
     nextT = ctx.currentTime + 0.015;
     musicStartT = nextT;
     tick();
-    timer = setInterval(tick, 25);
+    timer = setInterval(tick, tickMs());
   }
 
   function stopMusic() {
@@ -769,18 +821,28 @@ const Sound = (() => {
     if (musicBus && ctx) {
       const old = musicBus;
       old.gain.setTargetAtTime(0, ctx.currentTime, 0.06);
+      // notes are queued up to lookahead() ahead: keep the faded bus connected until they have all played out
       setTimeout(() => {
         try { old.disconnect(); } catch (e) { /* already disconnected */ }
-      }, 450);
+      }, 450 + lookahead() * 1000 + 400);
       musicBus = null;
     }
   }
 
-  function suspend() { if (ctx && ctx.state === 'running') ctx.suspend(); }
-  function resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
+  function suspend() {
+    pausedByPage = true;
+    if (ctx && ctx.state === 'running') ctx.suspend();
+  }
+  function resume() {
+    pausedByPage = false;
+    if (!ctx) return;
+    tryResume();
+    if (ctx.state !== 'running') armUnlock();
+  }
   function duck(on) { if (ducked === !!on) return; ducked = !!on; applyGains(); }
 
   return {
+    boot,
     ensure,
     configure,
     duck,

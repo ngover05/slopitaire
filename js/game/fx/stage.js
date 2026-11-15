@@ -15,7 +15,9 @@ const StageBG = (() => {
   let W = 0, H = 0, dpr = 1, raf = null, lastWall = Date.now(), hiddenAt = 0, resizeRaf = 0;
   // The backdrop drifts slowly, so it is redrawn at ~30 fps instead of every display refresh (60–144 Hz):
   // each redraw composites several full-screen layers. The combo timer still updates every frame.
-  const STAGE_FRAME_MS = 1000 / 30;
+  // Battery saver (perfLite) drops it to ~20 fps on a 1x canvas: the glows are soft, so the lower resolution barely shows.
+  const STAGE_FRAME_MS = 1000 / 30, STAGE_FRAME_MS_LITE = 1000 / 20;
+  const frameMs = () => (perfLite() ? STAGE_FRAME_MS_LITE : STAGE_FRAME_MS);
   let stageAccMs = STAGE_FRAME_MS;
   let timeSec = 0, pulseBoost = 0, pulseRGB = [44, 232, 162];
   // Calm ambient backdrop: a faint, static circuit-board pattern with a few lights gliding along its traces and two
@@ -159,7 +161,7 @@ const StageBG = (() => {
 
   function resize() {
     if (!cv || !cx) return;
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = perfLite() ? 1 : Math.min(2, window.devicePixelRatio || 1);
     W = innerWidth; H = innerHeight;
     cv.width = Math.max(1, Math.floor(W * dpr));
     cv.height = Math.max(1, Math.floor(H * dpr));
@@ -242,7 +244,7 @@ const StageBG = (() => {
 
     // 3) lights gliding along traces; a few more of them as the combo climbs
     if (settings.bgFx && !isStatic) {
-      const want = 6 + tier * 2;
+      const want = perfLite() ? 3 + tier : 6 + tier * 2;
       if (lights.length < want && Math.random() < dt * 1.2) spawnLight();
       for (let i = lights.length - 1; i >= 0; i--) {
         const L = lights[i];
@@ -282,7 +284,7 @@ const StageBG = (() => {
     const anim = shouldAnimate();
     if (anim) {
       stageAccMs += dtMs;
-      if (stageAccMs >= STAGE_FRAME_MS - 1) {
+      if (stageAccMs >= frameMs() - 1) {
         drawStage(Math.min(0.05, stageAccMs / 1000), false);
         stageAccMs = 0;
       }

@@ -49,6 +49,8 @@ function scheduleCheck() {
     const job = G.variant === 'klondike'
       ? { id: ver, mode, state: solverState(), draw: G.draw, maxPasses: passLimit(), limit: 250000, ms: 4000 }
       : { id: ver, mode, variant: G.variant, state: variantState(), opt: variantOpt(), ...ANALYZE_BUDGET[G.variant] };
+    // on phones a multi-second search after every move heats the CPU and slows everything else down
+    if (perfLite()) { job.limit = Math.round(job.limit * 0.4); job.ms = Math.min(job.ms, 1500); }
     Analyzer.run(job, (r) => {
       if (!r || r.id !== stateVer || !G || G.won || G.lost || busy || settings.detectLoss !== mode) return;
       G.analysis = r.result;

@@ -1,12 +1,8 @@
 /* Slopitaire — wiring for the top bar, start screen, modal buttons and UI sounds. */
 'use strict';
 
-// unlock audio on the first interaction, and hover ticks on buttons & face-up cards
+// hover ticks on buttons & face-up cards (audio unlocking on the first gesture lives in Sound.boot)
 function bindUiSounds() {
-  // any first interaction unlocks audio
-  const unlock = () => { Sound.ensure(); };
-  window.addEventListener('pointerdown', unlock, { once: true });
-  window.addEventListener('keydown', unlock, { once: true });
 
   // subtle digital UI & face-up card hover tick delegation
   document.addEventListener('pointerenter', (e) => {

@@ -22,6 +22,8 @@ const SCHEMA = [
     { key: 'popups', label: 'Pop-up FX', type: 'seg', options: [['max', 'Hyper'], ['normal', 'Standard'], ['off', 'Minimal']], hint: 'Floating score tags, live medal feed, banners & companion stamps.' },
     { key: 'back', label: 'Card back', type: 'backs' },
     { key: 'anim', label: 'Animations', type: 'seg', options: [['normal', 'Normal'], ['fast', 'Fast'], ['off', 'Off']] },
+    { key: 'perf', label: 'Graphics quality', type: 'seg', options: [['auto', 'Auto'], ['high', 'High'], ['lite', 'Battery saver']],
+      hint: () => `Battery saver drops blur & glow effects and lightens the music synth for smoother play on phones.${settings.perf === 'auto' ? (LOW_POWER_DEVICE ? ' Auto: using Battery saver on this device.' : ' Auto: using High on this device.') : ''}` },
     { key: 'petals', label: 'Falling petals', type: 'toggle' },
     { key: 'showStats', label: 'Show time, moves & score', type: 'toggle' },
   ] },

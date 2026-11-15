@@ -1,0 +1,48 @@
+/* Slopitaire — Battery saver / phone rendering (body.perf-lite, set by perfLite() in js/game/settings.js).
+ * Loaded last. Mobile GPUs choke on three things this app does a lot of: backdrop blur over the animated stage canvas
+ * (every redraw re-blurs every panel and slot behind it), stacked drop-shadow filters on the big companion sprite, and
+ * keyframes that animate `filter` (a full repaint + blur every frame). This file swaps those for cheap equivalents. */
+
+/* 1) no backdrop blur anywhere: the translucent backgrounds stay, they just don't blur what's behind them */
+body.perf-lite *,
+body.perf-lite *::before,
+body.perf-lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* without the blur, modal scrims need a little more opacity to keep panels readable */
+body.perf-lite .overlay:not(.result-overlay) { background: rgba(4, 10, 16, .74); }
+
+/* 2) companion sprite: one static shadow instead of 3–5 stacked (and for Kira / Ayame, animated) drop-shadows */
+body.perf-lite .girl-sprite:not(.is-face) {
+  filter: drop-shadow(0 6px 10px rgba(4, 10, 18, .45)) !important;
+}
+body.perf-lite[data-partner="ayame"] .chara.girl-sprite:not(.is-face),
+body.perf-lite [data-partner="ayame"] .chara.girl-sprite:not(.is-face),
+body.perf-lite[data-partner="kira"] .chara.girl-sprite:not(.is-face),
+body.perf-lite [data-partner="kira"] .chara.girl-sprite:not(.is-face) {
+  animation: none;
+}
+/* keep the talking bounce (transform only), minus the rim-pulse filter animation it was paired with */
+body.perf-lite #mascot.is-girl:not(.is-full).talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlCorner .4s ease-in-out infinite alternate;
+}
+body.perf-lite #mascot.is-girl.is-full.talking .chara.girl-sprite:not(.is-face) {
+  animation: talkGirlFull .38s ease-in-out infinite alternate;
+}
+
+/* 3) combo HUD: the meter's transform updates every frame, so a filter on its container means a re-filter every frame */
+body.perf-lite .combo-hud[data-tier="4"] {
+  animation: none;
+  filter: none;
+}
+body.perf-lite .combo-hud.danger .combo-fill {
+  animation: comboDangerLite .28s ease-in-out infinite alternate;
+}
+@keyframes comboDangerLite {
+  from { opacity: 1; }
+  to { opacity: .42; }
+}
+
+/* 4) petals: fewer of them (js/game/fx/petals.js) and no glow, so each one is a plain composited layer */
+body.perf-lite .petal i { box-shadow: none; }

@@ -22,6 +22,9 @@ const SMOKE_POLL_MS = 100;
 
 const isSmokeTest = process.argv.includes('--smoke-test');
 
+// The soundtrack should start as soon as the window opens, not after the first click.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'app',
@@ -561,6 +564,7 @@ function createMainWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

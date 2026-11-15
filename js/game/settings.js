@@ -5,7 +5,7 @@ const DEFAULTS = {
   variant: 'klondike', spiderSuits: 1,
   difficulty: 'medium', draw: 1,
   tapMove: true, autoFound: false, autoFinish: true, dropGuides: true, showStats: true, leftHanded: false,
-  theme: 'prism', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', mascot: true,
+  theme: 'prism', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', perf: 'auto', mascot: true,
   muted: false, music: 'pulse', musicVol: 0.5, sfxVol: 0.7,
   companion: 'sakura', spriteMode: 'corner', chatter: 'all', voice: true, voiceLang: 'ja', voiceNames: {}, voiceVol: 0.9, cutins: true, detectLoss: 'solver',
 };
@@ -16,6 +16,18 @@ const hadSavedSave = Store.get('save', null) !== null;
 const VALID_THEMES = new Set(['prism', 'night', 'sakura', 'ramune', 'matcha']);
 const VALID_MUSIC = new Set(['pulse', 'redline', 'horizon', 'zenith', 'bounce', 'lofi', 'lullaby', 'off']);
 const VALID_POPUPS = new Set(['max', 'normal', 'off']);
+const VALID_PERF = new Set(['auto', 'high', 'lite']);
+// Phones and tablets (touch-only) or very low-spec machines get the lighter rendering & audio path by default.
+const LOW_POWER_DEVICE = (() => {
+  try {
+    const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+    const touchOnly = mq('(pointer: coarse)') && !mq('(any-pointer: fine)');
+    const mem = navigator.deviceMemory, cores = navigator.hardwareConcurrency;
+    return touchOnly || (!!mem && mem <= 2) || (!!cores && cores <= 2);
+  } catch (e) { return false; }
+})();
+// lite mode: no backdrop blur or animated glow filters, 1x canvases, a slower backdrop, fewer synth voices
+const perfLite = () => settings.perf === 'lite' || (settings.perf === 'auto' && LOW_POWER_DEVICE);
 function normalizeSettings(raw) {
   const next = Object.assign({}, DEFAULTS, (raw && typeof raw === 'object') ? raw : {});
   if (!DIFF[next.difficulty]) next.difficulty = 'medium';
@@ -31,6 +43,7 @@ function normalizeSettings(raw) {
   if (!VALID_THEMES.has(next.theme)) next.theme = 'prism';
   if (!VALID_MUSIC.has(next.music)) next.music = 'pulse';
   if (!VALID_POPUPS.has(next.popups)) next.popups = 'max';
+  if (!VALID_PERF.has(next.perf)) next.perf = 'auto';
   if (typeof Art !== 'undefined' && Art.BACKS && !Art.BACKS[next.back]) next.back = 'sakura';
   if (typeof Cast !== 'undefined' && Array.isArray(Cast.keys) && !Cast.keys.includes(next.companion)) next.companion = 'sakura';
   next.prismV1 = true;
@@ -102,12 +115,14 @@ function setSetting(key, v, quiet) {
 function applySettings(key) {
   const all = !key;
   document.body.dataset.theme = settings.theme;
+  document.body.classList.toggle('perf-lite', perfLite());
+  if (key === 'perf') { StageBG.resize(); FX.resize(); }
   if (all || key === 'back') document.documentElement.style.setProperty('--card-back', Art.backDataURI(settings.back));
   const ms = moveMs();
   document.documentElement.style.setProperty('--move', ms + 'ms');
   document.documentElement.style.setProperty('--flip', (settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 180 : 300) + 'ms');
-  if (all || key === 'petals' || key === 'anim') buildPetals();
-  if (all || key === 'theme' || key === 'bgFx' || key === 'anim') StageBG.refreshTheme();
+  if (all || key === 'petals' || key === 'anim' || key === 'perf') buildPetals();
+  if (all || key === 'theme' || key === 'bgFx' || key === 'anim' || key === 'perf') StageBG.refreshTheme();
   if (settings.popups === 'off' || settings.anim === 'off') PopupFX?.clear();
   DOM.mascot.classList.toggle('hidden', !settings.mascot);
   if (all || key === 'companion' || key === 'spriteMode') Companion.render();
@@ -125,7 +140,7 @@ function applySettings(key) {
     if (r.querySelector('.row-t')?.textContent === 'Voice lines') r.querySelector('.row-h').textContent = voiceHint();
   });
   document.body.classList.toggle('hide-stats', !settings.showStats);
-  Sound.configure({ muted: settings.muted, sfx: settings.sfxVol, music: settings.musicVol, track: settings.music });
+  Sound.configure({ muted: settings.muted, sfx: settings.sfxVol, music: settings.musicVol, track: settings.music, lite: perfLite() });
   DOM.soundIc.textContent = settings.muted ? '🔇' : '♪';
   if (key === 'leftHanded' && G) { slotsDirty = true; layout(); }
   if (key === 'autoFinish' && G) maybeAutoFinish();

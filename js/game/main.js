@@ -25,6 +25,8 @@ function init() {
 
   syncComboHud(false);
   showStart(true);
+  // start the soundtrack immediately (or on the very first touch / key where the browser requires a gesture)
+  Sound.boot();
 
   installDebugHook();
   connectAccount();

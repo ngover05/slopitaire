@@ -254,6 +254,7 @@ Every line is **prerecorded with [Kokoro](https://huggingface.co/hexgrad/Kokoro-
   - `companion/` — mascot & zero-flicker sprite system, partner auras (`[data-partner]`), moods, cut-in, picker
   - `fx/` — circuit stage, toast & touch ripples, 4-layer Hyper Pop-Up FX; `screens/` — modals & settings, start screen, win/lose results, account/sync
   - `responsive.css` — breakpoints (loaded after the component styles it overrides)
+  - `perf-lite.css` — Battery saver overrides (`body.perf-lite`): no backdrop blur or animated glow filters, loaded last
 - `js/` — classic deferred scripts (no build step, so `index.html` also opens straight from disk). They share one global scope, so `index.html` loads them in dependency order:
   - `core/` — `util.js` (`$`, `pick`, `clamp`, `esc`) and `storage.js` (timestamped `Store` & guest delta tracking)
   - `art/art.js` — Crisp SVG card faces, chibi royal court cards, card backs, Mochi SVG mascot
