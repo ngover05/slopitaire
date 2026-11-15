@@ -1,0 +1,64 @@
+{
+  "name": "slopitaire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Slopitaire // PRISM — Futuristic anime Klondike solitaire desktop & web app",
+  "author": "Slopitaire",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server/index.js --static",
+    "test:auth": "node server/test-auth.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win portable nsis"
+  },
+  "build": {
+    "appId": "com.slopitaire.prism",
+    "productName": "Slopitaire",
+    "forceCodeSigning": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "images/**/*",
+      "audio/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "audio/**/*"
+    ],
+    "compression": "normal",
+    "win": {
+      "icon": "electron/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0"
+  }
+}

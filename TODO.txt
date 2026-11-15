@@ -1,0 +1,6 @@
+[DONE] Regenerate Kira and Kaede sprites
+[DONE] Clean trapped white pockets and edge halos across all 151 companion PNG sprites
+[DONE] Add optional Google OAuth2 accounts and SQLite cloud progress sync
+[DONE] Add Electron desktop packaging (Windows portable & NSIS)
+Add comfy mode back
+More languages (Chinese, Korean, French, Spanish, Navajo)
