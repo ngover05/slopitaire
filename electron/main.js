@@ -652,8 +652,11 @@ function runSmokeTest(win) {
         const hasCast = (typeof Cast !== 'undefined' && !!Cast) || !!window.Cast;
         const hasAccount = (typeof Account !== 'undefined' && !!Account) || !!window.Account;
         const hasDesktop = !!window.slopDesktop && window.slopDesktop.isElectron === true;
+        // 'files' when the pre-rendered soundtrack loaded over app://, 'synth' if it fell back to live synthesis
+        const music = (typeof Sound !== 'undefined' && Sound.musicState) ? Sound.musicState().mode : 'missing';
         return {
-          ready: cards === 104 && hasSolver && hasCast && hasDesktop,
+          ready: cards === 104 && hasSolver && hasCast && hasDesktop && music !== 'loading',
+          music,
           cards,
           hasSolver,
           hasCast,
@@ -676,6 +679,7 @@ function runSmokeTest(win) {
           hasCast: state.hasCast,
           hasAccount: state.hasAccount,
           hasDesktop: state.hasDesktop,
+          music: state.music,
           origin: state.origin,
         };
         console.log('ELECTRON_SMOKE_OK ' + JSON.stringify(summary));

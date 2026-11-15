@@ -1,0 +1,9 @@
+{
+  "format": "opus",
+  "kbps": 64,
+  "sampleRate": 48000,
+  "minSeconds": 40,
+  "peakDb": -1,
+  "seed": 1,
+  "tracks": {}
+}
