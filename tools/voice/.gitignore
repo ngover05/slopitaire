@@ -1,0 +1,5 @@
+.venv/
+.preview/
+.hwprofile.json
+*.tmp
+__pycache__/

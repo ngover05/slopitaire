@@ -1,0 +1,81 @@
+{
+ "model": "hexgrad/Kokoro-82M",
+ "output": {
+  "format": "opus",
+  "mp3_kbps": 40,
+  "opus_kbps": 24
+ },
+ "post": {},
+ "characters": {
+  "sakura": {
+   "en": {
+    "voice": "af_sky:0.6,af_bella:0.4",
+    "speed": 1.15
+   },
+   "ja": {
+    "voice": "jf_alpha:0.45,jf_tebukuro:0.55",
+    "speed": 1.05
+   }
+  },
+  "yuki": {
+   "en": {
+    "voice": "bf_emma",
+    "speed": 0.95
+   },
+   "ja": {
+    "voice": "jf_alpha:0.5,jf_gongitsune:0.5",
+    "speed": 0.9
+   }
+  },
+  "rin": {
+   "en": {
+    "voice": "af_sky:0.4,af_sarah:0.6",
+    "speed": 1.1
+   },
+   "ja": {
+    "voice": "jf_alpha:0.15,jf_tebukuro:0.85",
+    "speed": 1.05
+   }
+  },
+  "mio": {
+   "en": {
+    "voice": "af_heart:0.7,af_alloy:0.3",
+    "speed": 0.9
+   },
+   "ja": {
+    "voice": "jf_tebukuro",
+    "speed": 0.9
+   }
+  },
+  "ayame": {
+   "en": {
+    "voice": "af_nova:0.65,af_heart:0.35",
+    "speed": 0.95
+   },
+   "ja": {
+    "voice": "jf_nezumi:0.7,jf_gongitsune:0.3",
+    "speed": 0.9
+   }
+  },
+  "kira": {
+   "en": {
+    "voice": "af_kore:0.75,af_aoede:0.25",
+    "speed": 1.0
+   },
+   "ja": {
+    "voice": "jf_gongitsune:0.9,jf_nezumi:0.1",
+    "speed": 1.05
+   }
+  },
+  "kaede": {
+   "en": {
+    "voice": "af_river:0.45,af_heart:0.55",
+    "speed": 0.9
+   },
+   "ja": {
+    "voice": "jf_gongitsune",
+    "speed": 0.85
+   }
+  }
+ }
+}

@@ -48,6 +48,18 @@ const Voice = (() => {
   const CLIPS = (typeof window !== 'undefined' && window.VOICE_CLIPS) || {};
   const utf8Encoder = new TextEncoder();
   const clipIdCache = new Map();
+  // Clips are mp3 unless the manifest says otherwise ("ext": "opus"). Browsers that can't decode a format just
+  // skip its clips and use Web Speech instead.
+  const MIME = { mp3: 'audio/mpeg', opus: 'audio/ogg; codecs=opus' };
+  const playable = new Map();
+  function canPlay(ext) {
+    if (!playable.has(ext)) {
+      let ok = ext === 'mp3';
+      try { ok = !!new Audio().canPlayType(MIME[ext] || `audio/${ext}`); } catch (e) { /* no Audio: keep default */ }
+      playable.set(ext, ok);
+    }
+    return playable.get(ext);
+  }
   function clipId(text) { // FNV-1a 32-bit over UTF-8
     let h = 0x811c9dc5;
     for (const b of utf8Encoder.encode(text)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
@@ -56,6 +68,8 @@ const Voice = (() => {
   function clipFor(line, o) {
     const lang = o.lang === 'ja' ? 'ja' : 'en', s = CLIPS[o.char] && CLIPS[o.char][lang];
     if (!s) return null;
+    const ext = s.ext || 'mp3';
+    if (!canPlay(ext)) return null;
     const ja = lang === 'ja';
     const raw = (ja ? line.ja : line.en) || '';
     const cacheKey = (ja ? '1:' : '0:') + raw;
@@ -65,7 +79,7 @@ const Voice = (() => {
       clipIdCache.set(cacheKey, id);
     }
     const set = s.set || (s.set = new Set(s.ids));
-    return set.has(id) ? `audio/voice/${o.char}/${lang}/${id}.mp3?v=${s.v}` : null;
+    return set.has(id) ? `audio/voice/${o.char}/${lang}/${id}.${ext}?v=${s.v}` : null;
   }
 
   let startedAt = 0, gapT = null, curEnd = null;

@@ -1,0 +1,7 @@
+# Installed by `generate.py setup` after a PyTorch build that matches this machine's GPU (or CPU).
+kokoro>=0.9.4
+misaki[en,ja]>=0.9.4
+numpy
+soundfile
+lameenc
+huggingface_hub

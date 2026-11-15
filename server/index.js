@@ -20,6 +20,7 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.mp3': 'audio/mpeg',
+  '.opus': 'audio/ogg',
   '.webp': 'image/webp',
 };
 
