@@ -2121,6 +2121,12 @@
     }
   }
   const variantOpt = () => ({ suits: G.suits, maxPasses: passLimit() });
+  // Background loss checks run after every move. A Spider or FreeCell proof only ever finishes near the end of a
+  // game (the space is too big earlier), so they get a smaller budget instead of burning seconds of CPU per move.
+  const ANALYZE_BUDGET = {
+    spider: { limit: 60000, ms: 1200 }, freecell: { limit: 120000, ms: 2000 },
+    pyramid: { limit: 250000, ms: 3000 }, tripeaks: { limit: 250000, ms: 3000 },
+  };
   function solverState() {
     const ids = (p) => p.map((c) => c.id);
     const f = [0, 0, 0, 0];
@@ -2140,7 +2146,7 @@
       if (ver !== stateVer || !G || G.won || G.lost || busy) return;
       const job = G.variant === 'klondike'
         ? { id: ver, mode, state: solverState(), draw: G.draw, maxPasses: passLimit(), limit: 250000, ms: 4000 }
-        : { id: ver, mode, variant: G.variant, state: variantState(), opt: variantOpt(), limit: 250000, ms: 4000 };
+        : { id: ver, mode, variant: G.variant, state: variantState(), opt: variantOpt(), ...ANALYZE_BUDGET[G.variant] };
       Analyzer.run(job, (r) => {
         if (!r || r.id !== stateVer || !G || G.won || G.lost || busy || settings.detectLoss !== mode) return;
         G.analysis = r.result;

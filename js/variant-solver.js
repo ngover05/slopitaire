@@ -398,6 +398,46 @@ function variantSolverFactory() {
 
   const ENGINES = { freecell: FC, spider: SP, pyramid: PY, tripeaks: TP };
 
+  // Position keys can run past 150 characters (Spider); visited sets store a 64-bit hash of them instead (two
+  // independent 32-bit mixes), which cuts their memory several times over at a negligible collision risk.
+  function hkey(str) {
+    let a = 0x811c9dc5, b = 0x9747b28c;
+    for (let i = 0; i < str.length; i++) {
+      const c = str.charCodeAt(i);
+      a = Math.imul(a ^ c, 0x01000193);
+      b = Math.imul(b ^ c, 0x5bd1e995); b ^= b >>> 13;
+    }
+    return (a >>> 0).toString(36) + ':' + (b >>> 0).toString(36);
+  }
+
+  // Lazy depth-first search for the exhaustive checks (analyze / progress). Only the current line of play is held
+  // in memory (one frame per depth, moves generated on entry), plus the hashed visited set.
+  function dfs(variant, st, opt) {
+    const E = ENGINES[variant];
+    if (!E || !st) return { result: 'unknown', nodes: 0 };
+    const limit = opt.limit || 250000, ms = opt.ms || 4000, goal = opt.goal || 'win';
+    const t0 = now();
+    const root = E.init(st, opt);
+    if (goal === 'win' && E.won(root)) return { result: 'win', nodes: 0 };
+    const seen = new Set([hkey(E.key(root))]);
+    const stack = [{ s: root, moves: E.moves(root), i: 0 }];
+    let nodes = 0, steps = 0;
+    while (stack.length) {
+      if (nodes >= limit || ((++steps & 255) === 0 && now() - t0 > ms)) return { result: 'unknown', nodes };
+      const f = stack[stack.length - 1];
+      if (f.i >= f.moves.length) { stack.pop(); continue; }
+      const r = E.apply(f.s, f.moves[f.i++]);
+      if (goal === 'progress' && r.prog) return { result: 'win', nodes };
+      const k = hkey(E.key(r.s));
+      if (seen.has(k)) continue;
+      seen.add(k);
+      nodes++;
+      if (goal === 'win' && E.won(r.s)) return { result: 'win', nodes };
+      stack.push({ s: r.s, moves: E.moves(r.s), i: 0 });
+    }
+    return { result: 'lose', nodes };
+  }
+
   // ------------------------------------------------------------ search
   // Best-first search from st. goal 'win' looks for a finished game; goal 'progress' for any move that sends a card
   // home / reveals one / removes one. Returns { result, nodes, plan, best } where result is 'win' | 'lose' | 'unknown'
@@ -411,7 +451,7 @@ function variantSolverFactory() {
     const root = E.init(st, opt);
     if (goal === 'win' && E.won(root)) return { result: 'win', nodes: 0, plan: [], best: [] };
     const states = [root], parent = [-1], via = [null], depth = [0], score = [E.score(root)];
-    const seen = new Set([E.key(root)]);
+    const seen = new Set([hkey(E.key(root))]);
     const heap = makeHeap();
     heap.push(0, score[0]);
     let nodes = 0, bestId = 0, steps = 0;
@@ -433,7 +473,7 @@ function variantSolverFactory() {
       for (const m of E.moves(s)) {
         const r = E.apply(s, m);
         if (goal === 'progress' && r.prog) return { result: 'win', nodes, plan: path(id, r.seq), best: null };
-        const k = E.key(r.s);
+        const k = hkey(E.key(r.s));
         if (seen.has(k)) continue;
         seen.add(k);
         const cid = states.length;
@@ -456,11 +496,10 @@ function variantSolverFactory() {
     return { won: r.result === 'win' ? true : r.result === 'lose' ? false : null, nodes: r.nodes };
   }
   function analyze(variant, st, opt = {}) {
-    const r = search(variant, st, Object.assign({ limit: 250000, ms: 4000 }, opt, { goal: 'win', exhaustive: true }));
-    return { result: r.result, nodes: r.nodes };
+    return dfs(variant, st, Object.assign({ limit: 250000, ms: 4000 }, opt, { goal: 'win', exhaustive: true }));
   }
   function progress(variant, st, opt = {}) {
-    const r = search(variant, st, Object.assign({ limit: 250000, ms: 4000 }, opt, { goal: 'progress', exhaustive: true }));
+    const r = dfs(variant, st, Object.assign({ limit: 250000, ms: 4000 }, opt, { goal: 'progress', exhaustive: true }));
     return { result: r.result === 'win' ? 'progress' : r.result === 'lose' ? 'stuck' : 'unknown', nodes: r.nodes };
   }
   function plan(variant, st, opt = {}) {
