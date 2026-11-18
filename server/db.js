@@ -32,6 +32,8 @@ function formatProgressRow(row) {
       statsUpdatedAt: 0,
       save: null,
       saveUpdatedAt: 0,
+      gacha: null,
+      gachaUpdatedAt: 0,
       updatedAt: 0,
     };
   }
@@ -42,6 +44,8 @@ function formatProgressRow(row) {
     statsUpdatedAt: Number(row.stats_updated_at) || 0,
     save: safeJsonParse(row.save_json, null),
     saveUpdatedAt: Number(row.save_updated_at) || 0,
+    gacha: safeJsonParse(row.gacha_json, null),
+    gachaUpdatedAt: Number(row.gacha_updated_at) || 0,
     updatedAt: Number(row.updated_at) || 0,
   };
 }
@@ -99,10 +103,22 @@ function initSchema(db) {
       stats_updated_at INTEGER NOT NULL DEFAULT 0,
       save_json TEXT,
       save_updated_at INTEGER NOT NULL DEFAULT 0,
+      gacha_json TEXT,
+      gacha_updated_at INTEGER NOT NULL DEFAULT 0,
       applied_delta_ids_json TEXT NOT NULL DEFAULT '[]',
       updated_at INTEGER NOT NULL
     );
   `);
+
+  const progressCols = new Set(
+    db.prepare('PRAGMA table_info(user_progress)').all().map((c) => c.name)
+  );
+  if (!progressCols.has('gacha_json')) {
+    db.exec('ALTER TABLE user_progress ADD COLUMN gacha_json TEXT');
+  }
+  if (!progressCols.has('gacha_updated_at')) {
+    db.exec('ALTER TABLE user_progress ADD COLUMN gacha_updated_at INTEGER NOT NULL DEFAULT 0');
+  }
 }
 
 function openDb(customPath) {
@@ -162,9 +178,10 @@ function openDb(customPath) {
         user_id, settings_json, settings_updated_at,
         stats_json, stats_updated_at,
         save_json, save_updated_at,
+        gacha_json, gacha_updated_at,
         applied_delta_ids_json, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET
         settings_json = excluded.settings_json,
         settings_updated_at = excluded.settings_updated_at,
@@ -172,6 +189,8 @@ function openDb(customPath) {
         stats_updated_at = excluded.stats_updated_at,
         save_json = excluded.save_json,
         save_updated_at = excluded.save_updated_at,
+        gacha_json = excluded.gacha_json,
+        gacha_updated_at = excluded.gacha_updated_at,
         applied_delta_ids_json = excluded.applied_delta_ids_json,
         updated_at = excluded.updated_at
     `),

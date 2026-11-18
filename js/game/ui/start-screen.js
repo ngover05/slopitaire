@@ -46,6 +46,7 @@ function buildStartPickers() {
   }
   wrap.replaceWith(fresh); fresh.id = 'drawPick';
   if (row) row.classList.toggle('hidden', settings.variant !== 'klondike' && settings.variant !== 'spider');
+  window.syncGachaBadges?.();
 }
 function showStart(silent) {
   buildStartPickers();

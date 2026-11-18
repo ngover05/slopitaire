@@ -9,6 +9,10 @@ const DIFFICULTIES = [
   ...VARIANTS.flatMap((v) => BASE_DIFFICULTIES.map((d) => `${v}_${d}`)),
 ];
 const MAX_DELTA_IDS = 32;
+const MAX_GACHA_UNLOCKED = 256;
+const MAX_GACHA_HISTORY = 20;
+const GACHA_ID_RE = /^(skin:[a-z0-9_]+:[a-z0-9_]+|front:[a-z0-9_]+|back:[a-z0-9_]+)$/;
+const VALID_GACHA_RARITIES = new Set(['ssr', 'sr', 'r']);
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 class MergeValidationError extends Error {
@@ -108,6 +112,55 @@ function sanitizeSave(raw) {
   return sanitizeJsonValue(raw, 0);
 }
 
+function sanitizeGachaHistoryItem(item) {
+  if (!isPlainObject(item) || typeof item.id !== 'string' || !GACHA_ID_RE.test(item.id)) {
+    return null;
+  }
+  const inferredRarity = item.id.startsWith('skin:') ? 'ssr' : item.id.startsWith('front:') ? 'sr' : 'r';
+  return {
+    id: item.id,
+    rarity: VALID_GACHA_RARITIES.has(item.rarity) ? item.rarity : inferredRarity,
+    isNew: Boolean(item.isNew),
+    shardsGained: toNonNegInt(item.shardsGained),
+    crafted: Boolean(item.crafted),
+    at: toTimestamp(item.at),
+  };
+}
+
+function sanitizeGacha(raw) {
+  if (!isPlainObject(raw)) return null;
+  const unlockedSet = new Set();
+  if (Array.isArray(raw.unlocked)) {
+    for (const id of raw.unlocked) {
+      if (typeof id === 'string' && GACHA_ID_RE.test(id)) {
+        unlockedSet.add(id);
+      }
+    }
+  }
+  const unlocked = Array.from(unlockedSet).sort().slice(0, MAX_GACHA_UNLOCKED);
+
+  const history = [];
+  if (Array.isArray(raw.history)) {
+    for (const entry of raw.history) {
+      if (history.length >= MAX_GACHA_HISTORY) break;
+      const clean = sanitizeGachaHistoryItem(entry);
+      if (clean) history.push(clean);
+    }
+  }
+
+  return {
+    v: 1,
+    pulls: toNonNegInt(raw.pulls),
+    shards: toNonNegInt(raw.shards),
+    pointCarry: Math.min(1499, toNonNegInt(raw.pointCarry)),
+    pitySsr: Math.min(9, toNonNegInt(raw.pitySsr)),
+    pitySr: Math.min(4, toNonNegInt(raw.pitySr)),
+    totalPulls: toNonNegInt(raw.totalPulls),
+    unlocked,
+    history,
+  };
+}
+
 function parseJsonColumn(raw, fallback) {
   if (typeof raw !== 'string' || !raw.length) return fallback;
   try {
@@ -125,6 +178,8 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
   const hasSettings = Object.prototype.hasOwnProperty.call(payload, 'settings') && payload.settings !== undefined;
   const hasStats = Object.prototype.hasOwnProperty.call(payload, 'stats') && payload.stats !== undefined;
   const hasSave = Object.prototype.hasOwnProperty.call(payload, 'save') && payload.save !== undefined;
+  const hasGacha = Object.prototype.hasOwnProperty.call(payload, 'gacha') && payload.gacha !== undefined;
+  const hasGachaDelta = Object.prototype.hasOwnProperty.call(payload, 'gachaDelta') && payload.gachaDelta !== undefined;
 
   if (hasSettings && payload.settings !== null && !isPlainObject(payload.settings)) {
     throw new MergeValidationError('settings must be an object or null');
@@ -134,6 +189,12 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
   }
   if (hasSave && payload.save !== null && !isPlainObject(payload.save)) {
     throw new MergeValidationError('save must be an object or null');
+  }
+  if (hasGacha && payload.gacha !== null && !isPlainObject(payload.gacha)) {
+    throw new MergeValidationError('gacha must be an object or null');
+  }
+  if (hasGachaDelta && payload.gachaDelta !== null && !isPlainObject(payload.gachaDelta)) {
+    throw new MergeValidationError('gachaDelta must be an object or null');
   }
 
   const cloudSettings = existingRow ? sanitizeSettings(parseJsonColumn(existingRow.settings_json, null)) : null;
@@ -145,10 +206,19 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
   const cloudSave = existingRow ? sanitizeSave(parseJsonColumn(existingRow.save_json, null)) : null;
   const cloudSaveUpdatedAt = existingRow ? toTimestamp(Number(existingRow.save_updated_at)) : 0;
 
+  const cloudGacha = existingRow ? sanitizeGacha(parseJsonColumn(existingRow.gacha_json, null)) : null;
+  const cloudGachaUpdatedAt = existingRow ? toTimestamp(Number(existingRow.gacha_updated_at)) : 0;
+
   const existingDeltaIds = existingRow ? parseJsonColumn(existingRow.applied_delta_ids_json, []) : [];
   let appliedDeltaIds = Array.isArray(existingDeltaIds)
     ? existingDeltaIds.filter((id) => typeof id === 'string' && id.length > 0).slice(-MAX_DELTA_IDS)
     : [];
+
+  const deltaId = typeof payload.deltaId === 'string' ? payload.deltaId.trim().slice(0, 128) : '';
+  const hasGuestDelta = isPlainObject(payload.guestDelta);
+  const hasGachaDeltaObj = isPlainObject(payload.gachaDelta);
+  const canApplyDelta = Boolean((hasGuestDelta || hasGachaDeltaObj) && deltaId.length > 0 && !appliedDeltaIds.includes(deltaId));
+  let deltaConsumed = false;
 
   // 1. Settings: higher settingsUpdatedAt wins
   const clientSettingsUpdatedAt = toTimestamp(payload.settingsUpdatedAt);
@@ -173,33 +243,31 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
     nextStats = emptyStats();
     nextStatsUpdatedAt = Math.max(now, clientStatsUpdatedAt || 0);
   } else {
-    const deltaId = typeof payload.deltaId === 'string' ? payload.deltaId.trim().slice(0, 128) : '';
-    const hasGuestDelta = isPlainObject(payload.guestDelta);
-    const canApplyDelta = Boolean(hasGuestDelta && deltaId.length > 0 && !appliedDeltaIds.includes(deltaId));
+    const canApplyGuestDelta = canApplyDelta && hasGuestDelta;
 
     const shouldProduceStats = Boolean(
       isPlainObject(cloudStatsRaw) ||
       (hasStats && payload.stats !== null) ||
-      canApplyDelta
+      canApplyGuestDelta
     );
 
     if (shouldProduceStats) {
       const merged = {};
       const clientStatsObj = isPlainObject(payload.stats) ? payload.stats : {};
       const cloudStatsObj = isPlainObject(cloudStatsRaw) ? cloudStatsRaw : {};
-      const deltaObj = canApplyDelta ? payload.guestDelta : {};
+      const deltaObj = canApplyGuestDelta ? payload.guestDelta : {};
       const clientStatsNewer = clientStatsUpdatedAt > cloudStatsUpdatedAt || !isPlainObject(cloudStatsRaw);
 
       for (const diff of DIFFICULTIES) {
         const cloudDiff = sanitizeDiffStats(cloudStatsObj[diff]);
         const clientDiff = sanitizeDiffStats(clientStatsObj[diff]);
-        const rawDeltaDiff = canApplyDelta && isPlainObject(deltaObj[diff]) ? deltaObj[diff] : null;
+        const rawDeltaDiff = canApplyGuestDelta && isPlainObject(deltaObj[diff]) ? deltaObj[diff] : null;
         const deltaPlayed = rawDeltaDiff ? toNonNegInt(rawDeltaDiff.played) : 0;
         const deltaWon = rawDeltaDiff ? toNonNegInt(rawDeltaDiff.won) : 0;
 
         let played;
         let won;
-        if (canApplyDelta) {
+        if (canApplyGuestDelta) {
           played = Math.max(cloudDiff.played + deltaPlayed, clientDiff.played);
           won = Math.min(played, Math.max(cloudDiff.won + deltaWon, clientDiff.won));
         } else {
@@ -225,11 +293,8 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
         });
         if (hasAnyStat) nextStatsUpdatedAt = 1;
       }
-      if (canApplyDelta) {
-        appliedDeltaIds.push(deltaId);
-        if (appliedDeltaIds.length > MAX_DELTA_IDS) {
-          appliedDeltaIds = appliedDeltaIds.slice(-MAX_DELTA_IDS);
-        }
+      if (canApplyGuestDelta) {
+        deltaConsumed = true;
       }
     }
   }
@@ -248,7 +313,75 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
     }
   }
 
-  const updatedAt = Math.max(now, nextSettingsUpdatedAt, nextStatsUpdatedAt, nextSaveUpdatedAt);
+  // 4. Gacha: always preserve unlocked union, apply guest gachaDelta once via deltaId, and take newer counters
+  const clientGacha = (hasGacha && payload.gacha !== null) ? sanitizeGacha(payload.gacha) : null;
+  const clientGachaUpdatedAt = toTimestamp(payload.gachaUpdatedAt);
+  const canApplyGachaDelta = canApplyDelta && hasGachaDeltaObj;
+
+  let nextGacha = null;
+  let nextGachaUpdatedAt = cloudGachaUpdatedAt;
+  if (cloudGacha !== null || clientGacha !== null || canApplyGachaDelta) {
+    const unlocked = Array.from(new Set([
+      ...(cloudGacha ? cloudGacha.unlocked : []),
+      ...(clientGacha ? clientGacha.unlocked : []),
+    ])).sort().slice(0, MAX_GACHA_UNLOCKED);
+
+    const clientNewer = Boolean(
+      clientGacha !== null &&
+      (cloudGacha === null || clientGachaUpdatedAt > cloudGachaUpdatedAt)
+    );
+    const winner = clientNewer ? clientGacha : (cloudGacha || clientGacha);
+
+    let pulls;
+    let shards;
+    let totalPulls;
+    if (canApplyGachaDelta && (cloudGacha !== null || clientGacha === null)) {
+      const d = payload.gachaDelta;
+      const basePulls = cloudGacha ? cloudGacha.pulls : 0;
+      const baseShards = cloudGacha ? cloudGacha.shards : 0;
+      const baseTotalPulls = cloudGacha ? cloudGacha.totalPulls : 0;
+      const pullsEarned = toNonNegInt(d.pullsEarned);
+      const pullsSpent = toNonNegInt(d.pullsSpent);
+      const shardsEarned = toNonNegInt(d.shardsEarned);
+      const shardsSpent = toNonNegInt(d.shardsSpent);
+      pulls = Math.max(0, basePulls + pullsEarned - pullsSpent);
+      shards = Math.max(0, baseShards + shardsEarned - shardsSpent);
+      totalPulls = Math.max(baseTotalPulls + pullsSpent, clientGacha?.totalPulls || 0);
+    } else {
+      pulls = winner.pulls;
+      shards = winner.shards;
+      totalPulls = Math.max(cloudGacha?.totalPulls || 0, clientGacha?.totalPulls || 0);
+    }
+
+    nextGacha = {
+      v: 1,
+      pulls,
+      shards,
+      pointCarry: winner ? winner.pointCarry : 0,
+      pitySsr: winner ? winner.pitySsr : 0,
+      pitySr: winner ? winner.pitySr : 0,
+      totalPulls,
+      unlocked,
+      history: winner ? winner.history.slice(0, MAX_GACHA_HISTORY) : [],
+    };
+
+    nextGachaUpdatedAt = Math.max(cloudGachaUpdatedAt, clientGachaUpdatedAt);
+    if (nextGachaUpdatedAt === 0) {
+      nextGachaUpdatedAt = 1;
+    }
+    if (canApplyGachaDelta) {
+      deltaConsumed = true;
+    }
+  }
+
+  if (deltaConsumed) {
+    appliedDeltaIds.push(deltaId);
+    if (appliedDeltaIds.length > MAX_DELTA_IDS) {
+      appliedDeltaIds = appliedDeltaIds.slice(-MAX_DELTA_IDS);
+    }
+  }
+
+  const updatedAt = Math.max(now, nextSettingsUpdatedAt, nextStatsUpdatedAt, nextSaveUpdatedAt, nextGachaUpdatedAt);
 
   return {
     row: {
@@ -258,6 +391,8 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
       stats_updated_at: nextStatsUpdatedAt,
       save_json: nextSave !== null ? JSON.stringify(nextSave) : null,
       save_updated_at: nextSaveUpdatedAt,
+      gacha_json: nextGacha !== null ? JSON.stringify(nextGacha) : null,
+      gacha_updated_at: nextGachaUpdatedAt,
       applied_delta_ids_json: JSON.stringify(appliedDeltaIds),
       updated_at: updatedAt,
     },
@@ -268,6 +403,8 @@ function mergeProgress(existingRow, payload, now = Date.now()) {
       statsUpdatedAt: nextStatsUpdatedAt,
       save: nextSave,
       saveUpdatedAt: nextSaveUpdatedAt,
+      gacha: nextGacha,
+      gachaUpdatedAt: nextGachaUpdatedAt,
       updatedAt,
     },
     appliedDeltaIds,
@@ -282,5 +419,6 @@ module.exports = {
   emptyStats,
   sanitizeSettings,
   sanitizeSave,
+  sanitizeGacha,
   isPlainObject,
 };

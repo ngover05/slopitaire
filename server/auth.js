@@ -986,6 +986,8 @@ ${escapeHtml(callbackUrl)}</pre>`,
             result.row.stats_updated_at,
             result.row.save_json,
             result.row.save_updated_at,
+            result.row.gacha_json,
+            result.row.gacha_updated_at,
             result.row.applied_delta_ids_json,
             result.row.updated_at
           );

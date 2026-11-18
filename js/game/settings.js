@@ -47,6 +47,10 @@ function normalizeSettings(raw) {
   if (!VALID_PERF.has(next.perf)) next.perf = 'auto';
   if (typeof Art !== 'undefined' && Art.FRONTS && !Object.prototype.hasOwnProperty.call(Art.FRONTS, next.front)) next.front = 'classic';
   if (typeof Art !== 'undefined' && Art.BACKS && !Object.prototype.hasOwnProperty.call(Art.BACKS, next.back)) next.back = 'sakura';
+  if (typeof Gacha !== 'undefined') {
+    if (!Gacha.isFrontUnlocked(next.front)) next.front = 'classic';
+    if (!Gacha.isBackUnlocked(next.back)) next.back = 'sakura';
+  }
   if (typeof Cast !== 'undefined' && Array.isArray(Cast.keys) && !Cast.keys.includes(next.companion)) next.companion = 'sakura';
   const rawSkins = (next.skins && typeof next.skins === 'object' && !Array.isArray(next.skins)) ? next.skins : {};
   const cleanSkins = {};
@@ -57,12 +61,16 @@ function normalizeSettings(raw) {
       if (!c || c.kind !== 'girl') return;
       const val = rawSkins[k];
       if (typeof val === 'string' && c.skins && Object.prototype.hasOwnProperty.call(c.skins, val)) {
+        if (typeof Gacha !== 'undefined' && !Gacha.isSkinUnlocked(k, val)) return;
         cleanSkins[k] = val;
       }
     });
   } else {
     Object.keys(rawSkins).forEach((k) => {
-      if (typeof rawSkins[k] === 'string' && rawSkins[k]) cleanSkins[k] = rawSkins[k];
+      if (typeof rawSkins[k] === 'string' && rawSkins[k]) {
+        if (typeof Gacha !== 'undefined' && !Gacha.isSkinUnlocked(k, rawSkins[k])) return;
+        cleanSkins[k] = rawSkins[k];
+      }
     });
   }
   next.skins = cleanSkins;
@@ -82,15 +90,23 @@ function skinFor(charKey) {
   if (typeof Cast !== 'undefined' && Cast.CAST) {
     const c = Cast.CAST[k];
     if (!c || c.kind !== 'girl') return 'default';
-    if (c.skins && Object.prototype.hasOwnProperty.call(c.skins, raw)) return raw;
+    if (c.skins && Object.prototype.hasOwnProperty.call(c.skins, raw)) {
+      if (raw !== 'default' && typeof Gacha !== 'undefined' && !Gacha.isSkinUnlocked(k, raw)) return 'default';
+      return raw;
+    }
     return 'default';
   }
+  if (raw !== 'default' && typeof Gacha !== 'undefined' && !Gacha.isSkinUnlocked(k, raw)) return 'default';
   return raw || 'default';
 }
 function setGirlSkin(charKey, skinKey, quiet) {
   if (typeof Cast === 'undefined' || !Cast.CAST || !Object.prototype.hasOwnProperty.call(Cast.CAST, charKey)) return false;
   const c = Cast.CAST[charKey];
   if (!c || c.kind !== 'girl' || !c.skins || !Object.prototype.hasOwnProperty.call(c.skins, skinKey)) return false;
+  if (typeof Gacha !== 'undefined' && !Gacha.isSkinUnlocked(charKey, skinKey)) {
+    if (!quiet && typeof Sound !== 'undefined') Sound.sfx?.invalid?.();
+    return false;
+  }
   const skin = c.skins[skinKey];
   settings.skins = Object.assign({}, settings.skins, { [charKey]: skinKey });
   saveSettings();
@@ -109,12 +125,17 @@ function setAllGirlSkins(skinKey, quiet) {
   let updated = 0;
   Cast.girlKeys.forEach((k) => {
     const c = Cast.CAST[k];
-    if (c && c.skins && Object.prototype.hasOwnProperty.call(c.skins, skinKey)) {
+    if (c && c.skins && Object.prototype.hasOwnProperty.call(c.skins, skinKey)
+        && (typeof Gacha === 'undefined' || Gacha.isSkinUnlocked(k, skinKey))) {
       nextSkins[k] = skinKey;
       updated++;
     }
   });
-  if (!updated) return false;
+  if (!updated) {
+    if (!quiet && typeof Sound !== 'undefined') Sound.sfx?.invalid?.();
+    if (!quiet && typeof toast === 'function') toast('Unlock outfits in Prism Gacha first! 🎰');
+    return false;
+  }
   settings.skins = nextSkins;
   saveSettings();
   applySettings('skins');
@@ -148,6 +169,11 @@ if (!hadRawMeta && (hadSavedSettings || hadSavedStats || hadSavedSave)) {
 const moveMs = () => ({ normal: 220, fast: 120, off: 0 }[settings.anim] ?? 220);
 
 function setSetting(key, v, quiet) {
+  if ((key === 'front' && typeof Gacha !== 'undefined' && !Gacha.isFrontUnlocked(v))
+      || (key === 'back' && typeof Gacha !== 'undefined' && !Gacha.isBackUnlocked(v))) {
+    if (!quiet && typeof Sound !== 'undefined') Sound.sfx?.invalid?.();
+    return;
+  }
   if (!quiet && key === 'muted' && v === true) (Sound.sfx.toggleOff || Sound.sfx.click)?.();
   settings[key] = v;
   saveSettings();
@@ -274,4 +300,23 @@ function applySettings(key) {
     const cs = getComputedStyle(document.body);
     if (meta) meta.content = cs.getPropertyValue('--bg1').trim() || cs.getPropertyValue('--accent2').trim() || '#0a131a';
   }
+}
+
+if (typeof Gacha !== 'undefined') {
+  Gacha.onChange?.(() => {
+    const prevJson = JSON.stringify(settings);
+    const next = normalizeSettings(settings);
+    if (JSON.stringify(next) !== prevJson) {
+      settings = next;
+      saveSettings({ fromRemote: true });
+      try {
+        applySettings();
+        if (typeof DOM !== 'undefined' && DOM.startScreen && !DOM.startScreen.classList.contains('hidden') && typeof buildStartPickers === 'function') {
+          buildStartPickers();
+        }
+      } catch (e) {
+        if (typeof document !== 'undefined' && typeof DOM !== 'undefined') throw e;
+      }
+    }
+  });
 }

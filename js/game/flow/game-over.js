@@ -49,6 +49,7 @@ function win() {
   const d = DIFF[G.difficulty];
   const bonus = Math.max(0, Math.round(1500 - G.elapsed * 3));
   const finalScore = Math.round((G.score + bonus) * d.mult);
+  const gachaReward = (typeof Gacha !== 'undefined' && Gacha.awardWin) ? Gacha.awardWin(finalScore, G.difficulty) : null;
   const st = getStats(), s = st[SK()];
   const prevBest = s.bestScore || 0;
   const recTime = !s.bestTime || G.elapsed < s.bestTime;
@@ -63,12 +64,15 @@ function win() {
   PopupFX?.banner('STAGE CLEARED', 'VICTORY!!', 'gold', true);
   PopupFX?.stamp('UNREAL!', 'cheer', 'gold', true);
   if (recScore) PopupFX?.award('newBest', '👑', 'NEW BEST SCORE!', `${finalScore} PTS RECORD`, 'gold');
+  if (gachaReward && gachaReward.pullsEarned > 0) {
+    PopupFX?.pill('🎰', '+' + gachaReward.pullsEarned + (gachaReward.pullsEarned === 1 ? ' PRISM PULL!' : ' PRISM PULLS!'), finalScore.toLocaleString() + ' PTS → GACHA READY', 'gold', { medal: true });
+  }
   StageBG?.pulse('#ffe169', 1.4);
   const tops = G.variant === 'tripeaks' ? [G.waste[G.waste.length - 1]] : G.found.map((p) => p[p.length - 1]);
   tops.forEach((c, i) => setTimeout(() => c?.el.classList.add('celebrate'), i * 120));
   winModalT = setTimeout(() => {
     if (!G || !G.won) return;
     if (recTime || recScore) Sound.sfx.newRecord?.();
-    showWinModal({ bonus, finalScore, recTime, recScore });
+    showWinModal({ bonus, finalScore, recTime, recScore, gachaReward });
   }, settings.anim === 'off' ? 120 : 1700);
 }

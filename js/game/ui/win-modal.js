@@ -73,6 +73,59 @@ function showWinModal(opts = {}) {
     [`🔥 ${s.streak}`, `Win Streak (${rate}%)`],
   ].map(([b, l], i) => `<div class="win-stat" style="--i:${i}"><b>${b}</b><span>${l}</span></div>`).join('');
 
+  renderWinGacha(opts);
   showOverlay('winModal');
   rollWinScore(finalScore);
+}
+
+function renderWinGacha(opts = {}) {
+  const bar = DOM.winGachaBar;
+  const btn = DOM.btnWinGacha;
+  if (!bar && !btn) return;
+  if (typeof Gacha === 'undefined') {
+    bar?.classList.add('hidden');
+    btn?.classList.add('hidden');
+    return;
+  }
+  const state = Gacha.getState ? Gacha.getState() : null;
+  const reward = opts.gachaReward || null;
+  const pointsPerPull = reward?.pointsPerPull || Gacha.POINTS_PER_PULL || 1500;
+  const pullsEarned = reward ? (Number(reward.pullsEarned) || 0) : 0;
+  const autoExcluded = reward ? !!reward.autoExcluded : (G && G.difficulty === 'auto');
+  const boostedMin = !!(reward && reward.boostedMin);
+  const nextCarry = reward ? Math.max(0, Number(reward.nextCarry) || 0) : Math.max(0, Number(state?.pointCarry) || 0);
+  const totalPullsAvailable = reward ? Math.max(0, Number(reward.totalPullsAvailable) || 0) : Math.max(0, Number(state?.pulls) || 0);
+  const ratio = Math.max(0, Math.min(1, nextCarry / Math.max(1, pointsPerPull)));
+
+  if (bar) {
+    bar.classList.remove('hidden');
+    bar.classList.toggle('is-auto', autoExcluded);
+    bar.classList.toggle('is-earned', pullsEarned > 0);
+    const badgeText = autoExcluded
+      ? '◈ AUTO MODE — MANUAL WINS EARN PULLS'
+      : pullsEarned > 0
+        ? `+${pullsEarned} PRISM ${pullsEarned === 1 ? 'PULL' : 'PULLS'}`
+        : `PRISM GACHA · ${totalPullsAvailable} READY`;
+    const chips = [];
+    if (boostedMin) chips.push('<span class="wgb-chip is-guarantee">STAGE CLEAR GUARANTEE</span>');
+    if (totalPullsAvailable > 0 && !autoExcluded) chips.push(`<span class="wgb-chip is-total">${totalPullsAvailable} TOTAL 🎫</span>`);
+    bar.innerHTML =
+      `<div class="wgb-top">` +
+        `<span class="wgb-badge">${badgeText}</span>` +
+        `<span class="wgb-chips">${chips.join('')}</span>` +
+      `</div>` +
+      `<div class="wgb-meter">` +
+        `<div class="wgb-track"><div class="wgb-fill" style="transform:scaleX(${ratio.toFixed(4)})"></div></div>` +
+        `<div class="wgb-sub">${nextCarry.toLocaleString()} / ${pointsPerPull.toLocaleString()} PTS TO NEXT PULL</div>` +
+      `</div>`;
+  }
+
+  if (btn) {
+    if (totalPullsAvailable > 0) {
+      btn.textContent = `🎰 Pull Skins (${totalPullsAvailable})`;
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
 }

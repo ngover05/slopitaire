@@ -115,6 +115,7 @@ body[data-theme="matcha"] .panel h3 { color: var(--accent); }
   transition: background .15s, color .15s, box-shadow .15s;
 }
 .seg button:hover:not(.on) { background: color-mix(in srgb, var(--beam-a) 16%, transparent); }
+.seg button.is-locked { opacity: .68; }
 .seg button.on {
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 74%, var(--beam-b)));
   color: var(--accent-ink);
@@ -148,12 +149,46 @@ input[type="range"] { accent-color: var(--accent); width: 150px; cursor: pointer
   display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 7px; width: 100%;
 }
 .deck-opt {
+  position: relative;
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   min-width: 0; padding: 6px 4px; border-radius: 11px;
   border: 1.5px solid var(--hud-border);
   background: var(--chip);
   color: inherit; cursor: pointer;
   transition: transform .15s, border-color .15s, box-shadow .15s, background .15s;
+}
+.deck-opt.is-locked {
+  border-style: dashed;
+}
+.deck-opt.is-locked .deck-card {
+  opacity: .56;
+}
+.deck-lock-pill {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 1.5px 5px;
+  border-radius: 999px;
+  font: 800 9px/1.1 'Orbitron', 'Chakra Petch', sans-serif;
+  background: rgba(10, 19, 26, .84);
+  color: #ffe169;
+  border: 1px solid rgba(255, 209, 102, .55);
+  pointer-events: none;
+}
+body[data-theme="sakura"] .deck-lock-pill,
+body[data-theme="ramune"] .deck-lock-pill,
+body[data-theme="matcha"] .deck-lock-pill {
+  background: rgba(255, 255, 255, .92);
+  color: #8a4b00;
+  border-color: rgba(217, 119, 6, .55);
+}
+.settings-gacha-btn {
+  padding: 5px 11px;
+  font-size: 12.5px;
+}
+.settings-gacha-btn.has-pulls {
+  border-color: #ffb638;
+  background: linear-gradient(135deg, rgba(255, 225, 105, .24), color-mix(in srgb, var(--accent) 16%, var(--panel)));
 }
 .deck-opt:hover:not(.on) {
   transform: translateY(-2px); border-color: var(--beam-a);

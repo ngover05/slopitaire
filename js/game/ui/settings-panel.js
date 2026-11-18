@@ -116,23 +116,9 @@ function buildSettings() {
         body.appendChild(row);
         continue;
       } else if (it.type === 'fronts') {
-        ctl.appendChild(makeDeckPicker('front', Art.FRONTS, settings.front, 'fronts', 'front-opt', (k, F) => {
-          const sw = document.createElement('span');
-          sw.className = 'deck-card front-swatch';
-          sw.style.setProperty('--card-front-bg', F.bg);
-          sw.style.setProperty('--card-front-border', F.border);
-          sw.style.setProperty('--card-rk-font', F.font);
-          sw.style.setProperty('--card-rk-weight', F.weight || '400');
-          sw.innerHTML = Art.frontPreviewSVG(k);
-          return sw;
-        }));
+        ctl.appendChild(buildDeckGrid('front'));
       } else if (it.type === 'backs') {
-        ctl.appendChild(makeDeckPicker('back', Art.BACKS, settings.back, 'backs', 'back-opt', (k) => {
-          const sw = document.createElement('span');
-          sw.className = 'deck-card back-swatch';
-          sw.style.setProperty('--img', Art.backDataURI(k));
-          return sw;
-        }));
+        ctl.appendChild(buildDeckGrid('back'));
       }
       row.appendChild(ctl); body.appendChild(row);
     }
@@ -196,10 +182,26 @@ function renderSettingsOutfitRow(row) {
   ctl.innerHTML = '';
   ctl.classList.add('skin-row-ctl');
   if (isGirl) {
-    const opts = (c.skinKeys && c.skinKeys.length ? c.skinKeys : ['default']).map((sk) => [sk, c.skins?.[sk]?.name || sk]);
+    const keys = (c.skinKeys && c.skinKeys.length) ? c.skinKeys : ['default'];
+    const opts = keys.map((sk) => {
+      const locked = typeof Gacha !== 'undefined' && Gacha.isSkinUnlocked && !Gacha.isSkinUnlocked(c.key, sk);
+      return [sk, `${locked ? '🔒 ' : ''}${c.skins?.[sk]?.name || sk}`];
+    });
     const segEl = makeSeg(opts, () => skinFor(c.key), (sk) => {
       Sound.ensure();
+      const locked = typeof Gacha !== 'undefined' && Gacha.isSkinUnlocked && !Gacha.isSkinUnlocked(c.key, sk);
+      if (locked) {
+        Sound.sfx.click?.();
+        toast('Locked — pull or craft in Prism Gacha! 🎰');
+        window.openGachaModal?.('banner');
+        return;
+      }
       setGirlSkin(c.key, sk);
+    });
+    [...segEl.children].forEach((b, idx) => {
+      const sk = keys[idx];
+      const locked = typeof Gacha !== 'undefined' && Gacha.isSkinUnlocked && !Gacha.isSkinUnlocked(c.key, sk);
+      b.classList.toggle('is-locked', !!locked);
     });
     segEl.dataset.setting = 'skins';
     ctl.appendChild(segEl);
@@ -218,12 +220,40 @@ function renderSettingsOutfitRow(row) {
     Sound.ensure();
     openSkinsModal(settings.companion);
   };
-  ctl.appendChild(allBtn);
+  const gachaBtn = document.createElement('button');
+  gachaBtn.type = 'button';
+  gachaBtn.className = 'btn settings-gacha-btn';
+  gachaBtn.id = 'btnSettingsGacha';
+  const pulls = (typeof Gacha !== 'undefined' && Gacha.getState) ? (Gacha.getState().pulls || 0) : 0;
+  gachaBtn.classList.toggle('has-pulls', pulls > 0);
+  gachaBtn.textContent = pulls > 0 ? `🎰 Gacha (${pulls}🎫)` : '🎰 Gacha';
+  gachaBtn.onclick = () => {
+    Sound.ensure();
+    Sound.sfx.click?.();
+    window.openGachaModal?.('banner');
+  };
+  ctl.append(allBtn, gachaBtn);
 }
 
 function refreshSettingsOutfit() {
   renderSettingsOutfitRow($('#settingsBody .row[data-setting="skins"]'));
 }
+
+function refreshSettingsDecks() {
+  const frontRow = $('#settingsBody .row[data-setting="front"] .row-c');
+  if (frontRow) {
+    frontRow.innerHTML = '';
+    frontRow.appendChild(buildDeckGrid('front'));
+  }
+  const backRow = $('#settingsBody .row[data-setting="back"] .row-c');
+  if (backRow) {
+    backRow.innerHTML = '';
+    backRow.appendChild(buildDeckGrid('back'));
+  }
+}
+
+window.refreshSettingsOutfit = refreshSettingsOutfit;
+window.refreshSettingsDecks = refreshSettingsDecks;
 
 function refreshSettingsCast() {
   const existing = $('#settingsBody .settings-cast');
@@ -263,30 +293,105 @@ function makeCastPicker() {
   return wrap;
 }
 
+function isDeckUnlocked(kind, key) {
+  if (typeof Gacha === 'undefined') return true;
+  if (kind === 'front') return Gacha.isFrontUnlocked ? Gacha.isFrontUnlocked(key) : true;
+  return Gacha.isBackUnlocked ? Gacha.isBackUnlocked(key) : true;
+}
+
+function buildDeckGrid(kind) {
+  if (kind === 'front') {
+    return makeDeckPicker('front', Art.FRONTS, settings.front, 'fronts', 'front-opt', (k, F) => {
+      const sw = document.createElement('span');
+      sw.className = 'deck-card front-swatch';
+      sw.style.setProperty('--card-front-bg', F.bg);
+      sw.style.setProperty('--card-front-border', F.border);
+      sw.style.setProperty('--card-rk-font', F.font);
+      sw.style.setProperty('--card-rk-weight', F.weight || '400');
+      sw.innerHTML = Art.frontPreviewSVG(k);
+      return sw;
+    });
+  }
+  return makeDeckPicker('back', Art.BACKS, settings.back, 'backs', 'back-opt', (k) => {
+    const sw = document.createElement('span');
+    sw.className = 'deck-card back-swatch';
+    sw.style.setProperty('--img', Art.backDataURI(k));
+    return sw;
+  });
+}
+
 function makeDeckPicker(kind, map, currentKey, gridClass, optClass, buildThumb) {
   const wrap = document.createElement('div');
   wrap.className = `deck-grid ${gridClass}`;
   Object.keys(map).forEach((k) => {
     const item = map[k];
+    const unlocked = isDeckUnlocked(kind, k);
+    const gId = `${kind}:${k}`;
+    const gItem = (typeof Gacha !== 'undefined' && Gacha.getItem) ? Gacha.getItem(gId) : null;
+    const craftCost = gItem?.craftCost ?? (kind === 'front' ? 100 : 45);
+    const active = unlocked && currentKey === k;
+
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = `deck-opt ${optClass}` + (currentKey === k ? ' on' : '');
+    b.className = `deck-opt ${optClass}` + (active ? ' on' : '') + (unlocked ? '' : ' is-locked');
     b.dataset.deck = k;
-    b.title = item.name;
-    b.setAttribute('aria-label', `Card ${kind}: ${item.name}`);
-    b.setAttribute('aria-pressed', String(currentKey === k));
+    b.title = unlocked ? item.name : `${item.name} (Locked — ${craftCost}✧)`;
+    b.setAttribute('aria-label', unlocked ? `Card ${kind}: ${item.name}` : `Card ${kind}: ${item.name} (Locked, ${craftCost} Shards)`);
+    b.setAttribute('aria-pressed', String(active));
     const thumb = buildThumb(k, item);
     const lbl = document.createElement('span');
     lbl.className = 'deck-lbl';
     lbl.textContent = item.name;
     b.append(thumb, lbl);
-    b.onclick = () => {
-      setSetting(kind, k);
-      wrap.querySelectorAll('.deck-opt').forEach((x) => {
-        const active = x === b;
-        x.classList.toggle('on', active);
-        x.setAttribute('aria-pressed', String(active));
-      });
+    if (!unlocked) {
+      const lockPill = document.createElement('span');
+      lockPill.className = 'deck-lock-pill';
+      lockPill.textContent = `🔒 ${craftCost}✧`;
+      b.appendChild(lockPill);
+    }
+    b.onclick = async () => {
+      if (isDeckUnlocked(kind, k)) {
+        setSetting(kind, k);
+        wrap.querySelectorAll('.deck-opt').forEach((x) => {
+          const isAct = x === b;
+          x.classList.toggle('on', isAct);
+          x.setAttribute('aria-pressed', String(isAct));
+        });
+        return;
+      }
+      Sound.ensure();
+      Sound.sfx.click?.();
+      const state = (typeof Gacha !== 'undefined' && Gacha.getState) ? Gacha.getState() : { shards: 0 };
+      const shards = Math.max(0, Number(state.shards) || 0);
+      if (typeof Gacha !== 'undefined' && Gacha.craft && shards >= craftCost) {
+        const choice = await ask(
+          `Unlock <b>${esc(item.name)}</b> for <b>${craftCost} ✧</b>?<br><small style="opacity:.78">You have ${shards.toLocaleString()} ✧</small>`,
+          [
+            { label: `✧ Craft & Equip (${craftCost}✧)`, value: 'craft', primary: true },
+            { label: '🎰 Open Gacha', value: 'gacha' },
+            { label: 'Cancel', value: null },
+          ]
+        );
+        if (choice === 'craft') {
+          const res = Gacha.craft(gId);
+          if (res && res.ok) {
+            Sound.sfx.newRecord?.();
+            setSetting(kind, k);
+            refreshSettingsDecks();
+          } else if (res && res.reason === 'owned') {
+            setSetting(kind, k);
+            refreshSettingsDecks();
+          } else {
+            Sound.sfx.invalid?.();
+            toast('Not enough shards! ✧');
+          }
+        } else if (choice === 'gacha') {
+          window.openGachaModal?.('banner');
+        }
+      } else {
+        toast(`Locked (${shards}/${craftCost} ✧) — pull in Prism Gacha! 🎰`);
+        window.openGachaModal?.('banner');
+      }
     };
     wrap.appendChild(b);
   });

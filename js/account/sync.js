@@ -15,7 +15,16 @@ async function syncNow(opts = {}) {
     const startSeq = changeSeq;
     const snap = getSnapshot();
     const meta = Object.assign(
-      { settingsUpdatedAt: 0, statsUpdatedAt: 0, saveUpdatedAt: 0, guestDelta: null, deltaId: null, pendingResetStats: false },
+      {
+        settingsUpdatedAt: 0,
+        statsUpdatedAt: 0,
+        saveUpdatedAt: 0,
+        gachaUpdatedAt: 0,
+        guestDelta: null,
+        guestGachaDelta: null,
+        deltaId: null,
+        pendingResetStats: false,
+      },
       snap.meta || {}
     );
     const sentDeltaId = meta.deltaId || null;
@@ -31,6 +40,9 @@ async function syncNow(opts = {}) {
       resetStats: sentResetStats,
       save: snap.save !== undefined ? snap.save : null,
       saveUpdatedAt: Number(meta.saveUpdatedAt) || 0,
+      gacha: snap.gacha ?? null,
+      gachaUpdatedAt: Number(meta.gachaUpdatedAt) || 0,
+      gachaDelta: meta.guestGachaDelta || null,
     };
     const bodyStr = JSON.stringify(payloadObj);
 
@@ -74,6 +86,7 @@ async function syncNow(opts = {}) {
       let metaChanged = false;
       if (sentDeltaId && latestMeta.deltaId === sentDeltaId) {
         latestMeta.guestDelta = null;
+        latestMeta.guestGachaDelta = null;
         latestMeta.deltaId = null;
         metaChanged = true;
       }
@@ -137,7 +150,7 @@ function flushKeepalive() {
   }
   if (!isSignedIn()) return;
   const meta = readMetaSafe();
-  if (!syncDirty && !meta.guestDelta && !meta.pendingResetStats) return;
+  if (!syncDirty && !meta.guestDelta && !meta.guestGachaDelta && !meta.pendingResetStats) return;
   syncNow({ keepalive: true, silent: true });
 }
 

@@ -41,11 +41,12 @@ async function apiFetch(path, opts = {}) {
 
 function hasUnsyncedLocalData(snap, serverProgress) {
   const meta = snap.meta || {};
-  if (meta.guestDelta || meta.pendingResetStats) return true;
+  if (meta.guestDelta || meta.guestGachaDelta || meta.pendingResetStats) return true;
   const sp = serverProgress || {};
   if ((Number(meta.settingsUpdatedAt) || 0) > (Number(sp.settingsUpdatedAt) || 0)) return true;
   if ((Number(meta.statsUpdatedAt) || 0) > (Number(sp.statsUpdatedAt) || 0)) return true;
   if ((Number(meta.saveUpdatedAt) || 0) > (Number(sp.saveUpdatedAt) || 0)) return true;
+  if ((Number(meta.gachaUpdatedAt) || 0) > (Number(sp.gachaUpdatedAt) || 0)) return true;
 
   // Pre-account local stats without timestamps yet
   if (!sp.statsUpdatedAt && snap.stats && typeof snap.stats === 'object') {
@@ -54,6 +55,11 @@ function hasUnsyncedLocalData(snap, serverProgress) {
     }
   }
   if (!sp.saveUpdatedAt && snap.save) return true;
+  if (!sp.gachaUpdatedAt && snap.gacha && (
+    (snap.gacha.pulls || 0) > 0
+    || (snap.gacha.totalPulls || 0) > 0
+    || (snap.gacha.unlocked?.length || 0) > 0
+  )) return true;
   return false;
 }
 

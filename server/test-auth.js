@@ -6,6 +6,9 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
+const { openDb } = require('./db');
+const { mergeProgress } = require('./merge');
 const { startServer, loadDotEnv } = require('./index');
 
 function createMockGoogleOidc() {
@@ -651,6 +654,165 @@ async function runTests() {
     }
     assert.ok(resetJson.progress.statsUpdatedAt >= 6000);
 
+    // 11b. Prism Gacha initial sync, unlocked union, guest gachaDelta idempotency & validation
+    const gachaInitRes = await fetch(`${server1.baseUrl}/api/progress/sync`, {
+      method: 'POST',
+      headers: {
+        Authorization: bearerHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        gacha: {
+          v: 1,
+          pulls: 2,
+          shards: 55,
+          pointCarry: 700,
+          pitySsr: 4,
+          pitySr: 1,
+          totalPulls: 4,
+          unlocked: ['skin:sakura:casual', 'back:hearts', 'back:hearts', 'invalid:id'],
+          history: [
+            { id: 'skin:sakura:casual', rarity: 'ssr', isNew: true, shardsGained: 0, crafted: false, at: 7000 },
+          ],
+        },
+        gachaUpdatedAt: 7000,
+      }),
+    });
+    assert.equal(gachaInitRes.status, 200);
+    const gachaInitJson = await gachaInitRes.json();
+    assert.deepEqual(gachaInitJson.progress.gacha.unlocked, ['back:hearts', 'skin:sakura:casual']);
+    assert.equal(gachaInitJson.progress.gacha.pulls, 2);
+    assert.equal(gachaInitJson.progress.gacha.shards, 55);
+    assert.equal(gachaInitJson.progress.gacha.pointCarry, 700);
+    assert.equal(gachaInitJson.progress.gacha.pitySsr, 4);
+    assert.equal(gachaInitJson.progress.gacha.pitySr, 1);
+    assert.equal(gachaInitJson.progress.gacha.totalPulls, 4);
+    assert.equal(gachaInitJson.progress.gachaUpdatedAt, 7000);
+
+    // Cross-device unlocked union even when second device has an older gachaUpdatedAt
+    const gachaOlderDeviceRes = await fetch(`${server1.baseUrl}/api/progress/sync`, {
+      method: 'POST',
+      headers: {
+        Authorization: bearerHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        gacha: {
+          v: 1,
+          pulls: 1,
+          shards: 10,
+          pointCarry: 200,
+          pitySsr: 1,
+          pitySr: 0,
+          totalPulls: 8,
+          unlocked: ['front:cyber', 'back:stars'],
+          history: [],
+        },
+        gachaUpdatedAt: 6500,
+      }),
+    });
+    assert.equal(gachaOlderDeviceRes.status, 200);
+    const gachaOlderDeviceJson = await gachaOlderDeviceRes.json();
+    assert.deepEqual(
+      gachaOlderDeviceJson.progress.gacha.unlocked,
+      ['back:hearts', 'back:stars', 'front:cyber', 'skin:sakura:casual']
+    );
+    assert.equal(gachaOlderDeviceJson.progress.gacha.pulls, 2);
+    assert.equal(gachaOlderDeviceJson.progress.gacha.shards, 55);
+    assert.equal(gachaOlderDeviceJson.progress.gacha.pointCarry, 700);
+    assert.equal(gachaOlderDeviceJson.progress.gacha.pitySsr, 4);
+    assert.equal(gachaOlderDeviceJson.progress.gacha.pitySr, 1);
+    assert.equal(gachaOlderDeviceJson.progress.gacha.totalPulls, 8);
+    assert.equal(gachaOlderDeviceJson.progress.gachaUpdatedAt, 7000);
+
+    // Guest gachaDelta + guestDelta share single-use deltaId idempotency across retries
+    const gachaDeltaPayload = {
+      gacha: {
+        v: 1,
+        pulls: 1,
+        shards: 25,
+        pointCarry: 300,
+        pitySsr: 2,
+        pitySr: 2,
+        totalPulls: 2,
+        unlocked: ['back:neko'],
+        history: [
+          { id: 'back:neko', rarity: 'r', isNew: true, shardsGained: 0, crafted: false, at: 8000 },
+        ],
+      },
+      gachaUpdatedAt: 8000,
+      gachaDelta: {
+        pullsEarned: 3,
+        pullsSpent: 2,
+        shardsEarned: 40,
+        shardsSpent: 15,
+      },
+      guestDelta: {
+        medium: { played: 2, won: 1 },
+      },
+      deltaId: 'gacha-delta-idempotent-1',
+    };
+
+    const gachaDeltaRes = await fetch(`${server1.baseUrl}/api/progress/sync`, {
+      method: 'POST',
+      headers: {
+        Authorization: bearerHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gachaDeltaPayload),
+    });
+    assert.equal(gachaDeltaRes.status, 200);
+    const gachaDeltaJson = await gachaDeltaRes.json();
+    assert.equal(gachaDeltaJson.progress.gacha.pulls, 3); // 2 + 3 - 2
+    assert.equal(gachaDeltaJson.progress.gacha.shards, 80); // 55 + 40 - 15
+    assert.equal(gachaDeltaJson.progress.gacha.totalPulls, 10); // 8 + 2
+    assert.equal(gachaDeltaJson.progress.gacha.pointCarry, 300);
+    assert.equal(gachaDeltaJson.progress.gacha.pitySsr, 2);
+    assert.equal(gachaDeltaJson.progress.gacha.pitySr, 2);
+    assert.equal(gachaDeltaJson.progress.gacha.history[0].id, 'back:neko');
+    assert.deepEqual(
+      gachaDeltaJson.progress.gacha.unlocked,
+      ['back:hearts', 'back:neko', 'back:stars', 'front:cyber', 'skin:sakura:casual']
+    );
+    assert.equal(gachaDeltaJson.progress.stats.medium.played, 2);
+    assert.equal(gachaDeltaJson.progress.stats.medium.won, 1);
+    assert.equal(gachaDeltaJson.progress.gachaUpdatedAt, 8000);
+
+    // Retry with same deltaId must not re-apply gachaDelta or guestDelta
+    const gachaDeltaRetryRes = await fetch(`${server1.baseUrl}/api/progress/sync`, {
+      method: 'POST',
+      headers: {
+        Authorization: bearerHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gachaDeltaPayload),
+    });
+    assert.equal(gachaDeltaRetryRes.status, 200);
+    const gachaDeltaRetryJson = await gachaDeltaRetryRes.json();
+    assert.equal(gachaDeltaRetryJson.progress.gacha.pulls, 3);
+    assert.equal(gachaDeltaRetryJson.progress.gacha.shards, 80);
+    assert.equal(gachaDeltaRetryJson.progress.gacha.totalPulls, 10);
+    assert.equal(gachaDeltaRetryJson.progress.stats.medium.played, 2);
+    assert.equal(gachaDeltaRetryJson.progress.stats.medium.won, 1);
+
+    // 400 validation errors on invalid gacha / gachaDelta shapes
+    for (const badBody of [
+      { gacha: ['skin:sakura:casual'] },
+      { gacha: 'not-an-object' },
+      { gachaDelta: ['bad'] },
+      { gachaDelta: 'not-an-object' },
+    ]) {
+      const badRes = await fetch(`${server1.baseUrl}/api/progress/sync`, {
+        method: 'POST',
+        headers: {
+          Authorization: bearerHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(badBody),
+      });
+      assert.equal(badRes.status, 400);
+    }
+
     // 12. SQLite Persistence Across DB Reload
     await server1.close();
     server1 = null;
@@ -673,6 +835,14 @@ async function runTests() {
     assert.equal(reloadProgressJson.progress.settings.companion, 'kira');
     assert.equal(reloadProgressJson.progress.save, null);
     assert.equal(reloadProgressJson.progress.stats.easy.played, 0);
+    assert.equal(reloadProgressJson.progress.gacha.pulls, 3);
+    assert.equal(reloadProgressJson.progress.gacha.shards, 80);
+    assert.equal(reloadProgressJson.progress.gacha.totalPulls, 10);
+    assert.equal(reloadProgressJson.progress.gachaUpdatedAt, 8000);
+    assert.deepEqual(
+      reloadProgressJson.progress.gacha.unlocked,
+      ['back:hearts', 'back:neko', 'back:stars', 'front:cyber', 'skin:sakura:casual']
+    );
 
     // 13. Logout invalidates both web cookie & desktop bearer sessions
     const webLogoutRes = await fetch(`${server2.baseUrl}/api/auth/logout`, {
@@ -691,6 +861,89 @@ async function runTests() {
     });
     assert.equal(bearerLogoutRes.status, 200);
     assert.equal((await fetch(`${server2.baseUrl}/api/progress`, { headers: { Authorization: bearerHeader } })).status, 401);
+
+    // 14. Pre-existing SQLite DB migration (PRAGMA table_info adds gacha_json & gacha_updated_at)
+    {
+      const legacyDbPath = path.join(tmpDir, 'legacy-pre-gacha.db');
+      const legacyRaw = new DatabaseSync(legacyDbPath);
+      legacyRaw.exec(`
+        CREATE TABLE users (
+          id TEXT PRIMARY KEY,
+          google_sub TEXT UNIQUE NOT NULL,
+          email TEXT NOT NULL,
+          name TEXT NOT NULL,
+          picture TEXT,
+          created_at INTEGER NOT NULL,
+          last_login_at INTEGER NOT NULL
+        );
+        CREATE TABLE user_progress (
+          user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          settings_json TEXT,
+          settings_updated_at INTEGER NOT NULL DEFAULT 0,
+          stats_json TEXT,
+          stats_updated_at INTEGER NOT NULL DEFAULT 0,
+          save_json TEXT,
+          save_updated_at INTEGER NOT NULL DEFAULT 0,
+          applied_delta_ids_json TEXT NOT NULL DEFAULT '[]',
+          updated_at INTEGER NOT NULL
+        );
+      `);
+      legacyRaw.prepare(`
+        INSERT INTO users (id, google_sub, email, name, picture, created_at, last_login_at)
+        VALUES ('legacy-u1', 'legacy-sub-1', 'legacy@slopitaire.test', 'Legacy', NULL, 100, 100)
+      `).run();
+      legacyRaw.prepare(`
+        INSERT INTO user_progress (user_id, settings_json, settings_updated_at, updated_at)
+        VALUES ('legacy-u1', '{"theme":"prism"}', 500, 500)
+      `).run();
+      legacyRaw.close();
+
+      const migratedStore = openDb(legacyDbPath);
+      try {
+        const cols = new Set(
+          migratedStore.db.prepare('PRAGMA table_info(user_progress)').all().map((c) => c.name)
+        );
+        assert.ok(cols.has('gacha_json'), 'Expected migrated gacha_json column');
+        assert.ok(cols.has('gacha_updated_at'), 'Expected migrated gacha_updated_at column');
+
+        const preSync = migratedStore.getProgressForUser('legacy-u1');
+        assert.equal(preSync.settings.theme, 'prism');
+        assert.equal(preSync.gacha, null);
+        assert.equal(preSync.gachaUpdatedAt, 0);
+
+        const existingRow = migratedStore.stmts.getProgress.get('legacy-u1');
+        const merged = mergeProgress(existingRow, {
+          gacha: { v: 1, pulls: 4, shards: 30, pointCarry: 100, pitySsr: 1, pitySr: 1, totalPulls: 2, unlocked: ['front:yuki'], history: [] },
+          gachaUpdatedAt: 9000,
+        }, 9000);
+        migratedStore.stmts.upsertProgress.run(
+          'legacy-u1',
+          merged.row.settings_json,
+          merged.row.settings_updated_at,
+          merged.row.stats_json,
+          merged.row.stats_updated_at,
+          merged.row.save_json,
+          merged.row.save_updated_at,
+          merged.row.gacha_json,
+          merged.row.gacha_updated_at,
+          merged.row.applied_delta_ids_json,
+          merged.row.updated_at
+        );
+      } finally {
+        migratedStore.close();
+      }
+
+      const reopenedStore = openDb(legacyDbPath);
+      try {
+        const afterReload = reopenedStore.getProgressForUser('legacy-u1');
+        assert.equal(afterReload.settings.theme, 'prism');
+        assert.equal(afterReload.gacha.pulls, 4);
+        assert.deepEqual(afterReload.gacha.unlocked, ['front:yuki']);
+        assert.equal(afterReload.gachaUpdatedAt, 9000);
+      } finally {
+        reopenedStore.close();
+      }
+    }
 
     console.log('ALL AUTH & SYNC TESTS PASSED');
   } finally {

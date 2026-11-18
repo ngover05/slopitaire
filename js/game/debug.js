@@ -14,6 +14,8 @@ function installDebugHook() {
       Companion, cutIn, scheduleCheck, detectTouchZone, handleCompanionTouch, FX,
       StageBG, PopupFX, tierOf, syncComboHud, breakChain,
       toggleAutoPause, runAutoTick, solverState,
+      Gacha: typeof Gacha !== 'undefined' ? Gacha : window.Gacha,
+      openGachaModal: (...a) => window.openGachaModal?.(...a),
       Account: window.Account, Store,
     };
   }

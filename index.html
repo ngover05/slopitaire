@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="css/screens/start-screen.css">
   <link rel="stylesheet" href="css/screens/results.css">
   <link rel="stylesheet" href="css/screens/skins.css">
+  <link rel="stylesheet" href="css/screens/gacha.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/screens/account.css">
   <link rel="stylesheet" href="css/perf-lite.css">
@@ -66,6 +67,7 @@
       <button id="btnSound" class="btn" title="Mute / unmute (M)"><span class="ic" id="soundIc">♪</span></button>
       <div id="spotifyBar" class="spotify-bar"></div>
       <button id="btnAccount" class="btn btn-account" title="Google Account &amp; Cloud Sync"><span class="ic acct-ic" id="accountIc"></span><span class="lbl" id="accountLbl">Sign in</span></button>
+      <button id="btnGacha" class="btn btn-gacha" title="Prism Gacha (G)"><span class="ic">🎰</span><span class="lbl">Gacha</span><span class="badge gacha-badge hidden" id="gachaBadge"></span></button>
       <button id="btnSkins" class="btn" title="Companion skins (O)"><span class="ic">🎀</span><span class="lbl">Skins</span></button>
       <button id="btnSettings" class="btn" title="Settings"><span class="ic">⚙</span><span class="lbl">Settings</span></button>
     </nav>
@@ -99,7 +101,10 @@
       <div class="start-cast">
         <div class="start-cast-head">
           <span class="start-cast-label">Choose your partner ♡</span>
-          <button type="button" class="skins-open-chip" id="btnStartSkins">🎀 Outfits &amp; Skins</button>
+          <div class="start-cast-chips">
+            <button type="button" class="skins-open-chip gacha-open-chip" id="btnStartGacha">🎰 Prism Gacha <span class="gacha-chip-count hidden" id="startGachaCount"></span></button>
+            <button type="button" class="skins-open-chip" id="btnStartSkins">🎀 Outfits &amp; Skins</button>
+          </div>
         </div>
         <div class="cast-pick" id="castPick"></div>
       </div>
@@ -113,7 +118,7 @@
         <button class="btn big hidden" id="btnContinue">Continue ▶</button>
       </div>
       <button class="linkish" id="btnStartSettings">⚙ Settings &amp; stats</button>
-      <div class="kbd-help">Keys: N new · H hint · Ctrl+Z undo · Space draw · M mute</div>
+      <div class="kbd-help">Keys: N new · H hint · Ctrl+Z undo · Space draw · G gacha · O skins · M mute</div>
     </div>
   </div>
 
@@ -141,6 +146,7 @@
           <p class="skins-sub">Customize each heroine's outfit across the table, cut-ins, portraits &amp; results.</p>
         </div>
         <div class="skins-bulk" id="skinsBulk">
+          <button type="button" class="btn skins-bulk-btn skins-gacha-btn" id="btnSkinsGacha">🎰 Prism Gacha</button>
           <button type="button" class="btn skins-bulk-btn" id="btnSkinsAllCasual">✨ All Casual</button>
           <button type="button" class="btn skins-bulk-btn" id="btnSkinsAllDefault">◈ All Default</button>
         </div>
@@ -170,6 +176,80 @@
     </div>
   </div>
 
+  <!-- Prism Gacha -->
+  <div id="gachaModal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gachaTitle">
+    <div class="panel gacha-panel">
+      <button class="close-x" data-close="gachaModal" aria-label="Close">✕</button>
+      <div class="gacha-header">
+        <div class="gacha-title-wrap">
+          <h2 id="gachaTitle">Prism Gacha 🎰</h2>
+          <p class="gacha-sub">Win deals to earn pulls · Unlock SSR outfits, SR card fronts &amp; R card backs.</p>
+        </div>
+        <div class="gacha-wallet">
+          <div class="gacha-chip gacha-chip-pulls" id="gachaPullsChip" title="Available Prism Pulls">
+            <span class="gc-ic">🎫</span>
+            <span class="gc-lbl">Pulls</span>
+            <b id="gachaPullsVal">0</b>
+          </div>
+          <div class="gacha-chip gacha-chip-shards" id="gachaShardsChip" title="Prism Shards from duplicates">
+            <span class="gc-ic">✧</span>
+            <span class="gc-lbl">Shards</span>
+            <b id="gachaShardsVal">0</b>
+          </div>
+          <div class="gacha-chip gacha-chip-coll" title="Collection progress">
+            <span class="gc-lbl">Owned</span>
+            <b id="gachaCollectionCount">0 / 28</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="gacha-telemetry">
+        <div class="gacha-carry">
+          <div class="gacha-carry-top">
+            <span id="gachaCarryLabel">Next pull: 0 / 1,500 pts</span>
+          </div>
+          <div class="gacha-carry-track"><div class="gacha-carry-fill" id="gachaCarryFill"></div></div>
+        </div>
+        <div class="gacha-pity-pill" id="gachaPityPill">SR+ in 5 · SSR in 10</div>
+      </div>
+
+      <div class="gacha-tabs" role="tablist" aria-label="Gacha sections">
+        <button type="button" class="gacha-tab on" id="btnGachaTabBanner" data-tab="banner" role="tab" aria-selected="true">✦ Warp Banner</button>
+        <button type="button" class="gacha-tab" id="btnGachaTabExchange" data-tab="exchange" role="tab" aria-selected="false">💎 Shard Exchange</button>
+      </div>
+
+      <section id="gachaBannerPanel" class="gacha-section" role="tabpanel" aria-labelledby="btnGachaTabBanner">
+        <div class="gacha-featured" id="gachaFeatured"></div>
+        <div class="gacha-rates-bar">
+          <span class="gr-rates">SSR 10% · SR 30% · R 60% · 5-pull SR+ · 10-pull SSR</span>
+        </div>
+        <div class="gacha-pull-bar">
+          <button type="button" class="btn primary gacha-pull-btn" id="btnGachaPull1">🎫 Pull ×1</button>
+          <button type="button" class="btn gacha-pull-btn gacha-pull-multi" id="btnGachaPullMulti">🌟 Pull ×10</button>
+          <button type="button" class="btn gacha-skip-btn hidden" id="btnGachaSkip">Skip ⏭</button>
+        </div>
+        <div class="gacha-stage" id="gachaStage" data-phase="idle">
+          <div class="gacha-beam" aria-hidden="true"></div>
+          <div class="gacha-stage-empty" id="gachaStageEmpty">
+            <span class="gse-icon">✦</span>
+            <p class="gse-text">Ready to warp — use a Pull above or win manual deals to earn more!</p>
+          </div>
+          <div class="gacha-results-grid hidden" id="gachaResultsGrid"></div>
+        </div>
+      </section>
+
+      <section id="gachaExchangePanel" class="gacha-section hidden" role="tabpanel" aria-labelledby="btnGachaTabExchange">
+        <div class="gacha-filters" id="gachaFilters" role="group" aria-label="Filter collection">
+          <button type="button" class="gacha-filter on" data-filter="all">All</button>
+          <button type="button" class="gacha-filter" data-filter="skin">SSR Outfits</button>
+          <button type="button" class="gacha-filter" data-filter="front">SR Fronts</button>
+          <button type="button" class="gacha-filter" data-filter="back">R Backs</button>
+        </div>
+        <div class="gacha-exchange-grid" id="gachaExchangeGrid"></div>
+      </section>
+    </div>
+  </div>
+
   <!-- Win -->
   <div id="winModal" class="overlay result-overlay win-overlay hidden">
     <div class="panel result-panel win-panel">
@@ -195,8 +275,10 @@
             <div class="sh-badges" id="winRecords"></div>
           </div>
           <div class="win-stats result-stats" id="winStats"></div>
+          <div class="win-gacha-bar hidden" id="winGachaBar"></div>
           <div class="start-actions result-actions">
             <button class="btn primary big" id="btnWinNew">✿ Play again</button>
+            <button type="button" class="btn gacha-cta big hidden" id="btnWinGacha">🎰 Pull Skins</button>
             <button class="btn big" data-close="winModal">✦ Admire board</button>
           </div>
         </div>
@@ -291,6 +373,7 @@
   <script defer src="js/spotify/ui.js"></script>
   <!-- game: definitions, settings & state -->
   <script defer src="js/game/config.js"></script>
+  <script defer src="js/game/gacha.js"></script>
   <script defer src="js/game/settings.js"></script>
   <script defer src="js/game/dom.js"></script>
   <script defer src="js/game/table.js"></script>
@@ -337,6 +420,7 @@
   <script defer src="js/game/ui/overlays.js"></script>
   <script defer src="js/game/ui/win-modal.js"></script>
   <script defer src="js/game/ui/lose-modal.js"></script>
+  <script defer src="js/game/ui/gacha-modal.js"></script>
   <script defer src="js/game/ui/skins-modal.js"></script>
   <script defer src="js/game/ui/settings-panel.js"></script>
   <script defer src="js/game/ui/start-screen.js"></script>

@@ -9,6 +9,8 @@ function writeElectronBackup() {
       settings: snap.settings,
       stats: snap.stats,
       save: snap.save,
+      gacha: snap.gacha ?? null,
+      gachaUpdatedAt: Number(snap.meta?.gachaUpdatedAt) || 0,
       meta: snap.meta,
       updatedAt: Date.now(),
     })).catch(() => {});
@@ -34,20 +36,23 @@ async function restoreElectronBackupIfEmpty() {
   let hasMeta = false;
   let hasStats = false;
   let hasSave = false;
+  let hasGacha = false;
   try {
     hasMeta = localStorage.getItem('slopitaire.meta') !== null;
     hasStats = localStorage.getItem('slopitaire.stats') !== null;
     hasSave = localStorage.getItem('slopitaire.save') !== null;
+    hasGacha = localStorage.getItem('slopitaire.gacha') !== null;
   } catch (e) { return false; }
 
-  if (hasMeta || hasStats || hasSave) return false;
+  if (hasMeta || hasStats || hasSave || hasGacha) return false;
 
   try {
     const backup = await window.slopDesktop.loadLocalBackup();
     if (!backup || typeof backup !== 'object') return false;
     const bMeta = (backup.meta && typeof backup.meta === 'object') ? backup.meta : {};
-    if (!backup.settings && !backup.stats && !backup.save && !backup.meta) return false;
+    if (!backup.settings && !backup.stats && !backup.save && !backup.gacha && !backup.meta) return false;
 
+    const gachaUpdatedAt = Number(bMeta.gachaUpdatedAt || backup.gachaUpdatedAt) || 0;
     if (typeof accountDeps.applyMergedProgress === 'function') {
       accountDeps.applyMergedProgress({
         settings: backup.settings,
@@ -56,11 +61,23 @@ async function restoreElectronBackupIfEmpty() {
         statsUpdatedAt: Number(bMeta.statsUpdatedAt) || 0,
         save: backup.save !== undefined ? backup.save : null,
         saveUpdatedAt: Number(bMeta.saveUpdatedAt) || 0,
+        gacha: backup.gacha !== undefined ? backup.gacha : null,
+        gachaUpdatedAt,
       });
     }
     writeMetaSafe(Object.assign(
-      { settingsUpdatedAt: 0, statsUpdatedAt: 0, saveUpdatedAt: 0, guestDelta: null, deltaId: null, pendingResetStats: false },
-      bMeta
+      {
+        settingsUpdatedAt: 0,
+        statsUpdatedAt: 0,
+        saveUpdatedAt: 0,
+        gachaUpdatedAt: 0,
+        guestDelta: null,
+        guestGachaDelta: null,
+        deltaId: null,
+        pendingResetStats: false,
+      },
+      bMeta,
+      gachaUpdatedAt ? { gachaUpdatedAt } : null
     ));
     return true;
   } catch (e) {

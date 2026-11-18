@@ -81,6 +81,12 @@
   .skin-card .sc-face { width: 48px; height: 48px; }
   .skins-foot { margin-top: 8px; padding-top: 8px; }
   .skins-foot .btn { flex: 1 1 auto; }
+  .gacha-panel { padding: 13px 13px 12px; }
+  .gacha-header { flex-direction: column; gap: 8px; padding-right: 36px; }
+  .gacha-featured { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .gacha-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .gacha-exchange-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 44dvh; }
+  .skin-card.is-locked .sc-actions { width: 100%; justify-content: flex-end; }
 }
 @media (max-width: 480px) {
   #chipDraw { display: none; }
@@ -97,6 +103,9 @@
   .cast-opt small { font-size: 9px; letter-spacing: -.1px; }
   .cast-skin-tag { top: 2px; right: 2px; font-size: 7px; padding: 1px 3.5px; }
   .skins-open-chip { padding: 2px 7px; font-size: 9.5px; }
+  .start-cast-chips { gap: 4px; }
+  .gacha-pull-bar .btn { flex: 1 1 auto; justify-content: center; }
+  .gacha-stage { padding: 9px; min-height: 150px; }
   .skin-tab { padding: 4px 3px; }
   .skin-tab .st-face { width: 36px; height: 36px; }
   .skin-tab .st-name { font-size: 10.5px; }
@@ -138,6 +147,10 @@
   .start-panel .start-cast-head { margin-bottom: 3px; }
   .start-panel .start-cast-label { font-size: 10.5px; margin-bottom: 0; }
   .start-panel .skins-open-chip { padding: 1.5px 7px; font-size: 10px; }
+  .start-panel .start-cast-chips { gap: 4px; }
+  .gacha-panel { padding: 14px 18px 13px; }
+  .gacha-telemetry { margin: 8px 0 9px; padding: 6px 10px; }
+  .gacha-exchange-grid { max-height: 40dvh; }
   .skins-panel { padding: 14px 18px 13px; }
   .skins-roster { margin: 9px 0 9px; }
   .skins-stage .skins-mascot.is-girl { --chara-h: clamp(190px, 31dvh, 265px); }
@@ -277,7 +290,12 @@
   .combo-hud[data-tier="4"],
   .combo-hud.danger .combo-fill,
   .callout-banner.show,
-  .autofinish { animation: none !important; }
+  .gacha-beam,
+  .gacha-card-seal,
+  .gacha-card-face,
+  .gacha-carry-fill,
+  .wgb-fill,
+  .autofinish { animation: none !important; transition: none !important; }
   .pop-float { animation-duration: .65s; }
   .touch-ripple { animation-duration: .22s; }
   .girl-sprite .chara-img { transition: opacity .08s linear; transform: none !important; }

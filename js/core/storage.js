@@ -1,8 +1,8 @@
 /* Slopitaire — localStorage wrapper with sync timestamps and guest stat deltas. */
 'use strict';
 
-const META_KEYS = new Set(['settings', 'stats', 'save']);
-const defaultMeta = () => ({ settingsUpdatedAt: 0, statsUpdatedAt: 0, saveUpdatedAt: 0, guestDelta: null, deltaId: null, pendingResetStats: false });
+const META_KEYS = new Set(['settings', 'stats', 'save', 'gacha']);
+const defaultMeta = () => ({ settingsUpdatedAt: 0, statsUpdatedAt: 0, saveUpdatedAt: 0, gachaUpdatedAt: 0, guestDelta: null, guestGachaDelta: null, deltaId: null, pendingResetStats: false });
 const newDeltaId = () => (typeof crypto !== 'undefined' && crypto.randomUUID
   ? crypto.randomUUID()
   : 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10));
@@ -28,6 +28,29 @@ const Store = {
     meta.guestDelta[diff][field] = (Number(meta.guestDelta[diff][field]) || 0) + 1;
     Store.setMeta(meta);
   },
+  recordGuestGachaDelta(delta) {
+    if (window.Account?.isSignedIn?.()) return;
+    if (!delta || typeof delta !== 'object') return;
+    const toNonNegInt = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    };
+    const pullsEarned = toNonNegInt(delta.pullsEarned);
+    const pullsSpent = toNonNegInt(delta.pullsSpent);
+    const shardsEarned = toNonNegInt(delta.shardsEarned);
+    const shardsSpent = toNonNegInt(delta.shardsSpent);
+    if (!pullsEarned && !pullsSpent && !shardsEarned && !shardsSpent) return;
+    const meta = Store.getMeta();
+    if (!meta.deltaId) meta.deltaId = newDeltaId();
+    const prev = (meta.guestGachaDelta && typeof meta.guestGachaDelta === 'object') ? meta.guestGachaDelta : {};
+    meta.guestGachaDelta = {
+      pullsEarned: toNonNegInt(prev.pullsEarned) + pullsEarned,
+      pullsSpent: toNonNegInt(prev.pullsSpent) + pullsSpent,
+      shardsEarned: toNonNegInt(prev.shardsEarned) + shardsEarned,
+      shardsSpent: toNonNegInt(prev.shardsSpent) + shardsSpent,
+    };
+    Store.setMeta(meta);
+  },
   set(k, v, opts) {
     try { localStorage.setItem('slopitaire.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ }
     if (!opts?.fromRemote && META_KEYS.has(k)) {
@@ -35,7 +58,8 @@ const Store = {
       meta[k + 'UpdatedAt'] = Date.now();
       if (opts?.resetStats) {
         meta.guestDelta = null;
-        meta.deltaId = null;
+        // Keep deltaId when guest gacha deltas are still pending so sign-in merge stays idempotent
+        if (!meta.guestGachaDelta) meta.deltaId = null;
         if (window.Account?.isSignedIn?.()) meta.pendingResetStats = true;
       }
       Store.setMeta(meta);
