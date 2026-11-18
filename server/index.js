@@ -5,6 +5,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { openDb } = require('./db');
 const { createAuthHandler } = require('./auth');
+const { createSpotifyHandler } = require('./spotify');
 
 const WORKSPACE_ROOT = path.resolve(__dirname, '..');
 
@@ -267,6 +268,7 @@ function createAppServer(options = {}) {
   const store = options.store || openDb(options.sqlitePath);
   const ownsStore = !options.store;
   const authHandler = createAuthHandler(store, options.authConfig || {});
+  const spotifyHandler = createSpotifyHandler(options.spotifyConfig || {});
 
   const server = http.createServer(async (req, res) => {
     const allowedOriginsSet = parseAllowedOrigins(options.allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? '');
@@ -296,7 +298,8 @@ function createAppServer(options = {}) {
         return;
       }
 
-      const handled = await authHandler.handleRequest(req, res, reqUrl);
+      const handled = (await spotifyHandler.handleRequest(req, res, reqUrl))
+        || (await authHandler.handleRequest(req, res, reqUrl));
       if (!handled) {
         res.writeHead(404, {
           'Content-Type': 'application/json; charset=utf-8',
@@ -332,6 +335,7 @@ function createAppServer(options = {}) {
     server,
     store,
     authHandler,
+    spotifyHandler,
     close,
     serveStatic,
   };

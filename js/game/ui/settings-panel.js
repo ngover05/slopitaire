@@ -2,7 +2,7 @@
 'use strict';
 
 const THEMES = [['prism', '◈ Prism Core'], ['night', '🌌 Astral Violet'], ['sakura', '🌸 Neo Blossom'], ['ramune', '⚡ Cobalt Surge'], ['matcha', '🌿 Jade Circuit']];
-const MUSIC_OPTS = [['pulse', '◈ Prism Pulse (165)'], ['redline', '🔥 Redline Rush (178)'], ['horizon', '⚡ Horizon Drive (152)'], ['zenith', '✦ Zenith Core (190)'], ['bounce', '🐾 Neko Bounce (118)'], ['lofi', '🌸 Pastel Lo-fi (76)'], ['lullaby', '🌙 Starlight (64)'], ['off', 'Off']];
+const MUSIC_OPTS = [['pulse', '◈ Prism Pulse (165)'], ['redline', '🔥 Redline Rush (178)'], ['horizon', '⚡ Horizon Drive (152)'], ['zenith', '✦ Zenith Core (190)'], ['bounce', '🐾 Neko Bounce (118)'], ['lofi', '🌸 Pastel Lo-fi (76)'], ['lullaby', '🌙 Starlight (64)'], ['spotify', '🎧 Spotify'], ['off', 'Off']];
 const SCHEMA = [
   { title: 'Gameplay', items: [
     { key: 'variant', label: 'Game', type: 'seg', options: VARIANT_KEYS.map((k) => [k, `${VARIANTS[k].icon} ${VARIANTS[k].label}`]), hint: () => VARIANTS[settings.variant].tagline, nextGame: true },
@@ -44,6 +44,7 @@ const SCHEMA = [
     { key: 'music', label: 'Music', type: 'seg', options: MUSIC_OPTS },
     { key: 'musicVol', label: 'Music volume', type: 'range' },
     { key: 'sfxVol', label: 'Sound effects volume', type: 'range' },
+    { key: 'spotifyAutoMuteBgm', label: 'Auto-pause BGM for Spotify', type: 'toggle', hint: 'Pause built-in music while Spotify plays (keeps card SFX & voices).' },
   ] },
 ];
 
@@ -135,6 +136,7 @@ function buildSettings() {
       }
       row.appendChild(ctl); body.appendChild(row);
     }
+    if (sec.title === 'Audio') window.SpotifyUI?.renderSettingsRow?.(body);
   }
   // stats
   const h = document.createElement('h3'); h.textContent = 'Stats ♡'; body.appendChild(h);

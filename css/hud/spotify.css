@@ -1,0 +1,1184 @@
+/* Slopitaire — Spotify // PRISM Music Deck HUD pill, slide-down drawer & settings row */
+
+/* ---------- Top-bar Spotify pill & quick transport ---------- */
+.spotify-bar {
+  --sp-green: #1ed760;
+  --sp-green-ink: #041d0d;
+  --sp-green-text: #1ed760;
+  --sp-green-soft: rgba(30, 215, 96, .16);
+  --sp-green-border: rgba(30, 215, 96, .55);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.spotify-bar .btn.btn-spotify {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 178px;
+  padding: 6px 10px;
+}
+
+.spotify-bar .btn.btn-spotify.is-connected {
+  border-color: color-mix(in srgb, var(--sp-green) 52%, var(--hud-border));
+}
+
+.spotify-bar .btn.btn-spotify.is-active {
+  border-color: var(--sp-green-border);
+  background: color-mix(in srgb, var(--sp-green) 11%, var(--chip));
+}
+
+.spotify-bar .btn.btn-spotify.is-playing {
+  border-color: var(--sp-green);
+  box-shadow:
+    0 2px 0 color-mix(in srgb, var(--sp-green) 62%, transparent),
+    0 0 14px color-mix(in srgb, var(--sp-green) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+
+.spotify-bar .btn.btn-spotify.is-open {
+  border-color: var(--beam-a);
+  background: color-mix(in srgb, var(--beam-a) 16%, var(--chip));
+}
+
+.sp-pill-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14.5px;
+  line-height: 1;
+}
+
+.sp-pill-art {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--sp-green-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+
+.sp-pill-lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 112px;
+  text-align: left;
+}
+
+/* 3-bar animated equalizer */
+.sp-eq {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.btn-spotify.is-playing .sp-eq {
+  display: inline-flex;
+}
+
+.sp-eq i {
+  display: block;
+  width: 2.5px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sp-green-text);
+  transform-origin: bottom center;
+  animation: spEqBounce .58s ease-in-out infinite alternate;
+}
+
+.sp-eq i:nth-child(2) {
+  height: 10px;
+  animation-duration: .44s;
+  animation-delay: -.18s;
+}
+
+.sp-eq i:nth-child(3) {
+  height: 7px;
+  animation-duration: .66s;
+  animation-delay: -.32s;
+}
+
+@keyframes spEqBounce {
+  0% { transform: scaleY(.32); opacity: .78; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+.spotify-bar .btn.sp-quick-btn {
+  padding: 6px 8px;
+  min-width: 30px;
+  font-size: 12px;
+  line-height: 1;
+  border-color: var(--sp-green-border);
+  color: var(--sp-green-text);
+}
+
+.spotify-bar .btn.sp-quick-btn:hover:not(:disabled) {
+  border-color: var(--sp-green);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--sp-green) 55%, transparent), 0 0 12px color-mix(in srgb, var(--sp-green) 32%, transparent);
+}
+
+/* ---------- Slide-down Prism Music Drawer ---------- */
+.spotify-drawer {
+  --sp-green: #1ed760;
+  --sp-green-ink: #041d0d;
+  --sp-green-text: #1ed760;
+  --sp-green-soft: rgba(30, 215, 96, .15);
+  --sp-green-border: rgba(30, 215, 96, .48);
+  --sp-card-bg: color-mix(in srgb, var(--chip) 82%, transparent);
+  --sp-input-bg: color-mix(in srgb, var(--bg1) 72%, var(--chip));
+  --sp-tip-bg: rgba(255, 182, 56, .16);
+  --sp-tip-border: rgba(255, 182, 56, .52);
+  --sp-tip-ink: #ffd98a;
+  --sp-err-bg: rgba(239, 68, 68, .16);
+  --sp-err-border: rgba(239, 68, 68, .5);
+
+  position: fixed;
+  top: var(--sp-top, 56px);
+  right: 14px;
+  z-index: 35;
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - var(--sp-top, 56px) - 14px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1.5px solid var(--hud-border);
+  color: var(--panel-ink);
+  background:
+    linear-gradient(90deg, var(--beam-a), var(--sp-green) 52%, var(--beam-b)) top / 100% 3px no-repeat,
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 48px rgba(2, 8, 16, .56),
+    0 0 26px color-mix(in srgb, var(--sp-green) 14%, transparent);
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transform-origin: top right;
+  transition: opacity .18s ease, transform .22s cubic-bezier(.2, 1.15, .4, 1), visibility 0s linear 0s;
+}
+
+/* Keep mounted & never use display: none so Embed iframe playback continues when closed */
+.spotify-drawer.is-closed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-10px) scale(.985);
+  transition: opacity .16s ease, transform .18s ease, visibility 0s linear .18s;
+}
+
+/* When opened from Settings while Start Screen is visible behind Settings */
+body:has(#startScreen:not(.hidden)):not(:has(#settingsModal:not(.hidden), #skinsModal:not(.hidden), #winModal:not(.hidden), #loseModal:not(.hidden), #confirmModal:not(.hidden))) .spotify-drawer:not(.is-closed) {
+  z-index: 10005;
+}
+
+.sp-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 13px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hud-border) 55%, transparent);
+  flex: none;
+}
+
+.sp-head-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.sp-brand-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sp-green);
+  box-shadow: 0 0 8px var(--sp-green);
+  flex-shrink: 0;
+}
+
+.sp-kicker {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif;
+  font-weight: 900;
+  font-size: 11.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--panel-ink);
+  white-space: nowrap;
+}
+
+.sp-mode-badge {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif;
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--hud-border);
+  background: color-mix(in srgb, var(--panel-ink) 8%, transparent);
+  color: var(--panel-ink);
+}
+
+.sp-mode-badge[data-mode="account"] {
+  border-color: var(--sp-green-border);
+  background: var(--sp-green-soft);
+  color: var(--sp-green-text);
+}
+
+.sp-mode-badge[data-mode="embed"] {
+  border-color: color-mix(in srgb, var(--beam-a) 55%, transparent);
+  background: color-mix(in srgb, var(--beam-a) 16%, transparent);
+  color: var(--beam-a);
+}
+
+.sp-close-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid var(--hud-border);
+  background: var(--chip);
+  color: var(--panel-ink);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.sp-close-x:hover {
+  border-color: var(--beam-b);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sp-close-x:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 2px;
+}
+
+/* Tabs */
+.sp-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hud-border) 45%, transparent);
+  background: color-mix(in srgb, var(--bg1) 35%, transparent);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: none;
+}
+
+.sp-tabs::-webkit-scrollbar { display: none; }
+
+.sp-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--panel-ink);
+  opacity: .76;
+  font: 700 11.5px/1.15 'Chakra Petch', 'Nunito', sans-serif;
+  letter-spacing: .2px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 1 0 auto;
+  text-align: center;
+  transition: background .15s, color .15s, border-color .15s, opacity .15s;
+}
+
+.sp-tab:hover:not(.is-active) {
+  opacity: 1;
+  background: color-mix(in srgb, var(--beam-a) 14%, transparent);
+}
+
+.sp-tab.is-active {
+  opacity: 1;
+  background: linear-gradient(135deg, var(--sp-green), color-mix(in srgb, var(--sp-green) 68%, var(--beam-a)));
+  color: var(--sp-green-ink);
+  border-color: rgba(255, 255, 255, .42);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sp-green) 36%, transparent);
+}
+
+.sp-tab:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 1px;
+}
+
+/* Body & Tab Panels (NEVER display: none!) */
+.sp-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 13px 14px;
+  scrollbar-width: thin;
+}
+
+.sp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sp-panel:not(.is-active):not([data-panel="embed"]) {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Keep Quick Embed host alive & sized offscreen when another tab is active */
+.sp-panel[data-panel="embed"]:not(.is-active) {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 390px;
+  height: auto;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sp-embed-host {
+  width: 100%;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, .18);
+}
+
+.sp-embed-host:empty {
+  background: transparent;
+}
+
+.sp-embed-host iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+
+/* Shared cards, inputs & buttons inside drawer */
+.spotify-drawer .btn.sp-green-btn {
+  background: linear-gradient(135deg, var(--sp-green), color-mix(in srgb, var(--sp-green) 74%, var(--beam-a)));
+  color: var(--sp-green-ink);
+  border-color: rgba(255, 255, 255, .45);
+  box-shadow: 0 2px 0 rgba(5, 46, 22, .6), 0 0 14px color-mix(in srgb, var(--sp-green) 32%, transparent);
+}
+
+.spotify-drawer .btn.sp-green-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  border-color: #ffffff;
+}
+
+.spotify-drawer .btn.sp-mini-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.spotify-drawer .btn.sp-stop-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  border-color: var(--sp-err-border);
+  background: var(--sp-err-bg);
+}
+
+.sp-input,
+.sp-select {
+  width: 100%;
+  min-width: 0;
+  font: 600 12.5px/1.3 'Chakra Petch', 'Nunito', sans-serif;
+  color: var(--panel-ink);
+  background: var(--sp-input-bg);
+  border: 1.5px solid var(--hud-border);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+
+.sp-input:focus-visible,
+.sp-select:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 1px;
+}
+
+.sp-select {
+  cursor: pointer;
+}
+
+.sp-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.38;
+  border: 1px solid var(--hud-border);
+  background: var(--sp-card-bg);
+}
+
+.sp-banner.is-warn,
+.sp-tip-banner {
+  background: var(--sp-tip-bg);
+  border-color: var(--sp-tip-border);
+  color: var(--sp-tip-ink);
+}
+
+.sp-banner.is-err {
+  background: var(--sp-err-bg);
+  border-color: var(--sp-err-border);
+}
+
+.sp-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-muted {
+  font-size: 12px;
+  opacity: .76;
+  line-height: 1.4;
+}
+
+/* ---------- Now Playing Tab ---------- */
+.sp-now-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sp-now-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--sp-card-bg);
+  border: 1px solid color-mix(in srgb, var(--hud-border) 70%, transparent);
+}
+
+.sp-art-wrap {
+  width: 66px;
+  height: 66px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sp-green) 24%, var(--chip)), var(--chip));
+  border: 1.5px solid var(--sp-green-border);
+  font-size: 26px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+}
+
+.sp-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sp-track-meta {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sp-track-title {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 14.5px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--panel-ink);
+}
+
+.sp-track-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sp-track-title a:hover {
+  text-decoration: underline;
+  color: var(--sp-green-text);
+}
+
+.sp-track-artist {
+  font-size: 12.5px;
+  font-weight: 700;
+  opacity: .88;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-track-album {
+  font-size: 11px;
+  opacity: .66;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp-progress-wrap {
+  position: relative;
+  padding: 6px 0;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.sp-progress-wrap:focus-visible {
+  outline: 2px solid var(--glow);
+  border-radius: 6px;
+}
+
+.sp-progress-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-ink) 16%, transparent);
+  overflow: hidden;
+}
+
+.sp-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sp-green), var(--beam-a));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sp-green) 55%, transparent);
+  transition: width .12s linear;
+}
+
+.sp-progress-times {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Orbitron', 'Chakra Petch', monospace;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: .76;
+}
+
+.sp-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spotify-drawer .btn.sp-t-btn {
+  padding: 6px 10px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.spotify-drawer .btn.sp-t-btn.is-on {
+  border-color: var(--sp-green);
+  color: var(--sp-green-text);
+  background: var(--sp-green-soft);
+}
+
+.spotify-drawer .btn.sp-t-play {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 17px;
+  background: linear-gradient(135deg, var(--sp-green), color-mix(in srgb, var(--sp-green) 74%, var(--beam-a)));
+  color: var(--sp-green-ink);
+  border-color: rgba(255, 255, 255, .52);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--sp-green) 42%, transparent);
+}
+
+.sp-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.sp-vol-row input[type="range"] {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  accent-color: var(--sp-green);
+}
+
+.sp-vol-val {
+  font-family: 'Orbitron', 'Chakra Petch', monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+  opacity: .8;
+}
+
+.sp-device-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sp-device-row .sp-select {
+  flex: 1 1 160px;
+}
+
+.sp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 9px;
+  padding: 16px 12px;
+  border-radius: 12px;
+  background: var(--sp-card-bg);
+  border: 1px dashed var(--hud-border);
+}
+
+.sp-empty-ic {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.sp-empty-title {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 14.5px;
+}
+
+.sp-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+/* ---------- Playlists & Search Lists ---------- */
+.sp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sp-section-title {
+  font-family: 'Orbitron', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+  color: var(--beam-a);
+}
+
+.sp-quick-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.sp-qcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: var(--sp-card-bg);
+  border: 1px solid var(--hud-border);
+  min-width: 0;
+}
+
+.sp-qcard-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sp-qcard-name {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-qcard-sub {
+  font-size: 11px;
+  opacity: .72;
+}
+
+.sp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--sp-card-bg);
+  border: 1px solid color-mix(in srgb, var(--hud-border) 55%, transparent);
+  transition: border-color .14s, background .14s;
+}
+
+.sp-item:hover {
+  border-color: var(--sp-green-border);
+  background: color-mix(in srgb, var(--sp-green) 8%, var(--sp-card-bg));
+}
+
+.sp-item.is-active {
+  border-color: var(--sp-green);
+  background: var(--sp-green-soft);
+}
+
+.sp-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--hud-border) 22%, var(--chip));
+  font-size: 16px;
+}
+
+.sp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sp-item-meta {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sp-item-title {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-item-sub {
+  font-size: 11px;
+  opacity: .72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotify-drawer .btn.sp-item-play {
+  padding: 4px 9px;
+  font-size: 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.sp-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-search-bar .sp-input {
+  flex: 1 1 auto;
+}
+
+.sp-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Quick Embed Tab ---------- */
+.sp-embed-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sp-embed-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-embed-form .sp-input {
+  flex: 1 1 auto;
+}
+
+.sp-embed-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sp-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hud-border);
+  background: var(--sp-card-bg);
+  color: var(--panel-ink);
+  font: 700 11.5px/1.2 'Chakra Petch', 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: border-color .14s, background .14s, transform .08s;
+}
+
+.sp-chip-btn:hover {
+  border-color: var(--sp-green);
+  background: var(--sp-green-soft);
+  transform: translateY(-1px);
+}
+
+.sp-chip-btn.is-active {
+  border-color: var(--sp-green);
+  background: linear-gradient(135deg, var(--sp-green), color-mix(in srgb, var(--sp-green) 72%, var(--beam-a)));
+  color: var(--sp-green-ink);
+}
+
+.sp-chip-lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+}
+
+/* ---------- Setup Tab ---------- */
+.sp-setup-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 11px;
+  background: var(--sp-card-bg);
+  border: 1px solid color-mix(in srgb, var(--hud-border) 65%, transparent);
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp-label {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 11.5px;
+  opacity: .9;
+}
+
+.sp-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-port-input {
+  max-width: 110px;
+}
+
+.sp-port-hint {
+  font-size: 11px;
+  opacity: .68;
+}
+
+.sp-setup-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sp-setup-status {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sp-redirect-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--sp-card-bg);
+  border: 1px solid color-mix(in srgb, var(--hud-border) 65%, transparent);
+}
+
+.sp-code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg1) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--hud-border) 45%, transparent);
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.sp-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--sp-card-bg);
+  border: 1px solid var(--hud-border);
+}
+
+.sp-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sp-user-name {
+  font-family: 'Chakra Petch', 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.sp-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  opacity: .88;
+}
+
+.sp-steps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--hud-border) 22%, transparent);
+}
+
+/* ---------- Settings Audio Row ---------- */
+.sp-settings-btn {
+  border-color: color-mix(in srgb, #1ed760 55%, var(--hud-border));
+}
+
+/* ---------- Light Themes (sakura, ramune, matcha) ---------- */
+body[data-theme="sakura"] .spotify-bar,
+body[data-theme="ramune"] .spotify-bar,
+body[data-theme="matcha"] .spotify-bar,
+body[data-theme="sakura"] .spotify-drawer,
+body[data-theme="ramune"] .spotify-drawer,
+body[data-theme="matcha"] .spotify-drawer {
+  --sp-green-text: #0f8a3c;
+  --sp-green-soft: rgba(22, 163, 74, .14);
+  --sp-green-border: rgba(22, 163, 74, .46);
+  --sp-card-bg: rgba(255, 255, 255, .74);
+  --sp-input-bg: rgba(255, 255, 255, .92);
+  --sp-tip-bg: rgba(245, 158, 11, .16);
+  --sp-tip-border: rgba(217, 119, 6, .48);
+  --sp-tip-ink: #7c4700;
+  --sp-err-bg: rgba(239, 68, 68, .12);
+  --sp-err-border: rgba(220, 38, 38, .44);
+}
+
+body[data-theme="sakura"] .spotify-drawer,
+body[data-theme="ramune"] .spotify-drawer,
+body[data-theme="matcha"] .spotify-drawer {
+  box-shadow:
+    0 14px 38px rgba(20, 35, 55, .18),
+    0 0 18px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+body[data-theme="sakura"] .sp-code,
+body[data-theme="ramune"] .sp-code,
+body[data-theme="matcha"] .sp-code {
+  background: rgba(255, 255, 255, .86);
+}
+
+body[data-theme="sakura"] .sp-section-title,
+body[data-theme="ramune"] .sp-section-title,
+body[data-theme="matcha"] .sp-section-title,
+body[data-theme="sakura"] .sp-mode-badge[data-mode="embed"],
+body[data-theme="ramune"] .sp-mode-badge[data-mode="embed"],
+body[data-theme="matcha"] .sp-mode-badge[data-mode="embed"] {
+  color: var(--accent);
+}
+
+/* ---------- Battery Saver / Perf Lite ---------- */
+body.perf-lite .spotify-drawer,
+body.perf-lite .spotify-bar .btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.perf-lite .spotify-drawer {
+  background: color-mix(in srgb, var(--panel) 97%, var(--bg1));
+  box-shadow: 0 10px 26px rgba(2, 8, 16, .45);
+}
+
+body.perf-lite .sp-eq i {
+  animation: none !important;
+  height: 7px;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotify-drawer { transition: none; }
+  .sp-eq i { animation: none !important; height: 7px; transform: none; }
+}
+
+/* ---------- Responsive (Tablet / Phone) ---------- */
+@media (max-width: 760px) {
+  .spotify-bar {
+    gap: 3px;
+  }
+  .spotify-bar .btn.btn-spotify {
+    padding: 5px 8px;
+    gap: 4px;
+    max-width: none;
+  }
+  .spotify-bar .btn.sp-quick-btn {
+    padding: 5px 7px;
+    min-width: 26px;
+    font-size: 11.5px;
+  }
+  .spotify-drawer {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - var(--sp-top, 78px) - 10px);
+    border-radius: 14px;
+  }
+  .sp-panel[data-panel="embed"]:not(.is-active) {
+    width: 320px;
+  }
+}
+
+@media (max-width: 480px) {
+  .spotify-bar .btn.btn-spotify {
+    padding: 4px 6px;
+    font-size: 12.5px;
+  }
+  .spotify-bar .btn.sp-quick-btn {
+    padding: 4px 6px;
+    min-width: 24px;
+    font-size: 11px;
+  }
+  .sp-pill-art {
+    width: 15px;
+    height: 15px;
+  }
+  .sp-drawer-head {
+    padding: 9px 10px 7px;
+  }
+  .sp-kicker {
+    font-size: 10.5px;
+    letter-spacing: .7px;
+  }
+  .sp-tabs {
+    padding: 5px 8px;
+    gap: 3px;
+  }
+  .sp-tab {
+    padding: 5px 7px;
+    font-size: 11px;
+  }
+  .sp-body {
+    padding: 10px 10px 12px;
+  }
+  .sp-art-wrap {
+    width: 54px;
+    height: 54px;
+  }
+  .sp-quick-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sp-embed-form {
+    flex-wrap: wrap;
+  }
+  .sp-embed-form .sp-input {
+    flex: 1 1 100%;
+  }
+}

@@ -182,6 +182,24 @@ Linux keeps user data in `~/.config/slopitaire/` (`config.json`, `auth.json`, `p
 
 ---
 
+## 🎧 Spotify Integration
+
+Slopitaire includes an in-game **Spotify Prism Deck** (`#spotifyDrawer`, toggled from the topbar pill, **Settings → Audio**, or `P`) supporting two playback modes:
+
+- **Quick Link / Embed Mode (Zero Setup):** Open the **Quick Embed** tab and paste any Spotify track, playlist, or album link (`https://open.spotify.com/...`) or `spotify:` URI, or pick one of the 5 curated **Prism Vibe Presets**—no Spotify Developer Client ID or sign-in required.
+- **Spotify Account Mode (OAuth 2.0 + PKCE):** Sign in with your Spotify account to browse playlists, Liked Songs, recently played tracks, search Spotify's catalog, and control playback directly in-game.
+  - **Client ID only (no Client Secret needed):** Enter your Spotify App's **Client ID** in the drawer's **Setup** tab, or set `SPOTIFY_CLIENT_ID` in `.env` for web deployments (and optionally `SPOTIFY_REDIRECT_URI`).
+  - **Spotify Developer Dashboard Redirect URIs:** Register the callback URI(s) for the environments you run (Spotify requires `127.0.0.1` instead of `localhost` for HTTP loopback callbacks):
+    - `http://127.0.0.1:43821/spotify/callback` *(Electron Desktop app; port configurable in **Setup**)*
+    - `http://127.0.0.1:8080/api/spotify/callback` *(Docker Compose / NGINX web proxy)*
+    - `http://127.0.0.1:3000/api/spotify/callback` *(Standalone Node server `npm run server`)*
+  - **Web Playback SDK vs. Spotify Connect Remote:**
+    - **Web Browser (with Spotify Premium):** Streams audio directly in-page via the **Spotify Web Playback SDK** (*Stream Here*), or controls another active Spotify device.
+    - **Electron Desktop & Web Remote:** Controls active Spotify devices via **Spotify Connect Remote** (`play`, `pause`, `next`, `previous`, `seek`, `volume`, `shuffle`, `repeat`, and device switching), with **Quick Embed** always available as a built-in fallback.
+- **Audio Mixing & Shortcut:** With **Settings → Auto-pause BGM for Spotify** enabled (default), Slopitaire automatically pauses its built-in synth/Opus soundtrack while Spotify plays while keeping all card SFX and companion voices active (or pick `🎧 Spotify` under **Settings → Music**). Press `P` to toggle the Spotify drawer (`Esc` closes it).
+
+---
+
 ## 🃏 Game Variants
 
 Pick the game on the title screen or in **Settings → Game**. Every variant shares the combo gauge and multiplier tiers, the 4-layer pop-ups, companions, save/resume, per-variant stats (synced to the cloud) and all four difficulties.
@@ -237,13 +255,13 @@ Every line is **prerecorded with [Kokoro](https://huggingface.co/hexgrad/Kokoro-
 - **Gameplay:** 4 difficulties (`Easy`, `Medium`, `Hard`, and `◈ Auto` solver autopilot), 1-card or 3-card draw, tap to auto-move, auto-play to foundations, auto-finish, highlight valid drops, game-end detection (`Unwinnable` / `No moves left` / `Never`), left-handed layout.
 - **Look & Feel:** 5 futuristic/pastel themes (`◈ Prism Core`, `🌌 Astral Violet`, `🌸 Neo Blossom`, `⚡ Cobalt Surge`, `🌿 Jade Circuit`), **Pop-up FX** intensity (`Hyper` / `Standard` / `Minimal`), toggleable **3D circuit stage** (`bgFx`), 4 card backs, animation speed, ambient particles/petals, HUD visibility.
 - **Companion:** 8-partner selection, **Sprite style** (`Corner bust` vs. `Full body`), show/hide, reaction frequency (`All` / `Some` / `Big moments`), voice toggle, language (`日本語` / `English`), voice volume, anime cut-ins.
-- **Audio:** Master mute, 7 generative music tracks or off, independent music and SFX volume sliders.
+- **Audio:** Master mute, 7 generative music tracks, `🎧 Spotify`, or off, independent music and SFX volume sliders, and **Auto-pause BGM for Spotify** (keeps card SFX & companion voices active).
 - **Stats & Persistence:** Per-difficulty games played, wins, win rate, best time, high score, streaks, best combo streak, and automatic mid-game resume.
 
 ## 🎹 Controls
 
 - **Mouse / Touch:** Drag cards/stacks, tap a card to send it to its best valid destination, or tap the stock pile to draw. Click your companion to cycle expressions, or switch framing via **Settings → Sprite style**.
-- **Keyboard:** `N` new game · `H` hint · `Ctrl+Z` / `U` undo · `Space` / `D` draw · `M` mute · `Esc` close dialogs.
+- **Keyboard:** `N` new game · `H` hint · `Ctrl+Z` / `U` undo · `Space` / `D` draw · `O` skins · `P` Spotify deck · `M` mute · `Esc` close dialogs / drawer.
 
 ## 📁 Project Structure
 

@@ -6,7 +6,7 @@ const DEFAULTS = {
   difficulty: 'medium', draw: 1,
   tapMove: true, autoFound: false, autoFinish: true, dropGuides: true, showStats: true, leftHanded: false,
   theme: 'prism', front: 'classic', back: 'sakura', bgFx: true, popups: 'max', petals: true, anim: 'normal', perf: 'auto', mascot: true,
-  muted: false, music: 'pulse', musicVol: 0.5, sfxVol: 0.7,
+  muted: false, music: 'pulse', musicVol: 0.5, sfxVol: 0.7, spotifyAutoMuteBgm: true,
   companion: 'sakura', skins: {}, spriteMode: 'corner', chatter: 'all', voice: true, voiceLang: 'ja', voiceNames: {}, voiceVol: 0.9, cutins: true, detectLoss: 'solver',
 };
 const hadRawMeta = Store.get('meta', null) !== null;
@@ -14,7 +14,7 @@ const hadSavedSettings = Store.get('settings', null) !== null;
 const hadSavedStats = Store.get('stats', null) !== null;
 const hadSavedSave = Store.get('save', null) !== null;
 const VALID_THEMES = new Set(['prism', 'night', 'sakura', 'ramune', 'matcha']);
-const VALID_MUSIC = new Set(['pulse', 'redline', 'horizon', 'zenith', 'bounce', 'lofi', 'lullaby', 'off']);
+const VALID_MUSIC = new Set(['pulse', 'redline', 'horizon', 'zenith', 'bounce', 'lofi', 'lullaby', 'spotify', 'off']);
 const VALID_POPUPS = new Set(['max', 'normal', 'off']);
 const VALID_PERF = new Set(['auto', 'high', 'lite']);
 // Phones and tablets (touch-only) or very low-spec machines get the lighter rendering & audio path by default.
@@ -42,6 +42,7 @@ function normalizeSettings(raw) {
   else if (!['solver', 'stuck', 'off'].includes(next.detectLoss)) next.detectLoss = 'off';
   if (!VALID_THEMES.has(next.theme)) next.theme = 'prism';
   if (!VALID_MUSIC.has(next.music)) next.music = 'pulse';
+  next.spotifyAutoMuteBgm = next.spotifyAutoMuteBgm !== false;
   if (!VALID_POPUPS.has(next.popups)) next.popups = 'max';
   if (!VALID_PERF.has(next.perf)) next.perf = 'auto';
   if (typeof Art !== 'undefined' && Art.FRONTS && !Object.prototype.hasOwnProperty.call(Art.FRONTS, next.front)) next.front = 'classic';
@@ -154,8 +155,14 @@ function setSetting(key, v, quiet) {
   if (!quiet) {
     if (key === 'music') {
       Sound.sfx.modeSwitch?.();
-      PopupFX?.pill('♪', `TRACK // ${cleanOptLabel(MUSIC_OPTS, v)}`, v === 'off' ? 'BGM MUTED' : 'SYNTH ENGINE SYNCED', 'emerald', { always: true });
-      if (settings.music !== 'off') Companion.react('musicChange');
+      if (v === 'spotify') {
+        PopupFX?.pill('🎧', 'MUSIC // SPOTIFY DECK', 'YOUR MUSIC IN-GAME', 'emerald', { always: true });
+        Companion.react('musicChange');
+        window.Spotify?.setDrawerOpen?.(true);
+      } else {
+        PopupFX?.pill('♪', `TRACK // ${cleanOptLabel(MUSIC_OPTS, v)}`, v === 'off' ? 'BGM MUTED' : 'SYNTH ENGINE SYNCED', 'emerald', { always: true });
+        if (settings.music !== 'off') Companion.react('musicChange');
+      }
     } else if (key === 'theme') {
       Sound.sfx.modeSwitch?.();
       PopupFX?.pill('◈', `THEME // ${cleanOptLabel(THEMES, v)}`, 'STAGE PALETTE ACTIVE', 'amber', { always: true });
@@ -257,6 +264,8 @@ function applySettings(key) {
   document.body.classList.toggle('hide-stats', !settings.showStats);
   Sound.configure({ muted: settings.muted, sfx: settings.sfxVol, music: settings.musicVol, track: settings.music, lite: perfLite() });
   DOM.soundIc.textContent = settings.muted ? '🔇' : '♪';
+  if (all || key === 'muted') window.Spotify?.onGameMuteChanged?.(settings.muted);
+  if (all || key === 'spotifyAutoMuteBgm') window.Spotify?.syncAudioPolicy?.();
   if (key === 'leftHanded' && G) { slotsDirty = true; layout(); }
   if (key === 'autoFinish' && G) maybeAutoFinish();
   if (key === 'detectLoss') scheduleCheck();

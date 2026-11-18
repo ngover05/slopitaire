@@ -251,7 +251,7 @@ async function runTests() {
       authConfig,
     });
 
-    // 4. Test CORS preflight & static serving + MP3 byte Range
+    // 4. Test CORS preflight & static serving + Opus byte Range
     const corsApp = await fetch(`${server1.baseUrl}/api/progress/sync`, {
       method: 'OPTIONS',
       headers: {
@@ -295,21 +295,21 @@ async function runTests() {
     assert.ok((staticIndex.headers.get('content-type') || '').includes('text/html'));
     assert.ok((await staticIndex.text()).includes('Slopitaire'));
 
-    const mp3Dir = path.join(__dirname, '..', 'audio', 'voice', 'sakura', 'en');
-    const mp3Name = fs.readdirSync(mp3Dir).find((f) => f.endsWith('.mp3'));
-    assert.ok(mp3Name, 'Expected at least one mp3 in audio/voice/sakura/en');
-    const mp3RangeRes = await fetch(`${server1.baseUrl}/audio/voice/sakura/en/${mp3Name}`, {
+    const voiceDir = path.join(__dirname, '..', 'audio', 'voice', 'sakura', 'en');
+    const opusName = fs.readdirSync(voiceDir).find((f) => f.endsWith('.opus'));
+    assert.ok(opusName, 'Expected at least one opus in audio/voice/sakura/en');
+    const opusRangeRes = await fetch(`${server1.baseUrl}/audio/voice/sakura/en/${opusName}`, {
       headers: { Range: 'bytes=0-63' },
     });
-    assert.equal(mp3RangeRes.status, 206);
-    assert.equal(mp3RangeRes.headers.get('content-type'), 'audio/mpeg');
-    assert.ok((mp3RangeRes.headers.get('content-range') || '').startsWith('bytes 0-63/'));
-    assert.equal((await mp3RangeRes.arrayBuffer()).byteLength, 64);
+    assert.equal(opusRangeRes.status, 206);
+    assert.equal(opusRangeRes.headers.get('content-type'), 'audio/ogg');
+    assert.ok((opusRangeRes.headers.get('content-range') || '').startsWith('bytes 0-63/'));
+    assert.equal((await opusRangeRes.arrayBuffer()).byteLength, 64);
 
-    const mp3BadRangeRes = await fetch(`${server1.baseUrl}/audio/voice/sakura/en/${mp3Name}`, {
+    const opusBadRangeRes = await fetch(`${server1.baseUrl}/audio/voice/sakura/en/${opusName}`, {
       headers: { Range: 'bytes=999999999-' },
     });
-    assert.equal(mp3BadRangeRes.status, 416);
+    assert.equal(opusBadRangeRes.status, 416);
 
     // Raw socket traversal test (fetch normalizes /.. before sending, so use raw http.request)
     const traversalStatus = await new Promise((resolve, reject) => {

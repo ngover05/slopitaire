@@ -30,6 +30,8 @@ function init() {
 
   installDebugHook();
   connectAccount();
+  window.Spotify?.boot?.();
+  window.SpotifyUI?.init?.();
 }
 
 init();

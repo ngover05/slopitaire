@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/base/base.css">
   <link rel="stylesheet" href="css/fx/stage.css">
   <link rel="stylesheet" href="css/hud/topbar.css">
+  <link rel="stylesheet" href="css/hud/spotify.css">
   <link rel="stylesheet" href="css/hud/combo-hud.css">
   <link rel="stylesheet" href="css/base/buttons.css">
   <link rel="stylesheet" href="css/board/board.css">
@@ -63,11 +64,14 @@
       <button id="btnUndo" class="btn" title="Undo (Ctrl+Z)"><span class="ic">↶</span><span class="lbl">Undo</span></button>
       <button id="btnHint" class="btn" title="Hint (H)"><span class="ic">✧</span><span class="lbl">Hint</span><span class="badge" id="hintBadge"></span></button>
       <button id="btnSound" class="btn" title="Mute / unmute (M)"><span class="ic" id="soundIc">♪</span></button>
+      <div id="spotifyBar" class="spotify-bar"></div>
       <button id="btnAccount" class="btn btn-account" title="Google Account &amp; Cloud Sync"><span class="ic acct-ic" id="accountIc"></span><span class="lbl" id="accountLbl">Sign in</span></button>
       <button id="btnSkins" class="btn" title="Companion skins (O)"><span class="ic">🎀</span><span class="lbl">Skins</span></button>
       <button id="btnSettings" class="btn" title="Settings"><span class="ic">⚙</span><span class="lbl">Settings</span></button>
     </nav>
   </header>
+
+  <aside id="spotifyDrawer" class="spotify-drawer is-closed" aria-label="Spotify Music Player" aria-hidden="true"></aside>
 
   <main id="board" class="board empty" aria-label="Solitaire table"></main>
 
@@ -280,6 +284,11 @@
   <script defer src="js/account/sync.js"></script>
   <script defer src="js/account/auth.js"></script>
   <script defer src="js/account/account.js"></script>
+  <!-- optional Spotify player & account integration -->
+  <script defer src="js/spotify/pkce.js"></script>
+  <script defer src="js/spotify/client.js"></script>
+  <script defer src="js/spotify/player.js"></script>
+  <script defer src="js/spotify/ui.js"></script>
   <!-- game: definitions, settings & state -->
   <script defer src="js/game/config.js"></script>
   <script defer src="js/game/settings.js"></script>

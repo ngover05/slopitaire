@@ -12,7 +12,7 @@ const Sound = (() => {
   // lite: phones & low-power devices — a larger output buffer, a deeper schedule and fewer voices per note
   const cfg = { muted: false, sfx: 0.7, music: 0.5, track: 'pulse', lite: false };
   let timer = null, nextT = 0, step = 0, phrases = null, loopN = 0, ducked = false;
-  let intensity = 0, musicStartT = 0, pausedByPage = false;
+  let intensity = 0, musicStartT = 0, pausedByPage = false, externalMusicActive = false;
 
   // How far ahead the step scheduler queues notes. The scheduler runs on the main thread, so any stall longer than
   // this (layout, a busy frame, a throttled timer on a phone) leaves a gap in the music.
@@ -47,7 +47,7 @@ const Sound = (() => {
   }
 
   function activeTrack() {
-    if (cfg.track === 'off') return null;
+    if (cfg.track === 'off' || cfg.track === 'spotify') return null;
     return TRACKS[cfg.track] || TRACKS.pulse;
   }
 
@@ -162,9 +162,9 @@ const Sound = (() => {
     cfg.lite = !!cfg.lite;
     if (!ctx) return;
     applyGains();
-    if (cfg.muted || cfg.track === 'off') {
+    if (cfg.muted || cfg.track === 'off' || cfg.track === 'spotify' || externalMusicActive) {
       stopMusic();
-      if (cfg.track === 'off') deck = null; // music switched off: let the decoded loops go
+      if (cfg.track === 'off' || cfg.track === 'spotify') deck = null; // music switched off: let the decoded loops go
     }
     else if (prevTrack !== cfg.track || prevMuted !== cfg.muted || !musicActive || (prevLite !== cfg.lite && !stream)) {
       // (the pre-rendered loops don't depend on lite; only the live sequencer has to restart for it)
@@ -552,6 +552,7 @@ const Sound = (() => {
 
   function startMusic() {
     stopMusic();
+    if (externalMusicActive) return;
     const tr = activeTrack();
     if (!ctx || cfg.muted || !tr) return;
     clearKicks();
@@ -599,11 +600,20 @@ const Sound = (() => {
   }
   function duck(on) { if (ducked === !!on) return; ducked = !!on; applyGains(); }
 
+  function setExternalMusicActive(on) {
+    const next = !!on;
+    if (next === externalMusicActive) return;
+    externalMusicActive = next;
+    if (!ctx) return;
+    if (next) stopMusic();
+    else if (!cfg.muted && cfg.track !== 'off' && cfg.track !== 'spotify' && !musicActive) startMusic();
+  }
+
   // debugging: what the music is doing right now
   function musicState() {
     const d = stream ? stream.deck : deck;
     return {
-      mode: stream ? 'files' : timer ? 'synth' : musicActive ? 'loading' : 'off',
+      mode: (externalMusicActive || cfg.track === 'spotify') ? 'spotify' : stream ? 'files' : timer ? 'synth' : musicActive ? 'loading' : 'off',
       track: cfg.track,
       intensity,
       tier: stream && stream.cur ? stream.cur.tier : null,
@@ -620,6 +630,7 @@ const Sound = (() => {
     sfx,
     startMusic,
     stopMusic,
+    setExternalMusicActive,
     suspend,
     resume,
     getTelemetry,
