@@ -1,7 +1,8 @@
 /* Slopitaire — companion picker */
-/* ---------- companion picker (8-partner 4x2 grid) ---------- */
-.cast-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+/* ---------- companion picker (9-partner 5+4 centered flex-wrap) ---------- */
+.cast-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .cast-opt {
+  flex: 0 1 calc((100% - 24px) / 5);
   min-width: 0;
   border: 2px solid var(--hud-border); background: var(--chip); color: inherit; border-radius: 13px; padding: 5px 4px;
   cursor: pointer; font: 700 12px 'Chakra Petch', 'Nunito', sans-serif;
@@ -56,6 +57,7 @@
   background: color-mix(in srgb, var(--accent) 18%, var(--panel));
 }
 .settings-cast { width: 100%; margin-top: 6px; gap: 7px; }
+.settings-cast .cast-opt { flex: 0 1 calc((100% - 28px) / 5); }
 .start-cast { margin: 0 0 9px; }
 .start-cast-label {
   font-family: 'Orbitron', 'Chakra Petch', sans-serif; font-weight: 700; font-size: 11px;
@@ -85,6 +87,7 @@
 #mascot[data-partner="ayame"] .bubble { --bub-accent: #ff3366; --bub-edge: #be123c; }
 #mascot[data-partner="mio"] .bubble { --bub-accent: #6ef7c8; --bub-edge: #38c998; }
 #mascot[data-partner="kaede"] .bubble { --bub-accent: #ffbe55; --bub-edge: #e08e26; }
+#mascot[data-partner="tanner"] .bubble { --bub-accent: #60a5fa; --bub-edge: #d97706; }
 .mascot.is-girl .bubble { right: 78%; bottom: 68%; z-index: 4; }
 .mascot.is-girl.is-full .bubble { right: 82%; bottom: 72%; }
 .bubble::after {

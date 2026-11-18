@@ -14,7 +14,7 @@ const SfxSuite = (() => {
   'use strict';
   const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
   const PARTNER_SEMI = {
-    sakura: 0, yuki: 2, rin: -1, mio: 4, ayame: -3, kira: -5, kaede: -2, mochi: 5
+    sakura: 0, yuki: 2, rin: -1, mio: 4, ayame: -3, kira: -5, kaede: -2, tanner: -4, mochi: 5
   };
   const PARTNERS = Object.keys(PARTNER_SEMI);
   const partnerSemi = (p) => PARTNER_SEMI[String(p || 'sakura').toLowerCase()] || 0;
@@ -433,6 +433,15 @@ function createSoundEffects(A) {
         [77, 81, 84].forEach((m, i) => {
           bell(mtof(m), t + 0.025 + i * 0.058, 0.44, 0.078, A.sfxBus, false, true);
         });
+      } else if (k === 'tanner') {
+        // AI-Bound Tsundere: snappy two-note prompt chirp + bold low cobalt/Western fifth chord stab
+        [74, 81].forEach((m, i) => {
+          tone(mtof(m), t + i * 0.045, 0.058, { type: 'square', vol: 0.05, lp: 4600, lpEnd: 1800, a: 0.002 });
+        });
+        chordStab([62, 69, 74, 78], t + 0.095, 0.34, {
+          type: 'sawtooth', detune: 10, vol: 0.068, lp: 5600, lpEnd: 1700, sfxSend: true
+        });
+        bell(mtof(74), t + 0.1, 0.34, 0.072, A.sfxBus, false, true);
       } else if (k === 'mochi') {
         // Playful mini nya-chime
         tone(640, t, 0.12, { type: 'sawtooth', vol: 0.075, glide: 980, glideT: 0.06, lp: 2200 });
@@ -471,6 +480,11 @@ function createSoundEffects(A) {
         chordStab([65, 69, 72, 76], t, 0.28, { type: 'triangle', vol: 0.048, a: 0.012, lp: 2200 });
         bell(mtof(81), t + 0.03, 0.28, 0.075, A.sfxBus, false, true);
         bell(mtof(88), t + 0.08, 0.34, 0.08, A.sfxBus, false, true);
+      } else if (k === 'tanner') {
+        // Flustered tsundere prompt blip + warm resolving chime
+        tone(620, t, 0.042, { type: 'square', vol: 0.046, glide: 1180, lp: 4200, a: 0.002 });
+        bell(mtof(74), t + 0.035, 0.26, 0.075, A.sfxBus, false, false);
+        bell(mtof(78), t + 0.08, 0.32, 0.08, A.sfxBus, false, true);
       } else {
         const pair = k === 'yuki' ? [83, 90] : k === 'rin' ? [81, 86] : k === 'mochi' ? [86, 91] : [84, 88];
         tone(540, t, 0.048, { type: 'sine', vol: 0.085, glide: 1240, a: 0.002 });

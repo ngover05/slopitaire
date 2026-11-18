@@ -9,7 +9,7 @@ function cutIn(text) {
   const mood = /APEX|BLITZ|BOOST/i.test(text) ? 'hype'
     : /SUIT|RUN|PEAK|ROW/i.test(text) ? 'cheer'
     : /VICTORY|WIN/i.test(text) ? 'cheer'
-    : (c.key === 'rin' || c.key === 'kira' || c.key === 'ayame') ? 'smug'
+    : (c.key === 'rin' || c.key === 'kira' || c.key === 'ayame' || c.key === 'tanner') ? 'smug'
     : (c.key === 'sakura' || c.key === 'kaede') ? 'cheer'
     : c.key === 'mio' ? 'happy' : 'wink';
   el.dataset.partner = c.key;

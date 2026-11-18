@@ -156,7 +156,7 @@
   .skins-stage .skins-mascot.is-girl { --chara-h: clamp(190px, 31dvh, 265px); }
   .skins-foot { margin-top: 10px; padding-top: 10px; }
   .start-panel .cast-pick { gap: 5px; }
-  .start-panel .cast-opt { padding: 4px 3px; border-radius: 11px; }
+  .start-panel .cast-opt { flex: 0 1 calc((100% - 20px) / 5); padding: 4px 3px; border-radius: 11px; }
   .start-panel .cast-opt .cast-face { width: 44px; height: 44px; margin-bottom: 2px; }
   .start-panel .cast-opt b { font-size: 12px; line-height: 1.12; }
   .start-panel .cast-opt small { font-size: 9.5px; line-height: 1.12; }
@@ -189,6 +189,11 @@
 }
 @media (max-width: 640px) and (max-height: 830px) {
   .result-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .cast-pick { gap: 5px; }
+  .cast-pick .cast-opt,
+  .start-panel .cast-opt { flex: 0 1 calc((100% - 10px) / 3); }
 }
 @media (max-height: 620px) {
   .start-panel .start-mascot.is-girl { --chara-h: 82px; margin-top: 6px; }

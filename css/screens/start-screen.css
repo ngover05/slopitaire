@@ -1,6 +1,6 @@
 /* Slopitaire — start screen */
-/* ---------- start screen (calibrated for 8-partner 4x2 & 4-diff zero-clip fit on 1440x900, 1366x768 & 390x844) ---------- */
-.start-panel { text-align: center; max-width: 568px; padding: 12px 18px 13px; }
+/* ---------- start screen (calibrated for 9-partner 5+4 & 4-diff zero-clip fit on 1440x900, 1366x768 & 390x844) ---------- */
+.start-panel { text-align: center; max-width: 620px; padding: 12px 18px 13px; }
 .start-mascot { width: 98px; margin: 4px auto 1px; cursor: pointer; }
 .start-mascot:not(.is-girl) .mascot-body { margin-inline: auto; animation: bob 2.6s ease-in-out infinite; }
 .start-mascot:not(.is-girl) .mascot-body.boing { animation: boing .5s ease, bob 2.6s ease-in-out .5s infinite; }

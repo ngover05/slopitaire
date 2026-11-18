@@ -12,17 +12,19 @@ const Voice = (() => {
   // Ranking: neural "Natural/Online" voices sound best; local voices start instantly (network voices lag & stutter);
   // female-sounding names suit the cast.
   const FEM = /(nanami|haruka|ayumi|kyoko|o-ren|sayaka|mizuki|hikari|aoi|shiori|mayu|female|google 日本語|zira|aria|jenny|samantha|susan|hazel|libby|sonia|ava|allison|emma|michelle|google us english|google uk english female)/i;
+  const MALE = /(keita|ichiro|otoya|hattori|david|mark|guy|christopher|ryan|daniel|alex|aaron|george|eric|andrew|brian|steffan|male|google uk english male)/i;
   const langOf = (v) => (v.lang || '').toLowerCase().replace('_', '-');
-  const score = (v) => (/natural|neural|online/i.test(v.name) ? 6 : 0) + (v.localService ? 3 : 0) + (FEM.test(v.name) ? 2 : 0);
-  function list(lang) { return voices.filter((v) => langOf(v).startsWith(lang)).sort((a, b) => score(b) - score(a)); }
+  const score = (v, gender = 'female') => (/natural|neural|online/i.test(v.name) ? 6 : 0) + (v.localService ? 3 : 0) + ((gender === 'male' ? MALE : FEM).test(v.name) ? 2 : 0);
+  function list(lang, gender = 'female') { return voices.filter((v) => langOf(v).startsWith(lang)).sort((a, b) => score(b, gender) - score(a, gender)); }
   const NATURAL = /natural|neural|online/i;
-  // Auto pick: each companion gets her own voice from the best tier when several exist (slot), so the
+  // Auto pick: each companion gets their own voice from the best tier when several exist (slot), so the
   // personalities come from different voices instead of heavy pitch-shifting.
-  function find(lang, name, slot = 0) {
-    const l = list(lang);
+  function find(lang, name, slot = 0, gender = 'female') {
+    const l = list(lang, gender);
     if (name) { const v = l.find((x) => x.name === name); if (v) return v; }
     if (!l.length) return null;
-    const top = score(l[0]), tier = l.filter((v) => score(v) === top && FEM.test(v.name));
+    const match = gender === 'male' ? MALE : FEM;
+    const top = score(l[0], gender), tier = l.filter((v) => score(v, gender) === top && match.test(v.name));
     return tier.length ? tier[slot % tier.length] : l[0];
   }
   // Make lines easier for TTS engines: strip arcade symbols/emojis, collapse repeated '!', drop written stutters ("べ、別に", "D-don't") and long ellipsis pauses.
@@ -115,8 +117,9 @@ const Voice = (() => {
     if (url) return playClip(url, o);
     if (!synth) return false;
     if (cur instanceof Audio) halt();
-    let voice = o.lang === 'ja' ? find('ja', o.name, o.slot) : null, text = line.ja, ja = true;
-    if (!voice) { voice = find('en', o.name, o.slot); text = line.en; ja = false; }
+    const gender = prof && prof.gender;
+    let voice = o.lang === 'ja' ? find('ja', o.name, o.slot, gender) : null, text = line.ja, ja = true;
+    if (!voice) { voice = find('en', o.name, o.slot, gender); text = line.en; ja = false; }
     if (!voice && voices.length) return false;
     const u = new SpeechSynthesisUtterance(speakable(text, ja));
     if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = ja ? 'ja-JP' : 'en-US';

@@ -20,7 +20,7 @@ const SCHEMA = [
     { key: 'theme', label: 'Theme', type: 'seg', options: THEMES },
     { key: 'bgFx', label: 'Prism stage effects', type: 'toggle', hint: 'Ambient circuit-board backdrop with slowly drifting lights.' },
     { key: 'popups', label: 'Pop-up FX', type: 'seg', options: [['max', 'Hyper'], ['normal', 'Standard'], ['off', 'Minimal']], hint: 'Floating score tags, live medal feed, banners & companion stamps.' },
-    { key: 'front', label: 'Card front', type: 'fronts', hint: 'Face art, Aces & court cards (Classic, Cyber, every girl & Mochi).' },
+    { key: 'front', label: 'Card front', type: 'fronts', hint: 'Face art, Aces & court cards (Classic, Cyber, every companion & Mochi).' },
     { key: 'back', label: 'Card back', type: 'backs', hint: 'Sleeve pattern & emblem on the back of every card (mix & match freely).' },
     { key: 'anim', label: 'Animations', type: 'seg', options: [['normal', 'Normal'], ['fast', 'Fast'], ['off', 'Off']] },
     { key: 'perf', label: 'Graphics quality', type: 'seg', options: [['auto', 'Auto'], ['high', 'High'], ['lite', 'Battery saver']],
@@ -157,7 +157,7 @@ const LOSS_HINT = {
   off: 'Never end the game automatically.',
 };
 function voiceHint() {
-  if (Voice.hasClips(settings.companion) || Cast.get(settings.companion).kind === 'cat') return 'Every partner has her own recorded voice.';
+  if (Voice.hasClips(settings.companion) || Cast.get(settings.companion).kind === 'cat') return 'Every partner has their own recorded voice.';
   if (!Voice.supported) return 'Your browser has no speech voices — bubbles only.';
   if (settings.voiceLang === 'ja' && !Voice.available('ja')) return "Uses your browser's voices. No Japanese voice found, so English is used.";
   return "Uses your browser's built-in voices (Chrome & Edge sound best).";
@@ -165,7 +165,7 @@ function voiceHint() {
 
 function outfitHint() {
   const c = Cast.get(settings.companion);
-  if (!c || c.kind !== 'girl') return 'Cyber Lucky Neko — browse outfits for all 7 heroines.';
+  if (!c || c.kind !== 'girl') return 'Cyber Lucky Neko — browse outfits for all 8 companions.';
   const activeKey = skinFor(c.key);
   const s = c.getSkin ? c.getSkin(activeKey) : null;
   return s ? `${c.name}: ${s.name}${s.subtitle ? ' — ' + s.subtitle : ''}` : `${c.name}: Default`;
@@ -215,7 +215,7 @@ function renderSettingsOutfitRow(row) {
   allBtn.type = 'button';
   allBtn.className = 'btn settings-skins-btn';
   allBtn.id = 'btnSettingsSkins';
-  allBtn.textContent = '🎀 All Girl Skins…';
+  allBtn.textContent = '🎀 All Outfits…';
   allBtn.onclick = () => {
     Sound.ensure();
     openSkinsModal(settings.companion);

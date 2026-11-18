@@ -81,7 +81,14 @@ function normalizeSettings(raw) {
 const rawBootSettings = Store.get('settings', {});
 let settings = normalizeSettings(rawBootSettings);
 const voiceNameFor = (k) => settings.voiceNames[k || settings.companion] || '';
-const partnerTone = (k) => (k === 'kira' || k === 'mio' ? 'emerald' : k === 'ayame' ? 'danger' : k === 'yuki' ? 'violet' : 'amber');
+const PARTNER_TONES = { kira: 'emerald', mio: 'emerald', ayame: 'danger', yuki: 'violet', tanner: 'amber' };
+const DECK_TONES = {
+  cyber: 'emerald', kira: 'emerald', mio: 'emerald', hearts: 'emerald',
+  ayame: 'danger',
+  yuki: 'violet', rin: 'violet', stars: 'violet', neko: 'violet',
+  tanner: 'amber',
+};
+const partnerTone = (k) => PARTNER_TONES[k] || 'amber';
 function skinFor(charKey) {
   const k = charKey || settings.companion;
   const raw = (settings.skins && typeof settings.skins === 'object' && Object.prototype.hasOwnProperty.call(settings.skins, k))
@@ -142,7 +149,7 @@ function setAllGirlSkins(skinKey, quiet) {
   if (!quiet) {
     Sound.sfx.modeSwitch?.();
     const tone = skinKey === 'casual' ? 'emerald' : 'amber';
-    PopupFX?.pill('🎀', `OUTFITS // ALL ${skinKey.toUpperCase()}`, `${updated} HEROINES UPDATED`, tone, { always: true });
+    PopupFX?.pill('🎀', `OUTFITS // ALL ${skinKey.toUpperCase()}`, `${updated} COMPANIONS UPDATED`, tone, { always: true });
     if (Cast.get(settings.companion)?.kind === 'girl') Companion.react('themeChange');
   }
   return true;
@@ -200,13 +207,13 @@ function setSetting(key, v, quiet) {
     } else if (key === 'front') {
       Sound.sfx.modeSwitch?.();
       const F = Art.FRONTS?.[v] || Art.FRONTS?.classic;
-      const fTone = v === 'cyber' || v === 'kira' || v === 'mio' ? 'emerald' : v === 'ayame' ? 'danger' : v === 'yuki' || v === 'rin' ? 'violet' : 'amber';
+      const fTone = DECK_TONES[v] || 'amber';
       PopupFX?.pill('♠', `CARD FRONT // ${(F?.name || v).toUpperCase()}`, F?.subtitle || 'DECK FACE ACTIVE', fTone, { always: true });
       Companion.react('themeChange');
     } else if (key === 'back') {
       Sound.sfx.modeSwitch?.();
       const B = Art.BACKS?.[v] || Art.BACKS?.sakura;
-      const bTone = v === 'cyber' || v === 'kira' || v === 'mio' || v === 'hearts' ? 'emerald' : v === 'ayame' ? 'danger' : v === 'yuki' || v === 'rin' || v === 'stars' || v === 'neko' ? 'violet' : 'amber';
+      const bTone = DECK_TONES[v] || 'amber';
       PopupFX?.pill('❖', `CARD BACK // ${(B?.name || v).toUpperCase()}`, 'CARD SLEEVE ACTIVE', bTone, { always: true });
       Companion.react('themeChange');
     } else if (key === 'muted' && v === true) {

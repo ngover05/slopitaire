@@ -60,6 +60,25 @@ body [data-partner="kaede"] .girl-sprite:not(.is-face) {
   border-radius: 50%;
   background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(255, 190, 85, .22) 0%, rgba(255, 224, 150, .1) 46%, transparent 74%);
 }
+/* Tanner: AI-Bound Tsundere — cobalt-blue & saddle-copper glow */
+body[data-partner="tanner"] .girl-sprite:not(.is-face),
+body [data-partner="tanner"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(96, 165, 250, .70))
+    drop-shadow(1.8px 0 3.5px rgba(245, 158, 11, .56))
+    drop-shadow(0 0 14px rgba(96, 165, 250, .36))
+    drop-shadow(0 7px 18px rgba(8, 14, 24, .52));
+}
+#mascot[data-partner="tanner"] .mascot-body::before,
+#startMascot[data-partner="tanner"]::before,
+.start-mascot[data-partner="tanner"] .mascot-body::before,
+#winMascot[data-partner="tanner"]::before,
+#loseMascot[data-partner="tanner"]::before,
+#cutin[data-partner="tanner"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(96, 165, 250, .22) 0%, rgba(245, 158, 11, .11) 46%, transparent 74%);
+}
 
 /* High-tier combo & hype surge aura */
 body[data-combo-tier="3"] .chara.girl-sprite:not(.is-face),

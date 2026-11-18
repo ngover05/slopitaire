@@ -4,7 +4,7 @@
 #confirmModal { z-index: 10040; }
 
 .skins-panel {
-  max-width: 780px;
+  max-width: 840px;
   padding: 18px 20px 16px;
   overflow: hidden auto;
 }
@@ -42,10 +42,10 @@
   box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, transparent), 0 0 12px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-/* 7-girl roster tab strip */
+/* 8-companion roster tab strip */
 .skins-roster {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
   margin: 11px 0 12px;
 }
@@ -232,6 +232,10 @@ body[data-theme="matcha"] .skins-stage-kicker {
 #skinsMascot[data-partner="kaede"]::before {
   content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none; border-radius: 50%;
   background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(255, 190, 85, .22) 0%, rgba(255, 224, 150, .1) 46%, transparent 74%);
+}
+#skinsMascot[data-partner="tanner"]::before {
+  content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(96, 165, 250, .22) 0%, rgba(245, 158, 11, .11) 46%, transparent 74%);
 }
 #skinsMascot[data-partner="ayame"]::before {
   content: ''; position: absolute; inset: 6% -12% 0 -12%; z-index: 0; pointer-events: none; border-radius: 50%;
