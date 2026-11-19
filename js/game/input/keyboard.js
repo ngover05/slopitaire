@@ -6,6 +6,7 @@ function bindKeyboard() {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!$('#confirmModal').classList.contains('hidden')) hideOverlay('confirmModal');
+      else if (window.GachaCinematic?.isOpen?.()) window.GachaCinematic.onEscape?.();
       else if (!$('#gachaModal')?.classList.contains('hidden')) hideOverlay('gachaModal');
       else if (!$('#skinsModal')?.classList.contains('hidden')) hideOverlay('skinsModal');
       else if (!$('#settingsModal').classList.contains('hidden')) hideOverlay('settingsModal');

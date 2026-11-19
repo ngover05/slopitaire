@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="css/screens/results.css">
   <link rel="stylesheet" href="css/screens/skins.css">
   <link rel="stylesheet" href="css/screens/gacha.css">
+  <link rel="stylesheet" href="css/screens/gacha-cinematic.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/screens/account.css">
   <link rel="stylesheet" href="css/perf-lite.css">
@@ -229,10 +230,19 @@
           <button type="button" class="btn gacha-skip-btn hidden" id="btnGachaSkip">Skip ⏭</button>
         </div>
         <div class="gacha-stage" id="gachaStage" data-phase="idle">
+          <div class="gacha-stage-rays" aria-hidden="true"></div>
           <div class="gacha-beam" aria-hidden="true"></div>
+          <div class="gacha-stage-summary hidden" id="gachaStageSummary">
+            <div class="gss-chips" id="gachaStageSummaryChips"></div>
+            <button type="button" class="btn gss-replay-btn" id="btnGachaReplay" title="Replay reveal animation">🎬 Replay</button>
+          </div>
           <div class="gacha-stage-empty" id="gachaStageEmpty">
-            <span class="gse-icon">✦</span>
-            <p class="gse-text">Ready to warp — use a Pull above or win manual deals to earn more!</p>
+            <div class="gse-portal" aria-hidden="true">
+              <span class="gse-ring gse-ring-outer"></span>
+              <span class="gse-ring gse-ring-inner"></span>
+              <span class="gse-icon">✦</span>
+            </div>
+            <p class="gse-text">Dimensional Prism Gate armed — pull above to ignite a warp or win deals to earn tickets!</p>
           </div>
           <div class="gacha-results-grid hidden" id="gachaResultsGrid"></div>
         </div>
@@ -247,6 +257,79 @@
         </div>
         <div class="gacha-exchange-grid" id="gachaExchangeGrid"></div>
       </section>
+    </div>
+
+    <div id="gachaTheater" class="gacha-theater hidden" data-phase="idle" data-tier="r" aria-live="polite">
+      <div class="gt-backdrop" aria-hidden="true">
+        <div class="gt-nebula"></div>
+        <div class="gt-speedlines"></div>
+        <div class="gt-meteors" id="gtMeteors"></div>
+      </div>
+      <div class="gt-letterbox gt-lb-top" aria-hidden="true">
+        <span class="gt-ticker" id="gtTickerTop">◈ PRISM DIMENSIONAL WARP // GATE SYNCHRONIZATION ◈</span>
+      </div>
+      <div class="gt-letterbox gt-lb-bot" aria-hidden="true">
+        <span class="gt-ticker" id="gtTickerBot">✦ RESONANCE VECTOR LOCKED // SLOPITAIRE PRISM CORE ✦</span>
+      </div>
+
+      <div class="gt-core-stage" id="gtCoreStage" aria-hidden="true">
+        <div class="gt-ring gt-ring-outer"></div>
+        <div class="gt-ring gt-ring-mid"></div>
+        <div class="gt-ring gt-ring-inner"></div>
+        <div class="gt-crosshair"></div>
+        <div class="gt-crystal-wrap">
+          <div class="gt-crystal-halo"></div>
+          <div class="gt-crystal"><span class="gt-crystal-glyph">✦</span></div>
+          <div class="gt-cracks"></div>
+        </div>
+        <div class="gt-charge-readout" id="gtChargeReadout">CHARGING PRISM CORE…</div>
+      </div>
+
+      <div class="gt-impact" id="gtImpact" aria-hidden="true">
+        <div class="gt-slash"></div>
+        <div class="gt-flash"></div>
+      </div>
+
+      <div class="gt-arena hidden" id="gtArena">
+        <div class="gt-summary-head" id="gtSummaryHead">
+          <span class="gt-sh-kicker" id="gtSummaryKicker">◈ PRISM WARP // UNSEALING</span>
+          <h3 class="gt-sh-title" id="gtSummaryTitle">PRISM SIGNALS MATERIALIZED</h3>
+          <div class="gt-sh-chips" id="gtSummaryChips"></div>
+        </div>
+        <div class="gt-cards-grid" id="gtCardsGrid"></div>
+        <div class="gt-arena-foot" id="gtArenaFoot">
+          <button type="button" class="btn primary gacha-pull-btn" id="btnTheaterFlipAll">✦ Flip All</button>
+          <button type="button" class="btn primary gacha-pull-btn hidden" id="btnTheaterPull1">🎫 Pull ×1</button>
+          <button type="button" class="btn gacha-pull-btn gacha-pull-multi hidden" id="btnTheaterPullMulti">🌟 Pull ×10</button>
+          <button type="button" class="btn gt-done-btn hidden" id="btnTheaterDone">✓ Collect &amp; Close</button>
+        </div>
+      </div>
+
+      <div class="gt-spotlight hidden" id="gtSpotlight" data-rarity="ssr">
+        <div class="gt-spot-rays" aria-hidden="true"></div>
+        <div class="gt-spot-ribbons" aria-hidden="true">
+          <div class="gt-ribbon gt-ribbon-top">★ ULTRA RARE // PRISM RESONANCE ★ ULTRA RARE // PRISM RESONANCE ★</div>
+          <div class="gt-ribbon gt-ribbon-bot">✦ SSR SHOWCASE ✦ SLOPITAIRE // PRISM ✦ SSR SHOWCASE ✦</div>
+        </div>
+        <div class="gt-spot-body">
+          <div class="gt-spot-visual" id="gtSpotVisual"></div>
+          <div class="gt-spot-info">
+            <div class="gt-spot-kicker" id="gtSpotKicker">★ SSR COMPANION OUTFIT</div>
+            <div class="gt-spot-stars" id="gtSpotStars" aria-hidden="true"></div>
+            <h3 class="gt-spot-name" id="gtSpotName"></h3>
+            <div class="gt-spot-sub" id="gtSpotSub"></div>
+            <div class="gt-spot-badges" id="gtSpotBadges"></div>
+            <blockquote class="gt-spot-quote hidden" id="gtSpotQuote"></blockquote>
+            <div class="gt-spot-actions" id="gtSpotActions"></div>
+          </div>
+        </div>
+        <div class="gt-spot-foot">
+          <span class="gt-spot-hint" id="gtSpotHint">Click anywhere or press Space to continue ▶</span>
+          <div class="gt-spot-timer"><div class="gt-spot-timer-fill" id="gtSpotTimerFill"></div></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn gt-skip-btn hidden" id="btnTheaterSkip">Skip ⏭</button>
     </div>
   </div>
 
@@ -425,6 +508,8 @@
   <script defer src="js/game/ui/overlays.js"></script>
   <script defer src="js/game/ui/win-modal.js"></script>
   <script defer src="js/game/ui/lose-modal.js"></script>
+  <script defer src="js/game/ui/gacha-spotlight.js"></script>
+  <script defer src="js/game/ui/gacha-cinematic.js"></script>
   <script defer src="js/game/ui/gacha-modal.js"></script>
   <script defer src="js/game/ui/skins-modal.js"></script>
   <script defer src="js/game/ui/settings-panel.js"></script>

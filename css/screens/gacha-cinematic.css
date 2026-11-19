@@ -1,0 +1,468 @@
+/* Slopitaire — Prism Gacha summon theater (#gachaTheater), sealed monoliths & SSR spotlight */
+
+/* ---------- Sealed Card Monolith & Sneaky Fake-Out Cracks ---------- */
+.gacha-card-seal {
+  position: relative; z-index: 2;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 154px; width: 100%;
+}
+.gacha-card.is-sealed {
+  cursor: pointer;
+  background: linear-gradient(165deg, rgba(14, 28, 42, .94), rgba(7, 15, 24, .98));
+  border-color: rgba(86, 204, 242, .58);
+  box-shadow: 0 0 14px rgba(86, 204, 242, .2), inset 0 0 18px rgba(44, 232, 162, .12);
+}
+.gacha-card.is-sealed:hover { transform: translateY(-3px) scale(1.02); }
+.gacha-card.is-sealed[data-seal-tier="sr"] {
+  border-color: rgba(180, 162, 255, .82);
+  box-shadow: 0 0 18px rgba(157, 140, 255, .36), inset 0 0 20px rgba(157, 140, 255, .2);
+}
+.gacha-card.is-sealed[data-seal-tier="ssr"] {
+  border-color: #ffe169;
+  box-shadow: 0 0 24px rgba(255, 209, 102, .52), inset 0 0 24px rgba(255, 92, 138, .22);
+}
+.gacha-card.is-sealed .gacha-card-seal {
+  display: flex;
+  animation: gachaSealPulse 1.1s ease-in-out infinite alternate;
+}
+
+.gcs-sigil { position: relative; width: 54px; height: 54px; display: grid; place-items: center; }
+.gcs-ring {
+  position: absolute; inset: 0; border-radius: 14px;
+  border: 1.5px dashed rgba(86, 204, 242, .75);
+  animation: gachaOrbitSpin 7s linear infinite;
+}
+.gacha-card[data-seal-tier="sr"] .gcs-ring { border-color: rgba(196, 181, 255, .88); }
+.gacha-card[data-seal-tier="ssr"] .gcs-ring { border-color: #ffe169; box-shadow: 0 0 12px rgba(255, 225, 105, .45); }
+
+.gcs-emblem { font-size: 26px; color: #56ccf2; text-shadow: 0 0 12px rgba(86, 204, 242, .8); }
+.gacha-card[data-seal-tier="sr"] .gcs-emblem { color: #ddd6fe; text-shadow: 0 0 14px rgba(157, 140, 255, .9); }
+.gacha-card[data-seal-tier="ssr"] .gcs-emblem { color: #ffe169; text-shadow: 0 0 16px #ffb638, 0 0 26px #ff5c8a; }
+.gcs-hint {
+  font: 800 8.5px/1 'Orbitron', 'Chakra Petch', sans-serif;
+  letter-spacing: 1.2px; color: rgba(214, 238, 248, .72);
+}
+
+.gacha-card.is-cracking {
+  animation: gtCrackShake .075s linear infinite !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 32px #ffe169, inset 0 0 28px #ffffff !important;
+}
+
+/* ---------- Full-Viewport Prism Summon Theater (#gachaTheater) ---------- */
+.gacha-theater {
+  --gt-a: #56ccf2;
+  --gt-b: #2ce8a2;
+  --gt-glow: rgba(86, 204, 242, .58);
+  position: fixed; inset: 0; z-index: 10035; overflow: hidden;
+  display: grid; place-items: center;
+  color: #f4fbff; background: #040812;
+  user-select: none; animation: fadeIn .18s ease;
+}
+.gacha-theater[data-tier="sr"] { --gt-a: #c4b5ff; --gt-b: #2ce8a2; --gt-glow: rgba(157, 140, 255, .68); }
+.gacha-theater[data-tier="ssr"] { --gt-a: #ffe169; --gt-b: #ff5c8a; --gt-glow: rgba(255, 209, 102, .82); }
+.gacha-theater.is-shaking { animation: gtImpactShake .36s cubic-bezier(.36, .07, .19, .97); }
+.gacha-theater[data-phase="fakeout"] { animation: gtFakeoutShake .11s linear infinite; }
+
+/* Cosmic Nebula, Speedlines & Comet Barrage */
+.gt-backdrop { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.gt-nebula {
+  position: absolute; inset: -15%;
+  background:
+    radial-gradient(ellipse 55% 48% at 50% 50%, color-mix(in srgb, var(--gt-a) 28%, transparent) 0%, transparent 68%),
+    radial-gradient(ellipse 46% 42% at 28% 36%, color-mix(in srgb, var(--gt-b) 22%, transparent) 0%, transparent 65%),
+    radial-gradient(ellipse 48% 44% at 74% 66%, rgba(44, 232, 162, .14) 0%, transparent 66%),
+    linear-gradient(180deg, #03060e 0%, #071220 50%, #040812 100%);
+  transition: background .28s ease;
+}
+.gt-speedlines {
+  position: absolute; inset: -60%; opacity: .42;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    color-mix(in srgb, var(--gt-a) 22%, transparent) 0deg 1.6deg,
+    transparent 1.6deg 9deg,
+    color-mix(in srgb, var(--gt-b) 18%, transparent) 9deg 10.2deg,
+    transparent 10.2deg 18deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 14%, rgba(0, 0, 0, .75) 38%, #000 72%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 14%, rgba(0, 0, 0, .75) 38%, #000 72%);
+  animation: gachaOrbitSpin 22s linear infinite;
+}
+.gacha-theater[data-phase="warp"] .gt-speedlines,
+.gacha-theater[data-phase="fakeout"] .gt-speedlines { opacity: .76; animation-duration: 7s; }
+
+.gt-meteors { position: absolute; inset: 0; overflow: hidden; }
+.gt-meteor {
+  --m-col: #56ccf2;
+  position: absolute;
+  left: calc(50% + var(--m-ox, 0px)); top: calc(50% + var(--m-oy, 0px));
+  width: 210px; height: 4px; border-radius: 999px; opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--m-col) 68%, #ffffff 100%);
+  box-shadow: 0 0 16px var(--m-col);
+  transform-origin: right center;
+  animation: gtMeteorStrike var(--m-dur, 520ms) cubic-bezier(.24, .82, .35, 1) var(--m-delay, 0ms) forwards;
+}
+.gt-meteor::after {
+  content: ''; position: absolute; right: -5px; top: 50%;
+  width: 12px; height: 12px; border-radius: 50%;
+  transform: translateY(-50%); background: #ffffff;
+  box-shadow: 0 0 18px 4px var(--m-col);
+}
+.gt-meteor.tier-sr { --m-col: #c4b5ff; }
+.gt-meteor.tier-ssr {
+  --m-col: #ffe169; height: 6px;
+  background: linear-gradient(90deg, transparent 0%, #ff5c8a 28%, #ffe169 72%, #ffffff 100%);
+  box-shadow: 0 0 24px #ffe169, 0 0 36px #ff5c8a;
+}
+.gt-meteor.is-hero { width: 320px; height: 7px; }
+.gt-meteor.is-hero::after { width: 18px; height: 18px; }
+
+/* Cinema Letterbox Bars */
+.gt-letterbox {
+  position: absolute; left: 0; right: 0; z-index: 3; height: 34px;
+  display: flex; align-items: center; justify-content: center; padding: 0 16px;
+  background: rgba(3, 7, 15, .9); pointer-events: none;
+  transition: transform .32s cubic-bezier(.22, 1, .36, 1), border-color .2s;
+}
+.gt-lb-top { top: 0; border-bottom: 2px solid var(--gt-a); box-shadow: 0 4px 20px var(--gt-glow); }
+.gt-lb-bot { bottom: 0; border-top: 2px solid var(--gt-b); box-shadow: 0 -4px 20px var(--gt-glow); }
+.gacha-theater[data-phase="fakeout"] .gt-letterbox {
+  border-color: #ff3366;
+  background: linear-gradient(90deg, rgba(48, 6, 18, .95), rgba(24, 8, 16, .95));
+}
+.gacha-theater[data-phase="summary"] .gt-lb-top { transform: translateY(-100%); }
+.gacha-theater[data-phase="summary"] .gt-lb-bot { transform: translateY(100%); }
+
+.gt-ticker {
+  font: 900 10.5px/1 'Orbitron', 'Chakra Petch', sans-serif;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--gt-a); text-shadow: 0 0 12px var(--gt-glow);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gacha-theater[data-phase="fakeout"] .gt-ticker { color: #ffe169; text-shadow: -2px 0 #ff3366, 2px 0 #2ce8a2; }
+
+/* Act I & II: Central Summon Gate & Singularity Core */
+.gt-core-stage {
+  position: relative; z-index: 2; width: 280px; height: 280px;
+  display: grid; place-items: center; pointer-events: none;
+}
+.gt-ring { position: absolute; border-radius: 50%; }
+.gt-ring-outer {
+  inset: 0; border: 2px dashed color-mix(in srgb, var(--gt-a) 78%, #ffffff);
+  box-shadow: 0 0 28px var(--gt-glow), inset 0 0 22px color-mix(in srgb, var(--gt-a) 24%, transparent);
+  animation: gachaOrbitSpin 9s linear infinite;
+}
+.gt-ring-mid {
+  inset: 28px; border-radius: 26px;
+  border: 2px solid color-mix(in srgb, var(--gt-b) 82%, #ffffff);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--gt-b) 45%, transparent);
+  animation: gachaOrbitSpinRev 5.5s linear infinite;
+}
+.gt-ring-inner { inset: 58px; border: 2.5px dotted var(--gt-a); animation: gachaOrbitSpin 3.2s linear infinite; }
+.gt-crosshair::before,
+.gt-crosshair::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%); opacity: .65;
+  background: linear-gradient(90deg, transparent, var(--gt-a), #ffffff, var(--gt-a), transparent);
+}
+.gt-crosshair::before { width: 340px; height: 1.5px; }
+.gt-crosshair::after {
+  width: 1.5px; height: 340px;
+  background: linear-gradient(180deg, transparent, var(--gt-b), #ffffff, var(--gt-b), transparent);
+}
+
+.gt-crystal-wrap { position: relative; width: 108px; height: 108px; display: grid; place-items: center; }
+.gt-crystal-wrap.is-hit { animation: gtCoreHit .18s cubic-bezier(.2, 1.6, .4, 1); }
+.gt-crystal-halo {
+  position: absolute; inset: -38%; border-radius: 50%; opacity: .78;
+  background: radial-gradient(circle, #ffffff 0%, var(--gt-a) 34%, var(--gt-b) 62%, transparent 76%);
+  animation: gachaSealPulse .48s ease-in-out infinite alternate;
+}
+.gt-crystal {
+  position: relative; z-index: 2; width: 68px; height: 68px; border-radius: 14px;
+  transform: rotate(45deg); display: grid; place-items: center;
+  background: linear-gradient(135deg, #ffffff 0%, var(--gt-a) 48%, var(--gt-b) 100%);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 32px var(--gt-a), 0 0 60px var(--gt-glow), inset 0 0 14px #ffffff;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.gt-crystal-glyph { transform: rotate(-45deg); font-size: 32px; color: #06101c; font-weight: 900; }
+
+.gt-cracks {
+  position: absolute; inset: -18px; z-index: 3; opacity: 0; border-radius: 50%;
+  background:
+    linear-gradient(28deg, transparent 46%, #ffffff 49%, #ffe169 51%, transparent 54%),
+    linear-gradient(-42deg, transparent 45%, #ff3366 48%, #ffffff 50%, transparent 53%),
+    linear-gradient(82deg, transparent 47%, #2ce8a2 49.5%, #ffffff 50.5%, transparent 53%);
+}
+.gacha-theater[data-phase="fakeout"] .gt-cracks { opacity: 1; animation: gachaOrbitSpin .45s steps(4) infinite; }
+.gacha-theater[data-phase="shatter"] .gt-core-stage { animation: gtCoreShatter .29s cubic-bezier(.16, 1, .3, 1) forwards; }
+
+.gt-charge-readout {
+  position: absolute; bottom: -44px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  font: 900 12px/1.1 'Orbitron', 'Chakra Petch', sans-serif;
+  letter-spacing: 1.6px; color: #ffffff; text-shadow: 0 0 14px var(--gt-a);
+}
+
+/* Anime Impact Frame & Chromatic Slash */
+.gt-impact { position: fixed; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+.gt-flash {
+  position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, var(--gt-a) 52%, transparent 88%);
+}
+.gt-slash {
+  position: absolute; left: -15%; right: -15%; top: 50%; height: 22px; opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--gt-b), #ffffff 50%, var(--gt-a), transparent);
+  box-shadow: 0 0 38px #ffffff, 0 0 64px var(--gt-a);
+  transform: translateY(-50%) rotate(-16deg) scaleY(0);
+}
+.gt-impact.is-firing .gt-flash { animation: gtImpactFlash .44s ease-out forwards; }
+.gt-impact.is-firing .gt-slash { animation: gtImpactSlash .38s cubic-bezier(.16, 1, .3, 1) forwards; }
+
+/* Act IV: Summoned Cards Arena */
+.gt-arena {
+  position: relative; z-index: 4; width: 100%; max-width: 920px; max-height: 100dvh;
+  overflow-y: auto; padding: 46px 20px 26px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.gacha-theater[data-phase="summary"] .gt-arena { padding-top: 24px; }
+
+.gt-summary-head { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.gt-sh-kicker { font: 900 10px/1.1 'Orbitron', 'Chakra Petch', sans-serif; letter-spacing: 1.8px; color: var(--gt-a); }
+.gt-sh-title {
+  margin: 0; font: 900 italic clamp(20px, 3.2vw, 30px)/1.08 'Orbitron', 'Mochiy Pop One', sans-serif;
+  letter-spacing: 1.2px; color: #ffffff;
+  text-shadow: -2px -1px 0 var(--gt-b), 3px 3px 0 rgba(0, 0, 0, .75), 0 0 22px var(--gt-glow);
+}
+.gt-sh-chips { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; min-height: 22px; }
+
+.gt-cards-grid { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 11px; }
+.gt-cards-grid.is-single { grid-template-columns: minmax(220px, 280px); justify-content: center; }
+.gt-cards-grid .gacha-card {
+  --panel: #0d1b29; --panel-ink: #eaf7f3; --chip: rgba(13, 27, 41, .92); --hud-border: rgba(110, 175, 205, .38);
+  color: #eaf7f3; padding: 11px 10px;
+  animation: gtCardDealIn .38s cubic-bezier(.18, 1.35, .36, 1) calc(var(--ci, 0) * 32ms) both;
+}
+.gt-cards-grid .gacha-card.is-flipping { animation: gachaCardUnseal .48s cubic-bezier(.18, 1.45, .36, 1) both; }
+.gt-cards-grid.is-single .gacha-card { padding: 16px 15px; border-radius: 18px; }
+.gt-cards-grid.is-single .gacha-card-seal { min-height: 215px; }
+.gt-cards-grid.is-single .gacha-art-skin { width: 88px; height: 88px; }
+.gt-cards-grid.is-single .gacha-art-card { width: 64px; height: 90px; }
+.gt-cards-grid.is-single .gcf-name { font-size: 15px; }
+.gt-cards-grid.is-single .gcf-stars { font-size: 13.5px; letter-spacing: 2.5px; }
+
+.gt-arena-foot { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.gt-done-btn { border-color: rgba(255, 255, 255, .52); background: rgba(14, 28, 42, .88); color: #ffffff; }
+.gt-done-btn:hover { border-color: var(--gt-a); }
+
+/* Act III: Full-Screen SSR Character Spotlight (#gtSpotlight) */
+.gt-spotlight {
+  --spot-a: #ffe169; --spot-b: #ff5c8a;
+  position: fixed; inset: 0; z-index: 9; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 46px 24px 48px; cursor: pointer; animation: fadeIn .16s ease;
+  background:
+    radial-gradient(ellipse 68% 64% at 36% 52%, color-mix(in srgb, var(--spot-a) 30%, #0a1020) 0%, #040814 74%),
+    #040814;
+}
+.gt-spot-rays {
+  position: absolute; inset: -65%; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg at 38% 52%,
+    color-mix(in srgb, var(--spot-a) 26%, transparent) 0deg 8deg,
+    transparent 8deg 18deg,
+    color-mix(in srgb, var(--spot-b) 20%, transparent) 18deg 25deg,
+    transparent 25deg 36deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 38% 52%, #000 0%, rgba(0, 0, 0, .55) 44%, transparent 72%);
+  mask-image: radial-gradient(circle at 38% 52%, #000 0%, rgba(0, 0, 0, .55) 44%, transparent 72%);
+  animation: gachaOrbitSpin 24s linear infinite;
+}
+.gt-spot-ribbons { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.gt-ribbon {
+  position: absolute; left: -12%; right: -12%; padding: 5px 0; text-align: center;
+  font: 900 italic 11px/1.1 'Orbitron', sans-serif; letter-spacing: 3px; color: #1e1100;
+  background: linear-gradient(90deg, var(--spot-a), #ffffff 50%, var(--spot-b));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--spot-a) 55%, transparent); opacity: .92;
+}
+.gt-ribbon-top { top: 18px; transform: rotate(-1.6deg); }
+.gt-ribbon-bot { bottom: 42px; transform: rotate(1.4deg); }
+
+.gt-spot-body {
+  position: relative; z-index: 2; width: 100%; max-width: 900px;
+  display: grid; grid-template-columns: minmax(250px, 380px) minmax(0, 1fr);
+  gap: 28px; align-items: center;
+}
+.gt-spot-visual {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; min-height: 300px;
+}
+.gt-spot-pedestal {
+  order: 2; width: 82%; height: 28px; margin-top: -18px; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, var(--spot-a) 0%, color-mix(in srgb, var(--spot-b) 45%, transparent) 52%, transparent 76%);
+  border: 2px solid #ffffff; box-shadow: 0 0 28px var(--spot-a), inset 0 0 14px #ffffff;
+}
+.gt-spot-burst-ring {
+  position: absolute; left: 50%; top: 48%; width: 240px; height: 240px; border-radius: 50%;
+  pointer-events: none; opacity: 0; border: 5px solid #ffffff;
+  box-shadow: 0 0 40px var(--spot-a), inset 0 0 30px var(--spot-a);
+  transform: translate(-50%, -50%) scale(.25);
+}
+.gt-spotlight.is-revealed .gt-spot-burst-ring { animation: gtSpotBurst .55s cubic-bezier(.16, 1, .3, 1) forwards; }
+
+.gt-spot-figure {
+  order: 1; position: relative; z-index: 2;
+  --chara-h: clamp(265px, 54dvh, 455px);
+  animation: gtSpotFigureIn .46s cubic-bezier(.18, 1.38, .34, 1) both;
+}
+.gt-spotlight.is-revealed .gt-spot-figure .girl-sprite { animation: bobGirlFull 3.2s ease-in-out .46s infinite; }
+.gt-spot-figure .chara-img.gt-chara-color { transition: opacity .16s ease; }
+.gt-spot-figure .chara-img.gt-chara-sil {
+  filter: brightness(0) invert(1) drop-shadow(0 0 22px var(--spot-a));
+  transition: opacity .22s ease;
+}
+.gt-spotlight:not(.is-revealed) .girl-sprite.is-single .chara-img.gt-chara-color { opacity: 0; }
+.gt-spotlight.is-revealed .girl-sprite.is-single .chara-img.gt-chara-color { opacity: 1; }
+.gt-spotlight:not(.is-revealed) .girl-sprite.is-single .chara-img.gt-chara-sil { opacity: 1; }
+.gt-spotlight.is-revealed .girl-sprite.is-single .chara-img.gt-chara-sil { opacity: 0; }
+.gt-spot-card-showcase { transform: scale(1.8); padding: 24px; }
+
+.gt-spot-info { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; text-align: left; }
+.gt-spot-kicker {
+  padding: 4px 12px; border-radius: 999px;
+  font: 900 10.5px/1.15 'Orbitron', 'Chakra Petch', sans-serif; letter-spacing: 1.5px;
+  background: rgba(255, 225, 105, .2); border: 1.5px solid var(--spot-a); color: var(--spot-a);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--spot-a) 35%, transparent);
+}
+.gt-spot-stars { display: flex; gap: 6px; }
+.gt-star {
+  display: inline-block; font-size: clamp(22px, 3.2vw, 32px); line-height: 1;
+  color: #ffe169; text-shadow: 0 0 16px #ffb638, 0 2px 0 #5c3100;
+  animation: gtStarSlam .42s cubic-bezier(.18, 1.65, .34, 1) calc(var(--si, 0) * 65ms + 180ms) both;
+}
+.gt-spot-name {
+  margin: 0; font: 900 italic clamp(30px, 5.2vw, 54px)/1.02 'Orbitron', 'Mochiy Pop One', sans-serif;
+  letter-spacing: 1.5px; text-transform: uppercase; color: #ffffff;
+  -webkit-text-stroke: 2px #050c16; paint-order: stroke fill;
+  text-shadow: -3px -2px 0 var(--spot-a), 4px 4px 0 var(--spot-b), 0 0 28px color-mix(in srgb, var(--spot-a) 65%, transparent);
+  animation: gtSpotTextSlam .44s cubic-bezier(.18, 1.4, .34, 1) .14s both;
+}
+.gt-spot-sub { font: 800 clamp(14px, 2vw, 19px)/1.2 'Chakra Petch', 'Nunito', sans-serif; letter-spacing: .8px; text-transform: uppercase; color: #ffe8a3; }
+.gt-spot-badges { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.gt-spot-quote {
+  margin: 4px 0 0; padding: 10px 14px; max-width: 44ch; border-radius: 12px;
+  border-left: 4px solid var(--spot-a); background: rgba(8, 16, 28, .78);
+  font: 700 13.5px/1.36 'Nunito', 'Chakra Petch', sans-serif; color: #eef8ff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+.gt-spot-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; cursor: default; }
+.gt-spot-equip {
+  width: auto; min-width: 140px; padding: 8px 18px; font-size: 13px;
+  border-color: var(--spot-a) !important; color: #ffffff !important;
+  background: linear-gradient(135deg, rgba(255, 225, 105, .28), rgba(14, 28, 42, .9)) !important;
+}
+
+.gt-spot-foot {
+  position: absolute; left: 50%; bottom: 12px; z-index: 3; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  width: min(320px, 84vw); pointer-events: none;
+}
+.gt-spot-hint { font: 800 10.5px/1.1 'Orbitron', 'Chakra Petch', sans-serif; letter-spacing: 1px; color: rgba(255, 255, 255, .82); }
+.gt-spot-timer { width: 100%; height: 3px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, .18); }
+.gt-spot-timer-fill { width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, var(--spot-a), var(--spot-b)); }
+
+.gt-skip-btn {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 12;
+  padding: 6px 14px; font: 900 11.5px/1.1 'Orbitron', 'Chakra Petch', sans-serif; letter-spacing: .8px;
+  border-color: rgba(255, 255, 255, .55); background: rgba(6, 12, 22, .85); color: #ffffff;
+}
+.gt-skip-btn:hover { border-color: #ffe169; color: #ffe169; }
+
+/* ---------- Keyframes ---------- */
+@keyframes gtMeteorStrike {
+  0% { opacity: 0; transform: rotate(-35deg) translateX(75vw) scaleX(1.3); }
+  15% { opacity: 1; }
+  88% { opacity: 1; transform: rotate(-35deg) translateX(0) scaleX(.7); }
+  100% { opacity: 0; transform: rotate(-35deg) translateX(-24px) scaleX(.2); }
+}
+@keyframes gtCoreHit { 0% { transform: scale(1); } 45% { transform: scale(1.24); } 100% { transform: scale(1); } }
+@keyframes gtCoreShatter { 0% { opacity: 1; transform: scale(1); } 45% { opacity: 1; transform: scale(1.55); } 100% { opacity: 0; transform: scale(2.1); } }
+@keyframes gtImpactFlash { 0% { opacity: 1; } 30% { opacity: .88; } 100% { opacity: 0; } }
+@keyframes gtImpactSlash {
+  0% { opacity: 1; transform: translateY(-50%) rotate(-16deg) scaleY(.2); }
+  35% { opacity: 1; transform: translateY(-50%) rotate(-16deg) scaleY(3.4); }
+  100% { opacity: 0; transform: translateY(-50%) rotate(-16deg) scaleY(0); }
+}
+@keyframes gtImpactShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  18% { transform: translate3d(-10px, 7px, 0); }
+  36% { transform: translate3d(9px, -8px, 0); }
+  54% { transform: translate3d(-7px, -5px, 0); }
+  72% { transform: translate3d(6px, 5px, 0); }
+}
+@keyframes gtFakeoutShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-5px, 3px, 0); }
+  50% { transform: translate3d(5px, -3px, 0); }
+  75% { transform: translate3d(-3px, -4px, 0); }
+}
+@keyframes gtCrackShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-4px) rotate(-1.5deg); }
+  75% { transform: translateX(4px) rotate(1.5deg); }
+}
+@keyframes gtCardDealIn {
+  0% { opacity: 0; transform: translate3d(0, 26px, 0) scale(.72); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes gtSpotFigureIn { 0% { opacity: 0; transform: scale(1.24) translateY(28px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes gtSpotBurst { 0% { opacity: 1; transform: translate(-50%, -50%) scale(.25); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.15); } }
+@keyframes gtStarSlam {
+  0% { opacity: 0; transform: scale(2.4) rotate(-24deg); }
+  70% { opacity: 1; transform: scale(.9) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes gtSpotTextSlam { 0% { opacity: 0; transform: translateX(36px) skewX(-8deg); } 100% { opacity: 1; transform: translateX(0) skewX(0deg); } }
+@keyframes gtSpotTimerShrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ---------- Responsive, Reduced Motion & Battery Saver ---------- */
+@media (max-width: 780px) {
+  .gt-cards-grid:not(.is-single) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .gt-arena { padding: 42px 12px 20px; gap: 10px; }
+  .gt-spot-body { grid-template-columns: minmax(0, 1fr); gap: 12px; text-align: center; }
+  .gt-spot-visual { min-height: 200px; }
+  .gt-spot-figure { --chara-h: clamp(195px, 34dvh, 285px); }
+  .gt-spot-info { align-items: center; text-align: center; gap: 7px; }
+  .gt-spot-badges, .gt-spot-actions { justify-content: center; }
+  .gt-ribbon-bot { display: none; }
+}
+@media (max-height: 760px) {
+  .gt-arena { padding: 38px 16px 16px; gap: 9px; }
+  .gt-cards-grid .gacha-card { padding: 7px 7px; }
+  .gt-cards-grid .gacha-card-seal { min-height: 128px; }
+  .gt-cards-grid:not(.is-single) .gacha-art-skin { width: 48px; height: 48px; }
+  .gt-cards-grid:not(.is-single) .gacha-art-card { width: 36px; height: 50px; }
+  .gt-spot-figure { --chara-h: clamp(220px, 46dvh, 360px); }
+}
+
+#gachaModal.is-anim-off .gse-ring,
+#gachaModal.is-anim-off .gse-icon,
+#gachaModal.is-anim-off .gacha-stage-rays,
+#gachaModal.is-anim-off .gacha-card-rays,
+#gachaModal.is-anim-off .gacha-holo-glare::before,
+#gachaModal.is-anim-off .gacha-card-seal,
+#gachaModal.is-anim-off .gacha-card,
+#gachaModal.is-anim-off .gacha-carry-fill,
+#gachaModal.is-anim-off .gacha-pull-btn::after,
+#gachaModal.is-anim-off .gacha-pity-pill {
+  animation: none !important; transition: none !important;
+}
+
+body.perf-lite .gacha-card.rarity-ssr.is-revealed,
+body.perf-lite .gacha-card.rarity-sr.is-revealed { box-shadow: none; }
+body.perf-lite .gacha-card-rays,
+body.perf-lite .gacha-stage-rays,
+body.perf-lite .gacha-holo-glare::before { display: none; }
+body.perf-lite .gt-speedlines { animation: none; opacity: .28; }
+body.perf-lite .gt-spot-rays { animation: none; }
+body.perf-lite .gt-spot-figure .gt-chara-sil { filter: brightness(0) invert(1); }

@@ -3,27 +3,26 @@
 
 (() => {
   const hasGacha = () => typeof Gacha !== 'undefined' && Gacha && typeof Gacha.getState === 'function';
+  const hasCinematic = () => typeof GachaCinematic !== 'undefined' && !!GachaCinematic;
 
   let activeTab = 'banner';
   let exchangeFilter = 'all';
   let lastExchangeFilter = 'all';
   let lastResults = null;
+  let justCraftedId = null;
   let isRevealing = false;
   let pullingSync = false;
-  let revealTimers = [];
-  let revealCtx = null;
   let controlsBound = false;
   let subscribed = false;
+  let prevWalletPulls = null;
+  let prevWalletShards = null;
 
   const isAnimOff = () => (typeof settings !== 'undefined' && settings.anim === 'off')
     || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   const rarityLabel = (r) => ({ ssr: 'SSR', sr: 'SR', r: 'R' }[r] || String(r || 'R').toUpperCase());
+  const rarityStars = (r) => (r === 'ssr' ? 5 : r === 'sr' ? 4 : 3);
   const typeLabel = (t) => ({ skin: 'Outfit', front: 'Card Front', back: 'Card Back' }[t] || t || '');
-
-  function clearRevealTimers() {
-    while (revealTimers.length) clearTimeout(revealTimers.pop());
-  }
 
   function ensureSubscribed() {
     if (subscribed || !hasGacha() || typeof Gacha.onChange !== 'function') return;
@@ -32,8 +31,12 @@
       syncGachaBadges();
       const gachaEl = $('#gachaModal');
       if (gachaEl && !gachaEl.classList.contains('hidden')) {
-        if (isRevealing || pullingSync) refreshHeaderAndControls(Gacha.getState(), Gacha.getCollectionStats());
-        else refreshGachaModal();
+        if (isRevealing || pullingSync || GachaCinematic?.isOpen?.()) {
+          refreshHeaderAndControls(Gacha.getState(), Gacha.getCollectionStats());
+          GachaCinematic?.syncTheaterPullButtons?.();
+        } else {
+          refreshGachaModal();
+        }
       }
       const skinsEl = $('#skinsModal');
       if (skinsEl && !skinsEl.classList.contains('hidden')) window.refreshSkinsModal?.();
@@ -95,7 +98,7 @@
       wrap.className = 'gacha-art gacha-art-skin';
       wrap.dataset.partner = item.girl || '';
       const c = (typeof Cast !== 'undefined' && Cast.get) ? Cast.get(item.girl) : null;
-      wrap.innerHTML = c ? c.faceHTML('cheer', item.key) : '';
+      wrap.innerHTML = c ? c.faceHTML(null, item.key) : '';
       return wrap;
     }
     if (item.type === 'front') {
@@ -115,10 +118,24 @@
     return sw;
   }
 
+  function syncLiveEquipButtons() {
+    if (!hasGacha()) return;
+    document.querySelectorAll('#gachaModal .gacha-item-btn[data-item-id]').forEach((btn) => {
+      const id = btn.dataset.itemId;
+      if (!id || !Gacha.isUnlocked(id)) return;
+      const eq = !!Gacha.isItemEquipped?.(id);
+      btn.classList.toggle('is-equipped', eq);
+      btn.classList.toggle('is-equip', !eq);
+      btn.disabled = eq;
+      btn.textContent = eq ? '✓ Equipped' : 'Equip';
+    });
+  }
+
   function makeEquipBtn(item, onDone) {
     const eq = !!(hasGacha() && Gacha.isItemEquipped?.(item.id));
     const btn = document.createElement('button');
     btn.type = 'button';
+    btn.dataset.itemId = item.id;
     btn.className = 'btn gacha-item-btn' + (eq ? ' is-equipped' : ' is-equip');
     btn.disabled = eq;
     btn.textContent = eq ? '✓ Equipped' : 'Equip';
@@ -126,10 +143,19 @@
       Sound.ensure?.();
       if (hasGacha() && Gacha.equipItem?.(item.id)) {
         Sound.sfx?.click?.();
+        if (typeof sparkleAt === 'function' && !isAnimOff()) sparkleAt(btn);
+        syncLiveEquipButtons();
         onDone?.();
       }
     };
     return btn;
+  }
+
+  function popChip(el) {
+    if (!el || isAnimOff()) return;
+    el.classList.remove('is-popping');
+    void el.offsetWidth;
+    el.classList.add('is-popping');
   }
 
   function refreshHeaderAndControls(state, stats) {
@@ -148,14 +174,22 @@
     const pullsVal = $('#gachaPullsVal');
     const pullsChip = $('#gachaPullsChip');
     const shardsVal = $('#gachaShardsVal');
+    const shardsChip = $('#gachaShardsChip');
     const collCount = $('#gachaCollectionCount');
     const carryLbl = $('#gachaCarryLabel');
     const carryFill = $('#gachaCarryFill');
     const pityPill = $('#gachaPityPill');
 
     if (pullsVal) pullsVal.textContent = pulls.toLocaleString();
-    if (pullsChip) pullsChip.classList.toggle('has-value', pulls > 0);
+    if (pullsChip) {
+      pullsChip.classList.toggle('has-value', pulls > 0);
+      if (prevWalletPulls !== null && pulls !== prevWalletPulls) popChip(pullsChip);
+    }
     if (shardsVal) shardsVal.textContent = shards.toLocaleString();
+    if (shardsChip && prevWalletShards !== null && shards > prevWalletShards) popChip(shardsChip);
+    prevWalletPulls = pulls;
+    prevWalletShards = shards;
+
     if (collCount) collCount.textContent = `${stats?.owned || 0} / ${stats?.total || 0}`;
     if (carryLbl) carryLbl.textContent = `Next pull: ${carry.toLocaleString()} / ${perPull.toLocaleString()} pts`;
     if (carryFill) carryFill.style.transform = `scaleX(${Math.max(0, Math.min(1, carry / Math.max(1, perPull))).toFixed(4)})`;
@@ -173,14 +207,18 @@
     const btnPull1 = $('#btnGachaPull1');
     const btnMulti = $('#btnGachaPullMulti');
     const btnSkip = $('#btnGachaSkip');
-    if (btnPull1) btnPull1.disabled = isRevealing || pulls < 1 || !hasGacha();
+    if (btnPull1) {
+      btnPull1.disabled = isRevealing || pulls < 1 || !hasGacha();
+      btnPull1.classList.toggle('is-ssr-ready', ssrLeft === 1 && pulls >= 1);
+    }
     if (btnMulti) {
       const multiCount = pulls >= 10 ? 10 : Math.max(2, Math.min(10, pulls));
       btnMulti.textContent = (pulls < 2 || pulls >= 10) ? '🌟 Pull ×10' : `🌟 Pull ×${multiCount}`;
       btnMulti.dataset.count = String(multiCount);
       btnMulti.disabled = isRevealing || pulls < 2 || !hasGacha();
+      btnMulti.classList.toggle('is-ssr-ready', pulls >= ssrLeft);
     }
-    if (btnSkip) btnSkip.classList.toggle('hidden', !isRevealing);
+    if (btnSkip) btnSkip.classList.toggle('hidden', !isRevealing || !!GachaCinematic?.isOpen?.());
   }
 
   function renderFeatured() {
@@ -188,6 +226,7 @@
     if (!box) return;
     box.innerHTML = '';
     if (!hasGacha() || !Array.isArray(Gacha.POOL)) return;
+    GachaCinematic?.bindHoloTilt?.(box);
 
     const pickFeatured = (rarity) => {
       const tier = Gacha.POOL.filter((it) => it.rarity === rarity);
@@ -199,17 +238,22 @@
       const owned = Gacha.isUnlocked(item.id);
       const card = document.createElement('div');
       card.className = `gacha-feat-card rarity-${item.rarity}` + (owned ? ' is-owned' : '');
+      const glare = document.createElement('div');
+      glare.className = 'gacha-holo-glare';
+      glare.setAttribute('aria-hidden', 'true');
       const art = createItemArtEl(item);
       const info = document.createElement('div');
       info.className = 'gfc-info';
+      const stars = '★'.repeat(rarityStars(item.rarity));
       info.innerHTML =
         `<div class="gfc-top">` +
           `<span class="gacha-rarity-tag is-${item.rarity}">${rarityLabel(item.rarity)}</span>` +
+          `<span class="gfc-stars" aria-hidden="true">${stars}</span>` +
           `<span class="gfc-type">${esc(typeLabel(item.type))}</span>` +
         `</div>` +
         `<b class="gfc-name">${esc(item.shortName || item.name)}</b>` +
         `<small class="gfc-sub">${esc(owned ? '✓ Owned' : (item.subtitle || 'Featured drop'))}</small>`;
-      card.append(art, info);
+      card.append(glare, art, info);
       box.appendChild(card);
     });
   }
@@ -217,12 +261,28 @@
   function buildResultCard(res, sealed) {
     const card = document.createElement('div');
     card.className = `gacha-card rarity-${res.rarity}` + (sealed ? ' is-sealed' : ' is-revealed');
+    card.dataset.sealTier = res.rarity;
+
+    const rays = document.createElement('div');
+    rays.className = 'gacha-card-rays';
+    rays.setAttribute('aria-hidden', 'true');
+
+    const glare = document.createElement('div');
+    glare.className = 'gacha-holo-glare';
+    glare.setAttribute('aria-hidden', 'true');
+
+    const burst = document.createElement('div');
+    burst.className = 'gacha-card-burst';
+    burst.setAttribute('aria-hidden', 'true');
 
     const seal = document.createElement('div');
     seal.className = 'gacha-card-seal';
     seal.innerHTML =
-      `<span class="gcs-emblem">✦</span>` +
-      `<span class="gacha-rarity-tag is-${res.rarity}">${rarityLabel(res.rarity)}</span>`;
+      `<div class="gcs-sigil" aria-hidden="true">` +
+        `<span class="gcs-ring"></span>` +
+        `<span class="gcs-emblem">✦</span>` +
+      `</div>` +
+      `<span class="gcs-hint">PRISM SEAL</span>`;
 
     const face = document.createElement('div');
     face.className = 'gacha-card-face';
@@ -234,19 +294,27 @@
     rTag.textContent = rarityLabel(res.rarity);
     const status = document.createElement('span');
     status.className = 'gacha-status ' + (res.isNew ? 'is-new' : 'is-dupe');
-    status.textContent = res.isNew ? '★ NEW!' : `DUPLICATE → +${res.shardsGained} ✧`;
+    status.textContent = res.isNew ? '★ NEW!' : `+${res.shardsGained} ✧`;
+    status.title = res.isNew ? 'New collection unlock!' : `Duplicate converted to +${res.shardsGained} Prism Shards`;
     top.append(rTag, status);
 
     const art = createItemArtEl(res.item);
+    const stars = document.createElement('div');
+    stars.className = 'gcf-stars';
+    stars.setAttribute('aria-hidden', 'true');
+    stars.textContent = '★'.repeat(rarityStars(res.rarity));
+
     const meta = document.createElement('div');
     meta.className = 'gcf-meta';
     meta.innerHTML =
       `<b class="gcf-name">${esc(res.item.shortName || res.item.name)}</b>` +
       `<small class="gcf-sub">${esc(res.item.subtitle || typeLabel(res.item.type))}</small>`;
 
-    const act = makeEquipBtn(res.item, () => refreshGachaModal());
-    face.append(top, art, meta, act);
-    card.append(seal, face);
+    const act = makeEquipBtn(res.item, () => {
+      if (!GachaCinematic?.isOpen?.()) refreshGachaModal();
+    });
+    face.append(top, art, stars, meta, act);
+    card.append(rays, glare, burst, seal, face);
     return card;
   }
 
@@ -254,104 +322,63 @@
     const stage = $('#gachaStage');
     const empty = $('#gachaStageEmpty');
     const grid = $('#gachaResultsGrid');
+    const sumBar = $('#gachaStageSummary');
+    const sumChips = $('#gachaStageSummaryChips');
     if (!stage || !grid) return [];
+    GachaCinematic?.bindHoloTilt?.(grid);
 
     if (!Array.isArray(results) || !results.length) {
       stage.dataset.phase = 'idle';
       delete stage.dataset.bestRarity;
       empty?.classList.remove('hidden');
+      sumBar?.classList.add('hidden');
       grid.classList.add('hidden');
       grid.innerHTML = '';
       return [];
     }
 
     empty?.classList.add('hidden');
+    if (sumBar && sumChips) {
+      if (!sealed && hasCinematic()) {
+        sumChips.innerHTML = GachaCinematic.buildSummaryBadges(results).html;
+        sumBar.classList.remove('hidden');
+      } else {
+        sumBar.classList.add('hidden');
+      }
+    }
     grid.classList.remove('hidden');
     grid.classList.toggle('is-single', results.length === 1);
     grid.innerHTML = '';
-    const cards = results.map((res) => {
+    return results.map((res, idx) => {
       const el = buildResultCard(res, sealed);
+      el.style.setProperty('--ci', String(idx));
       grid.appendChild(el);
       return el;
     });
-    return cards;
-  }
-
-  function revealCardAt(idx, cardEl, res, ctx) {
-    if (!cardEl || !cardEl.classList.contains('is-sealed')) return;
-    cardEl.classList.remove('is-sealed');
-    cardEl.classList.add('is-revealed');
-    if (res.rarity === 'ssr') {
-      Sound.sfx?.newRecord?.();
-      if (ctx && !ctx.celebratedSsr) {
-        ctx.celebratedSsr = true;
-        FX?.celebrate?.();
-        StageBG?.pulse?.('#ffe169', 1.35);
-      }
-      if (typeof sparkleAt === 'function') sparkleAt(cardEl);
-    } else if (res.rarity === 'sr') {
-      Sound.sfx?.comboMilestone?.(2);
-      if (typeof sparkleAt === 'function') sparkleAt(cardEl);
-    } else {
-      (Sound.sfx?.revealCard || Sound.sfx?.flip)?.(idx + 1);
-    }
-  }
-
-  function completeReveal() {
-    clearRevealTimers();
-    isRevealing = false;
-    revealCtx = null;
-    const stage = $('#gachaStage');
-    if (stage && lastResults?.length) stage.dataset.phase = 'done';
-    refreshGachaModal();
   }
 
   function skipReveal(silent = false) {
-    clearRevealTimers();
-    if (revealCtx) {
-      const { cards, results, bestRarity } = revealCtx;
-      cards.forEach((c) => {
-        c.classList.remove('is-sealed');
-        c.classList.add('is-revealed');
-      });
-      if (!silent) {
-        if (bestRarity === 'ssr' && !revealCtx.celebratedSsr) {
-          revealCtx.celebratedSsr = true;
-          Sound.sfx?.newRecord?.();
-          FX?.celebrate?.();
-          StageBG?.pulse?.('#ffe169', 1.25);
-        } else if (bestRarity === 'sr') {
-          Sound.sfx?.comboMilestone?.(2);
-        }
-      }
+    if (hasCinematic() && GachaCinematic.isOpen()) {
+      GachaCinematic.abort(silent);
     }
-    completeReveal();
+    isRevealing = false;
+    if (lastResults?.length) {
+      renderStageResults(lastResults, false);
+      const stage = $('#gachaStage');
+      if (stage) stage.dataset.phase = 'done';
+    }
+    if (!silent) refreshGachaModal();
   }
 
-  function runPull(count) {
-    if (isRevealing || !hasGacha()) return;
-    Sound.ensure?.();
-    pullingSync = true;
-    let pulled = null;
-    try {
-      pulled = Gacha.pull(count);
-    } finally {
-      pullingSync = false;
-    }
-    if (!pulled || !Array.isArray(pulled.results) || !pulled.results.length) {
-      Sound.sfx?.invalid?.();
-      toast('Not enough pulls! Win deals to earn more 🎫');
-      return;
-    }
-
-    lastResults = pulled.results;
-    const bestRarity = pulled.results.some((r) => r.rarity === 'ssr') ? 'ssr'
-      : pulled.results.some((r) => r.rarity === 'sr') ? 'sr' : 'r';
+  function launchPullSequence(results, replay = false) {
+    const bestRarity = results.some((r) => r.rarity === 'ssr') ? 'ssr'
+      : results.some((r) => r.rarity === 'sr') ? 'sr' : 'r';
     const stage = $('#gachaStage');
-    const instant = isAnimOff();
 
-    if (instant) {
-      renderStageResults(pulled.results, false);
+    if (isAnimOff() || !hasCinematic()) {
+      GachaCinematic?.abort?.(true);
+      isRevealing = false;
+      renderStageResults(results, false);
       if (stage) {
         stage.dataset.phase = 'done';
         stage.dataset.bestRarity = bestRarity;
@@ -370,37 +397,53 @@
       return;
     }
 
-    clearRevealTimers();
     isRevealing = true;
-    const cards = renderStageResults(pulled.results, true);
-    revealCtx = { cards, results: pulled.results, bestRarity, celebratedSsr: false };
-    refreshHeaderAndControls(Gacha.getState(), Gacha.getCollectionStats());
-
     if (stage) {
       stage.dataset.phase = 'charging';
       stage.dataset.bestRarity = bestRarity;
     }
-    if (bestRarity === 'ssr' || bestRarity === 'sr') Sound.sfx?.cutin?.();
-    else Sound.sfx?.modeSwitch?.();
-    StageBG?.pulse?.(bestRarity === 'ssr' ? '#ffe169' : bestRarity === 'sr' ? '#9d8cff' : '#2ce8a2', bestRarity === 'ssr' ? 1.2 : 0.75);
+    refreshHeaderAndControls(Gacha.getState(), Gacha.getCollectionStats());
 
-    const fast = typeof settings !== 'undefined' && settings.anim === 'fast';
-    const chargeMs = fast ? 240 : 420;
-    const stepMs = fast ? 105 : pulled.results.length > 1 ? 165 : 220;
-
-    revealTimers.push(setTimeout(() => {
-      if (stage) stage.dataset.phase = 'revealing';
-    }, chargeMs));
-
-    pulled.results.forEach((res, i) => {
-      revealTimers.push(setTimeout(() => {
-        revealCardAt(i, cards[i], res, revealCtx);
-      }, chargeMs + i * stepMs));
+    GachaCinematic.playPull({
+      results,
+      replay,
+      buildCard: buildResultCard,
+      buildArt: createItemArtEl,
+      makeEquipBtn,
+      onRevealDone: () => {
+        isRevealing = false;
+        renderStageResults(lastResults, false);
+        if (stage) {
+          stage.dataset.phase = 'done';
+          stage.dataset.bestRarity = bestRarity;
+        }
+        if (hasGacha()) refreshHeaderAndControls(Gacha.getState(), Gacha.getCollectionStats());
+      },
+      onPullAgain: (nextCount) => runPull(nextCount),
+      onClose: () => {
+        isRevealing = false;
+        refreshGachaModal();
+      },
     });
+  }
 
-    revealTimers.push(setTimeout(() => {
-      completeReveal();
-    }, chargeMs + pulled.results.length * stepMs + 220));
+  function runPull(count) {
+    if (isRevealing || !hasGacha()) return;
+    Sound.ensure?.();
+    pullingSync = true;
+    let pulled = null;
+    try {
+      pulled = Gacha.pull(count);
+    } finally {
+      pullingSync = false;
+    }
+    if (!pulled || !Array.isArray(pulled.results) || !pulled.results.length) {
+      Sound.sfx?.invalid?.();
+      toast('Not enough pulls! Win deals to earn more 🎫');
+      return;
+    }
+    lastResults = pulled.results;
+    launchPullSequence(pulled.results, false);
   }
 
   function renderExchange(state) {
@@ -426,7 +469,10 @@
       const owned = Gacha.isUnlocked(item.id);
       const equipped = owned && Gacha.isItemEquipped?.(item.id);
       const card = document.createElement('div');
-      card.className = `gacha-ex-card rarity-${item.rarity}` + (owned ? ' is-owned' : ' is-locked') + (equipped ? ' is-equipped' : '');
+      card.className = `gacha-ex-card rarity-${item.rarity}`
+        + (owned ? ' is-owned' : ' is-locked')
+        + (equipped ? ' is-equipped' : '')
+        + (justCraftedId === item.id ? ' is-just-crafted' : '');
 
       const top = document.createElement('div');
       top.className = 'gec-top';
@@ -461,10 +507,22 @@
             pullingSync = false;
           }
           if (res && res.ok) {
-            (item.rarity === 'ssr' ? Sound.sfx?.newRecord : Sound.sfx?.modeSwitch)?.();
-            if (rect) FX?.burst?.(rect.left + rect.width / 2, rect.top + rect.height / 2);
-            toast(`Crafted ${item.name}! ✨`);
-            refreshGachaModal();
+            justCraftedId = item.id;
+            const cx = rect ? rect.left + rect.width * 0.5 : innerWidth * 0.5;
+            const cy = rect ? rect.top + rect.height * 0.5 : innerHeight * 0.5;
+            if (item.rarity === 'ssr' && !isAnimOff() && hasCinematic()) {
+              refreshGachaModal();
+              GachaCinematic.playCraftSpotlight(item, {
+                makeEquipBtn,
+                buildArt: createItemArtEl,
+                onClose: () => refreshGachaModal(),
+              });
+            } else {
+              (item.rarity === 'ssr' ? Sound.sfx?.newRecord : item.rarity === 'sr' ? () => Sound.sfx?.comboMilestone?.(3) : Sound.sfx?.aceIgnition)?.();
+              FX?.supernova?.(cx, cy, item.rarity);
+              toast(`Crafted ${item.name}! ✨`);
+              refreshGachaModal();
+            }
           } else {
             Sound.sfx?.invalid?.();
             toast('Not enough shards! ✧');
@@ -475,6 +533,7 @@
       card.append(top, art, meta, actionBtn);
       grid.appendChild(card);
     });
+    justCraftedId = null;
     if (prevScroll) grid.scrollTop = prevScroll;
   }
 
@@ -499,8 +558,8 @@
         Sound.sfx?.click?.();
         if (nextTab === activeTab) return;
         activeTab = nextTab;
-        if (isRevealing) skipReveal(true);
-        else refreshGachaModal();
+        if (isRevealing || GachaCinematic?.isOpen?.()) skipReveal(true);
+        refreshGachaModal();
       };
     });
 
@@ -526,6 +585,16 @@
 
     const btnSkip = $('#btnGachaSkip');
     if (btnSkip) btnSkip.onclick = () => { Sound.sfx?.click?.(); skipReveal(false); };
+
+    const btnReplay = $('#btnGachaReplay');
+    if (btnReplay) {
+      btnReplay.onclick = () => {
+        if (isRevealing || !lastResults?.length) return;
+        Sound.ensure?.();
+        Sound.sfx?.click?.();
+        launchPullSequence(lastResults, true);
+      };
+    }
   }
 
   function refreshGachaModal() {
@@ -552,15 +621,31 @@
     }
   }
 
+  let poolPortraitsQueued = false;
+  function warmPoolPortraits() {
+    if (poolPortraitsQueued || typeof Cast === 'undefined' || typeof CastSprites === 'undefined' || !hasGacha()) return;
+    poolPortraitsQueued = true;
+    const urls = [];
+    Gacha.POOL.forEach((it) => {
+      if (it.type !== 'skin' || !it.girl) return;
+      const c = Cast.get?.(it.girl)?.getSkin?.(it.key)?.sprites?.corner;
+      if (c) urls.push(c.normal, c.wink);
+    });
+    if (urls.length) CastSprites.queuePreload?.(urls.filter(Boolean));
+  }
+
   function openGachaModal(initialTab) {
     if (initialTab === 'banner' || initialTab === 'exchange') activeTab = initialTab;
     else if (!activeTab) activeTab = 'banner';
+    warmPoolPortraits();
     refreshGachaModal();
     showOverlay('gachaModal');
   }
 
   window.onGachaModalClosed = () => {
-    if (isRevealing) skipReveal(true);
+    if (isRevealing || GachaCinematic?.isOpen?.()) skipReveal(true);
+    prevWalletPulls = null;
+    prevWalletShards = null;
   };
   window.openGachaModal = openGachaModal;
   window.refreshGachaModal = refreshGachaModal;

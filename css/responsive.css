@@ -84,7 +84,7 @@
   .gacha-panel { padding: 13px 13px 12px; }
   .gacha-header { flex-direction: column; gap: 8px; padding-right: 36px; }
   .gacha-featured { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .gacha-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .gacha-results-grid:not(.is-single) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .gacha-exchange-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 44dvh; }
   .skin-card.is-locked .sc-actions { width: 100%; justify-content: flex-end; }
 }
@@ -299,6 +299,14 @@
   .combo-hud.danger .combo-fill,
   .callout-banner.show,
   .gacha-beam,
+  .gacha-stage-rays,
+  .gacha-card-rays,
+  .gacha-holo-glare::before,
+  .gse-ring,
+  .gse-icon,
+  .btn-gacha.has-pulls,
+  .gacha-pull-btn::after,
+  .gacha-pity-pill.is-guaranteed-ssr,
   .gacha-card-seal,
   .gacha-card-face,
   .gacha-carry-fill,
