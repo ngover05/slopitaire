@@ -51,6 +51,11 @@
   border-bottom-color: #f59e0b;
   box-shadow: 0 0 32px rgba(56, 189, 248, .56), 0 12px 44px rgba(6, 12, 22, .70), inset 0 0 32px rgba(245, 158, 11, .42);
 }
+#cutin[data-partner="joel"] .cutin-band {
+  border-top-color: #f472b6;
+  border-bottom-color: #fbbf24;
+  box-shadow: 0 0 32px rgba(244, 114, 182, .56), 0 12px 44px rgba(24, 12, 16, .70), inset 0 0 32px rgba(217, 119, 6, .44);
+}
 .cutin-girl .mochi { width: clamp(170px, 26dvh, 230px); height: auto; }
 .cutin-text {
   position: absolute; left: 8%; top: 50%; transform: skewY(5deg) translate(-130%, -50%);

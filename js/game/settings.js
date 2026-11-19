@@ -81,12 +81,12 @@ function normalizeSettings(raw) {
 const rawBootSettings = Store.get('settings', {});
 let settings = normalizeSettings(rawBootSettings);
 const voiceNameFor = (k) => settings.voiceNames[k || settings.companion] || '';
-const PARTNER_TONES = { kira: 'emerald', mio: 'emerald', ayame: 'danger', yuki: 'violet', tanner: 'amber' };
+const PARTNER_TONES = { kira: 'emerald', mio: 'emerald', ayame: 'danger', yuki: 'violet', tanner: 'amber', joel: 'amber' };
 const DECK_TONES = {
   cyber: 'emerald', kira: 'emerald', mio: 'emerald', hearts: 'emerald',
   ayame: 'danger',
   yuki: 'violet', rin: 'violet', stars: 'violet', neko: 'violet',
-  tanner: 'amber',
+  tanner: 'amber', joel: 'amber',
 };
 const partnerTone = (k) => PARTNER_TONES[k] || 'amber';
 function skinFor(charKey) {

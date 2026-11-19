@@ -79,6 +79,25 @@ body [data-partner="tanner"] .girl-sprite:not(.is-face) {
   border-radius: 50%;
   background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(96, 165, 250, .22) 0%, rgba(245, 158, 11, .11) 46%, transparent 74%);
 }
+/* Joel: P=NP Cat-Hat Dreamer — pastel hoodie-pink & warm cat-hat amber glow */
+body[data-partner="joel"] .girl-sprite:not(.is-face),
+body [data-partner="joel"] .girl-sprite:not(.is-face) {
+  filter:
+    drop-shadow(-1.8px 0 3.5px rgba(244, 114, 182, .70))
+    drop-shadow(1.8px 0 3.5px rgba(251, 191, 36, .58))
+    drop-shadow(0 0 14px rgba(249, 168, 212, .36))
+    drop-shadow(0 7px 18px rgba(24, 12, 16, .52));
+}
+#mascot[data-partner="joel"] .mascot-body::before,
+#startMascot[data-partner="joel"]::before,
+.start-mascot[data-partner="joel"] .mascot-body::before,
+#winMascot[data-partner="joel"]::before,
+#loseMascot[data-partner="joel"]::before,
+#cutin[data-partner="joel"] .cutin-girl::before {
+  content: ''; position: absolute; inset: 8% -10% 0 -10%; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 56% 52% at 50% 52%, rgba(244, 114, 182, .22) 0%, rgba(217, 119, 6, .13) 46%, transparent 74%);
+}
 
 /* High-tier combo & hype surge aura */
 body[data-combo-tier="3"] .chara.girl-sprite:not(.is-face),

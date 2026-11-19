@@ -193,7 +193,7 @@
 @media (max-width: 520px) {
   .cast-pick { gap: 5px; }
   .cast-pick .cast-opt,
-  .start-panel .cast-opt { flex: 0 1 calc((100% - 10px) / 3); }
+  .start-panel .cast-opt { flex: 0 1 calc((100% - 15px) / 4); }
 }
 @media (max-height: 620px) {
   .start-panel .start-mascot.is-girl { --chara-h: 82px; margin-top: 6px; }

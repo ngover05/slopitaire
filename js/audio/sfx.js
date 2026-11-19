@@ -14,7 +14,7 @@ const SfxSuite = (() => {
   'use strict';
   const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
   const PARTNER_SEMI = {
-    sakura: 0, yuki: 2, rin: -1, mio: 4, ayame: -3, kira: -5, kaede: -2, tanner: -4, mochi: 5
+    sakura: 0, yuki: 2, rin: -1, mio: 4, ayame: -3, kira: -5, kaede: -2, tanner: -4, joel: 3, mochi: 5
   };
   const PARTNERS = Object.keys(PARTNER_SEMI);
   const partnerSemi = (p) => PARTNER_SEMI[String(p || 'sakura').toLowerCase()] || 0;
@@ -442,6 +442,17 @@ function createSoundEffects(A) {
           type: 'sawtooth', detune: 10, vol: 0.068, lp: 5600, lpEnd: 1700, sfxSend: true
         });
         bell(mtof(74), t + 0.1, 0.34, 0.072, A.sfxBus, false, true);
+      } else if (k === 'joel') {
+        // Silly P=NP Cat-Hat Dreamer: playful cat-hat boing + bouncy Eb6 marimba-synth riff & eureka chime
+        tone(466, t, 0.048, { type: 'sine', vol: 0.068, glide: 622, a: 0.002 });
+        [75, 79, 82, 84].forEach((m, i) => {
+          const nt = t + 0.032 + [0, 0.044, 0.086, 0.132][i];
+          tone(mtof(m), nt, 0.082, { type: 'triangle', vol: 0.08, lp: 4200, a: 0.002 });
+        });
+        chordStab([63, 70, 75, 79], t + 0.165, 0.3, {
+          type: 'triangle', detune: 9, vol: 0.062, lp: 4000, lpEnd: 1700, sfxSend: true
+        });
+        bell(mtof(87), t + 0.168, 0.36, 0.075, A.sfxBus, false, true);
       } else if (k === 'mochi') {
         // Playful mini nya-chime
         tone(640, t, 0.12, { type: 'sawtooth', vol: 0.075, glide: 980, glideT: 0.06, lp: 2200 });
@@ -485,6 +496,12 @@ function createSoundEffects(A) {
         tone(620, t, 0.042, { type: 'square', vol: 0.046, glide: 1180, lp: 4200, a: 0.002 });
         bell(mtof(74), t + 0.035, 0.26, 0.075, A.sfxBus, false, false);
         bell(mtof(78), t + 0.08, 0.32, 0.08, A.sfxBus, false, true);
+      } else if (k === 'joel') {
+        // Playful goofy cat-hat boing + sunny Eb major-6th sparkle
+        tone(520, t, 0.046, { type: 'triangle', vol: 0.072, glide: 932, a: 0.002 });
+        tone(784, t + 0.036, 0.052, { type: 'sine', vol: 0.062, glide: 1244, a: 0.002 });
+        bell(mtof(82), t + 0.042, 0.25, 0.075, A.sfxBus, false, false);
+        bell(mtof(87), t + 0.084, 0.32, 0.082, A.sfxBus, false, true);
       } else {
         const pair = k === 'yuki' ? [83, 90] : k === 'rin' ? [81, 86] : k === 'mochi' ? [86, 91] : [84, 88];
         tone(540, t, 0.048, { type: 'sine', vol: 0.085, glide: 1240, a: 0.002 });

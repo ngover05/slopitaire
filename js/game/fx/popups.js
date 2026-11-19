@@ -8,7 +8,7 @@ const PopupFX = (() => {
   let bannerT = null, stampT = null, lastStampAt = 0;
   const recentFloats = [];
 
-  // Character-signature stamp dictionary across all 9 companions
+  // Character-signature stamp dictionary across all 10 companions
   const STAMP_WORDS = {
     sakura: {
       'UNREAL!': 'YATTA~!! ★', "LET'S GO!": "LET'S SHINE!", 'LOCKED IN!': 'SPARKLING!', 'CLUTCH!': 'ENCORE SAVE!',
@@ -49,6 +49,11 @@ const PopupFX = (() => {
       'UNREAL!': 'AI APPROVED!', "LET'S GO!": 'BEAT FRED!!', 'LOCKED IN!': 'PROMPTED!!', 'CLUTCH!': 'NOT BAD, HMPH',
       'NICE!': 'HMPH, SOLID!', 'GENIUS!': '200 IQ PROMPT', 'CLEAN!': 'CLEAN OUTPUT!', 'SO FAST!': 'TURBO TOKENS!',
       'WHOA!': 'ASKING AI…', 'OOPS!': "FRED'S FAULT!", 'HELLO!': 'H-HELLO! ◈',
+    },
+    joel: {
+      'UNREAL!': 'P = NP!! ★', "LET'S GO!": 'YOLO SWAG!', 'LOCKED IN!': 'BIG-O LOCK!', 'CLUTCH!': 'NO MANCHES!',
+      'NICE!': '¡QUÉ CHIDO!', 'GENIUS!': 'Q.E.D.!!', 'CLEAN!': 'POLY-TIME!', 'SO FAST!': 'O(1) SPEED!',
+      'WHOA!': '¡ÁNDALE!!', 'OOPS!': 'NP-HARD…!', 'HELLO!': '¡ÓRALE! 🐾',
     },
     mochi: {
       'UNREAL!': 'APEX NYA!!', "LET'S GO!": 'ZOOMIES!! 🐾', 'LOCKED IN!': 'PURR-FECT!', 'CLUTCH!': '9 LIVES!!',

@@ -1,5 +1,5 @@
 /* Slopitaire — companion picker */
-/* ---------- companion picker (9-partner 5+4 centered flex-wrap) ---------- */
+/* ---------- companion picker (10-partner 5x2 centered flex-wrap) ---------- */
 .cast-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .cast-opt {
   flex: 0 1 calc((100% - 24px) / 5);
@@ -88,6 +88,7 @@
 #mascot[data-partner="mio"] .bubble { --bub-accent: #6ef7c8; --bub-edge: #38c998; }
 #mascot[data-partner="kaede"] .bubble { --bub-accent: #ffbe55; --bub-edge: #e08e26; }
 #mascot[data-partner="tanner"] .bubble { --bub-accent: #60a5fa; --bub-edge: #d97706; }
+#mascot[data-partner="joel"] .bubble { --bub-accent: #f472b6; --bub-edge: #d97706; }
 .mascot.is-girl .bubble { right: 78%; bottom: 68%; z-index: 4; }
 .mascot.is-girl.is-full .bubble { right: 82%; bottom: 72%; }
 .bubble::after {

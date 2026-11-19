@@ -10,7 +10,7 @@ function cutIn(text) {
     : /SUIT|RUN|PEAK|ROW/i.test(text) ? 'cheer'
     : /VICTORY|WIN/i.test(text) ? 'cheer'
     : (c.key === 'rin' || c.key === 'kira' || c.key === 'ayame' || c.key === 'tanner') ? 'smug'
-    : (c.key === 'sakura' || c.key === 'kaede') ? 'cheer'
+    : (c.key === 'sakura' || c.key === 'kaede' || c.key === 'joel') ? 'cheer'
     : c.key === 'mio' ? 'happy' : 'wink';
   el.dataset.partner = c.key;
   el.querySelector('.cutin-girl').innerHTML = c.html('corner', mood);

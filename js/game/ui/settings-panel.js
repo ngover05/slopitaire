@@ -165,7 +165,7 @@ function voiceHint() {
 
 function outfitHint() {
   const c = Cast.get(settings.companion);
-  if (!c || c.kind !== 'girl') return 'Cyber Lucky Neko — browse outfits for all 8 companions.';
+  if (!c || c.kind !== 'girl') return `Cyber Lucky Neko — browse outfits for all ${Cast.girlKeys.length} companions.`;
   const activeKey = skinFor(c.key);
   const s = c.getSkin ? c.getSkin(activeKey) : null;
   return s ? `${c.name}: ${s.name}${s.subtitle ? ' — ' + s.subtitle : ''}` : `${c.name}: Default`;
