@@ -1,7 +1,6 @@
 /* Slopitaire — the settings panel. */
 'use strict';
 
-const THEMES = [['prism', '◈ Prism Core'], ['night', '🌌 Astral Violet'], ['sakura', '🌸 Neo Blossom'], ['ramune', '⚡ Cobalt Surge'], ['matcha', '🌿 Jade Circuit']];
 const MUSIC_OPTS = [['pulse', '◈ Prism Pulse (165)'], ['redline', '🔥 Redline Rush (178)'], ['horizon', '⚡ Horizon Drive (152)'], ['zenith', '✦ Zenith Core (190)'], ['bounce', '🐾 Neko Bounce (118)'], ['lofi', '🌸 Pastel Lo-fi (76)'], ['lullaby', '🌙 Starlight (64)'], ['spotify', '🎧 Spotify'], ['off', 'Off']];
 const SCHEMA = [
   { title: 'Gameplay', items: [
@@ -17,15 +16,15 @@ const SCHEMA = [
     { key: 'detectLoss', label: 'End game when', type: 'seg', options: [['solver', 'Unwinnable'], ['stuck', 'No moves left'], ['off', 'Never']], hint: () => LOSS_HINT[settings.detectLoss] },
   ] },
   { title: 'Look & feel', items: [
-    { key: 'theme', label: 'Theme', type: 'seg', options: THEMES },
-    { key: 'bgFx', label: 'Prism stage effects', type: 'toggle', hint: 'Ambient circuit-board backdrop with slowly drifting lights.' },
+    { key: 'theme', label: 'Theme', type: 'themes', hint: () => themeHint() },
+    { key: 'bgFx', label: 'Stage backdrop effects', type: 'toggle', hint: 'Animated themed backdrop (circuit traces, café glow, arcane runes, jellyfish & more).' },
     { key: 'popups', label: 'Pop-up FX', type: 'seg', options: [['max', 'Hyper'], ['normal', 'Standard'], ['off', 'Minimal']], hint: 'Floating score tags, live medal feed, banners & companion stamps.' },
     { key: 'front', label: 'Card front', type: 'fronts', hint: 'Face art, Aces & court cards (Classic, Cyber, every companion & Mochi).' },
     { key: 'back', label: 'Card back', type: 'backs', hint: 'Sleeve pattern & emblem on the back of every card (mix & match freely).' },
     { key: 'anim', label: 'Animations', type: 'seg', options: [['normal', 'Normal'], ['fast', 'Fast'], ['off', 'Off']] },
     { key: 'perf', label: 'Graphics quality', type: 'seg', options: [['auto', 'Auto'], ['high', 'High'], ['lite', 'Battery saver']],
       hint: () => `Battery saver drops blur & glow effects and lightens the music synth for smoother play on phones.${settings.perf === 'auto' ? (LOW_POWER_DEVICE ? ' Auto: using Battery saver on this device.' : ' Auto: using High on this device.') : ''}` },
-    { key: 'petals', label: 'Falling petals', type: 'toggle' },
+    { key: 'petals', label: 'Ambient particles', type: 'toggle', hint: 'Theme-matched petals, coffee steam, mana motes, snowflakes or rain.' },
     { key: 'showStats', label: 'Show time, moves & score', type: 'toggle' },
   ] },
   { title: 'Companion & voice', items: [
@@ -115,6 +114,11 @@ function buildSettings() {
         renderSettingsOutfitRow(row);
         body.appendChild(row);
         continue;
+      } else if (it.type === 'themes') {
+        ctl.appendChild(buildThemeGrid(() => {
+          const hintEl = row.querySelector('.row-h');
+          if (hintEl && typeof it.hint === 'function') hintEl.textContent = it.hint();
+        }));
       } else if (it.type === 'fronts') {
         ctl.appendChild(buildDeckGrid('front'));
       } else if (it.type === 'backs') {
@@ -156,6 +160,11 @@ const LOSS_HINT = {
   stuck: 'Keep playing until no move can put a card home or turn one face-up (shuffling cards around does not count).',
   off: 'Never end the game automatically.',
 };
+function themeHint() {
+  const T = THEME_DEFS[settings.theme] || THEME_DEFS.prism;
+  return `${T.tagline} (${T.tone === 'dark' ? 'Dark' : 'Light'} mode)`;
+}
+
 function voiceHint() {
   if (Voice.hasClips(settings.companion) || Cast.get(settings.companion).kind === 'cat') return 'Every partner has their own recorded voice.';
   if (!Voice.supported) return 'Your browser has no speech voices — bubbles only.';
@@ -289,6 +298,51 @@ function makeCastPicker() {
       Companion.react('hello');
     };
     wrap.appendChild(b);
+  });
+  return wrap;
+}
+
+function buildThemeGrid(onPick) {
+  const wrap = document.createElement('div');
+  wrap.className = 'theme-grid';
+  wrap.setAttribute('role', 'group');
+  wrap.setAttribute('aria-label', 'Theme');
+  THEME_KEYS.forEach((k) => {
+    const T = THEME_DEFS[k];
+    const tone = themeTone(k);
+    const toneLabel = tone === 'dark' ? 'Dark' : 'Light';
+    const active = settings.theme === k;
+    const [bg1, bg2, swA, swB] = T.swatch;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-opt' + (active ? ' on' : '');
+    btn.dataset.themeKey = k;
+    btn.dataset.tone = tone;
+    btn.title = `${T.name} — ${T.tagline}`;
+    btn.setAttribute('aria-label', `Theme: ${T.name} (${toneLabel})`);
+    btn.setAttribute('aria-pressed', String(active));
+    btn.style.setProperty('--sw-bg1', bg1);
+    btn.style.setProperty('--sw-bg2', bg2);
+    btn.style.setProperty('--sw-a', swA);
+    btn.style.setProperty('--sw-b', swB);
+    btn.innerHTML = `<span class="theme-preview" aria-hidden="true">` +
+      `<span class="theme-dots"><i class="td-a"></i><i class="td-b"></i></span>` +
+      `<span class="theme-tone">${tone === 'dark' ? '☾' : '☀'}</span>` +
+      `</span><span class="theme-meta">` +
+      `<span class="theme-ic" aria-hidden="true">${esc(T.icon)}</span>` +
+      `<span class="theme-name">${esc(T.name)}</span>` +
+      `</span>`;
+    btn.onclick = () => {
+      setSetting('theme', k);
+      wrap.querySelectorAll('.theme-opt').forEach((x) => {
+        const isAct = x === btn;
+        x.classList.toggle('on', isAct);
+        x.setAttribute('aria-pressed', String(isAct));
+      });
+      onPick?.(k);
+    };
+    wrap.appendChild(btn);
   });
   return wrap;
 }

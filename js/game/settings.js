@@ -13,7 +13,7 @@ const hadRawMeta = Store.get('meta', null) !== null;
 const hadSavedSettings = Store.get('settings', null) !== null;
 const hadSavedStats = Store.get('stats', null) !== null;
 const hadSavedSave = Store.get('save', null) !== null;
-const VALID_THEMES = new Set(['prism', 'night', 'sakura', 'ramune', 'matcha']);
+const VALID_THEMES = new Set(THEME_KEYS);
 const VALID_MUSIC = new Set(['pulse', 'redline', 'horizon', 'zenith', 'bounce', 'lofi', 'lullaby', 'spotify', 'off']);
 const VALID_POPUPS = new Set(['max', 'normal', 'off']);
 const VALID_PERF = new Set(['auto', 'high', 'lite']);
@@ -198,7 +198,8 @@ function setSetting(key, v, quiet) {
       }
     } else if (key === 'theme') {
       Sound.sfx.modeSwitch?.();
-      PopupFX?.pill('◈', `THEME // ${cleanOptLabel(THEMES, v)}`, 'STAGE PALETTE ACTIVE', 'amber', { always: true });
+      const T = THEME_DEFS[v] || THEME_DEFS.prism;
+      PopupFX?.pill(T.icon, `THEME // ${T.name.toUpperCase()}`, 'STAGE PALETTE ACTIVE', 'amber', { always: true });
       Companion.react('themeChange');
     } else if (key === 'spriteMode') {
       Sound.sfx.modeSwitch?.();
@@ -239,6 +240,7 @@ function setSetting(key, v, quiet) {
 function applySettings(key) {
   const all = !key;
   document.body.dataset.theme = settings.theme;
+  document.body.dataset.themeTone = themeTone(settings.theme);
   document.body.classList.toggle('perf-lite', perfLite());
   if (key === 'perf') { StageBG.resize(); FX.resize(); }
   if (all || key === 'front') {
@@ -257,7 +259,7 @@ function applySettings(key) {
   const ms = moveMs();
   document.documentElement.style.setProperty('--move', ms + 'ms');
   document.documentElement.style.setProperty('--flip', (settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 180 : 300) + 'ms');
-  if (all || key === 'petals' || key === 'anim' || key === 'perf') buildPetals();
+  if (all || key === 'theme' || key === 'petals' || key === 'anim' || key === 'perf') buildPetals();
   if (all || key === 'theme' || key === 'bgFx' || key === 'anim' || key === 'perf') StageBG.refreshTheme();
   if (settings.popups === 'off' || settings.anim === 'off') PopupFX?.clear();
   DOM.mascot.classList.toggle('hidden', !settings.mascot);

@@ -1044,13 +1044,9 @@ body:has(#startScreen:not(.hidden)):not(:has(#settingsModal:not(.hidden), #skins
   border-color: color-mix(in srgb, #1ed760 55%, var(--hud-border));
 }
 
-/* ---------- Light Themes (sakura, ramune, matcha) ---------- */
-body[data-theme="sakura"] .spotify-bar,
-body[data-theme="ramune"] .spotify-bar,
-body[data-theme="matcha"] .spotify-bar,
-body[data-theme="sakura"] .spotify-drawer,
-body[data-theme="ramune"] .spotify-drawer,
-body[data-theme="matcha"] .spotify-drawer {
+/* ---------- Light Themes ---------- */
+body[data-theme-tone="light"] .spotify-bar,
+body[data-theme-tone="light"] .spotify-drawer {
   --sp-green-text: #0f8a3c;
   --sp-green-soft: rgba(22, 163, 74, .14);
   --sp-green-border: rgba(22, 163, 74, .46);
@@ -1063,26 +1059,18 @@ body[data-theme="matcha"] .spotify-drawer {
   --sp-err-border: rgba(220, 38, 38, .44);
 }
 
-body[data-theme="sakura"] .spotify-drawer,
-body[data-theme="ramune"] .spotify-drawer,
-body[data-theme="matcha"] .spotify-drawer {
+body[data-theme-tone="light"] .spotify-drawer {
   box-shadow:
     0 14px 38px rgba(20, 35, 55, .18),
     0 0 18px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-body[data-theme="sakura"] .sp-code,
-body[data-theme="ramune"] .sp-code,
-body[data-theme="matcha"] .sp-code {
+body[data-theme-tone="light"] .sp-code {
   background: rgba(255, 255, 255, .86);
 }
 
-body[data-theme="sakura"] .sp-section-title,
-body[data-theme="ramune"] .sp-section-title,
-body[data-theme="matcha"] .sp-section-title,
-body[data-theme="sakura"] .sp-mode-badge[data-mode="embed"],
-body[data-theme="ramune"] .sp-mode-badge[data-mode="embed"],
-body[data-theme="matcha"] .sp-mode-badge[data-mode="embed"] {
+body[data-theme-tone="light"] .sp-section-title,
+body[data-theme-tone="light"] .sp-mode-badge[data-mode="embed"] {
   color: var(--accent);
 }
 

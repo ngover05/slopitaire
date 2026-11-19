@@ -86,15 +86,9 @@
 }
 .gacha-chip-pulls.has-value b { color: #ffe169; }
 .gacha-chip-shards b { color: #c4b5ff; }
-body[data-theme="sakura"] .gacha-chip b,
-body[data-theme="ramune"] .gacha-chip b,
-body[data-theme="matcha"] .gacha-chip b { color: var(--accent); }
-body[data-theme="sakura"] .gacha-chip-pulls.has-value b,
-body[data-theme="ramune"] .gacha-chip-pulls.has-value b,
-body[data-theme="matcha"] .gacha-chip-pulls.has-value b { color: #9a5b00; }
-body[data-theme="sakura"] .gacha-chip-shards b,
-body[data-theme="ramune"] .gacha-chip-shards b,
-body[data-theme="matcha"] .gacha-chip-shards b { color: #5b21b6; }
+body[data-theme-tone="light"] .gacha-chip b { color: var(--accent); }
+body[data-theme-tone="light"] .gacha-chip-pulls.has-value b { color: #9a5b00; }
+body[data-theme-tone="light"] .gacha-chip-shards b { color: #5b21b6; }
 
 /* Carry meter & pity telemetry */
 .gacha-telemetry {
@@ -129,9 +123,7 @@ body[data-theme="matcha"] .gacha-chip-shards b { color: #5b21b6; }
   background: rgba(6, 12, 20, .48);
   border: 1px solid color-mix(in srgb, var(--hud-border) 65%, transparent);
 }
-body[data-theme="sakura"] .gacha-carry-track,
-body[data-theme="ramune"] .gacha-carry-track,
-body[data-theme="matcha"] .gacha-carry-track {
+body[data-theme-tone="light"] .gacha-carry-track {
   background: rgba(15, 28, 42, .12);
 }
 .gacha-carry-fill {
@@ -154,25 +146,19 @@ body[data-theme="matcha"] .gacha-carry-track {
   background: color-mix(in srgb, var(--beam-a) 14%, var(--chip));
   color: var(--beam-a);
 }
-body[data-theme="sakura"] .gacha-pity-pill,
-body[data-theme="ramune"] .gacha-pity-pill,
-body[data-theme="matcha"] .gacha-pity-pill { color: var(--accent); }
+body[data-theme-tone="light"] .gacha-pity-pill { color: var(--accent); }
 .gacha-pity-pill.is-guaranteed-sr {
   border-color: #9d8cff;
   background: rgba(157, 140, 255, .2);
   color: #ddd6fe;
 }
-body[data-theme="sakura"] .gacha-pity-pill.is-guaranteed-sr,
-body[data-theme="ramune"] .gacha-pity-pill.is-guaranteed-sr,
-body[data-theme="matcha"] .gacha-pity-pill.is-guaranteed-sr { color: #5b21b6; }
+body[data-theme-tone="light"] .gacha-pity-pill.is-guaranteed-sr { color: #5b21b6; }
 .gacha-pity-pill.is-guaranteed-ssr {
   border-color: #ffe169;
   background: linear-gradient(135deg, rgba(255, 225, 105, .26), rgba(255, 182, 56, .22));
   color: #ffe169;
 }
-body[data-theme="sakura"] .gacha-pity-pill.is-guaranteed-ssr,
-body[data-theme="ramune"] .gacha-pity-pill.is-guaranteed-ssr,
-body[data-theme="matcha"] .gacha-pity-pill.is-guaranteed-ssr { color: #8a4b00; }
+body[data-theme-tone="light"] .gacha-pity-pill.is-guaranteed-ssr { color: #8a4b00; }
 
 /* Tabs */
 .gacha-tabs {
@@ -299,9 +285,7 @@ body[data-theme="matcha"] .gacha-pity-pill.is-guaranteed-ssr { color: #8a4b00; }
   border: 1.5px solid color-mix(in srgb, var(--hud-border) 82%, transparent);
   background: linear-gradient(180deg, rgba(255, 255, 255, .02), color-mix(in srgb, var(--beam-a) 10%, rgba(6, 14, 22, .38)));
 }
-body[data-theme="sakura"] .gacha-stage,
-body[data-theme="ramune"] .gacha-stage,
-body[data-theme="matcha"] .gacha-stage {
+body[data-theme-tone="light"] .gacha-stage {
   background: linear-gradient(180deg, rgba(255, 255, 255, .62), color-mix(in srgb, var(--beam-a) 11%, rgba(255, 255, 255, .42)));
 }
 
@@ -380,19 +364,13 @@ body[data-theme="matcha"] .gacha-stage {
   border-color: rgba(86, 204, 242, .62);
   background: linear-gradient(165deg, rgba(86, 204, 242, .14), var(--panel));
 }
-body[data-theme="sakura"] .gacha-card.rarity-ssr,
-body[data-theme="ramune"] .gacha-card.rarity-ssr,
-body[data-theme="matcha"] .gacha-card.rarity-ssr {
+body[data-theme-tone="light"] .gacha-card.rarity-ssr {
   background: linear-gradient(165deg, rgba(255, 232, 150, .48), rgba(255, 255, 255, .92));
 }
-body[data-theme="sakura"] .gacha-card.rarity-sr,
-body[data-theme="ramune"] .gacha-card.rarity-sr,
-body[data-theme="matcha"] .gacha-card.rarity-sr {
+body[data-theme-tone="light"] .gacha-card.rarity-sr {
   background: linear-gradient(165deg, rgba(196, 181, 255, .36), rgba(255, 255, 255, .92));
 }
-body[data-theme="sakura"] .gacha-card.rarity-r,
-body[data-theme="ramune"] .gacha-card.rarity-r,
-body[data-theme="matcha"] .gacha-card.rarity-r {
+body[data-theme-tone="light"] .gacha-card.rarity-r {
   background: linear-gradient(165deg, rgba(140, 220, 255, .32), rgba(255, 255, 255, .92));
 }
 

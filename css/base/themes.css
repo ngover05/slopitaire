@@ -131,3 +131,215 @@ body[data-theme="matcha"] {
   --bubble-ink: #164430;
   color-scheme: light;
 }
+
+body[data-theme="cafe"] {
+  --bg1: #1a110c;
+  --bg2: #2c1d14;
+  --dot: rgba(232, 165, 84, .13);
+  --ink: #fbf1e4;
+  --accent: #e8a554;
+  --accent2: #d97556;
+  --accent-ink: #1e1107;
+  --beam-a: #e8a554;
+  --beam-b: #e08260;
+  --panel: rgba(28, 18, 13, .90);
+  --panel-ink: #fbf1e4;
+  --chip: rgba(45, 30, 21, .82);
+  --hud-border: rgba(232, 165, 84, .42);
+  --slot: rgba(24, 15, 10, .52);
+  --slot-b: rgba(232, 165, 84, .48);
+  --slot-ink: rgba(242, 194, 132, .62);
+  --petal1: #f7e4cb;
+  --petal2: #e8a554;
+  --glow: #ffd88a;
+  --good: #7ed99b;
+  --bubble-bg: #241710;
+  --bubble-ink: #fbf1e4;
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 22% 16%, rgba(232, 165, 84, .12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 82%, rgba(217, 117, 86, .09) 0%, transparent 48%),
+    radial-gradient(var(--dot) 1.2px, transparent 1.6px) 0 0 / 28px 28px,
+    linear-gradient(165deg, var(--bg1), var(--bg2)) fixed;
+}
+
+body[data-theme="fantasy"] {
+  --bg1: #110c21;
+  --bg2: #22163e;
+  --dot: rgba(242, 193, 78, .13);
+  --ink: #f8f1e2;
+  --accent: #f2c14e;
+  --accent2: #4be3d6;
+  --accent-ink: #181004;
+  --beam-a: #f2c14e;
+  --beam-b: #4be3d6;
+  --panel: rgba(21, 14, 40, .89);
+  --panel-ink: #f8f1e2;
+  --chip: rgba(34, 23, 62, .80);
+  --hud-border: rgba(242, 193, 78, .44);
+  --slot: rgba(17, 11, 34, .50);
+  --slot-b: rgba(242, 193, 78, .50);
+  --slot-ink: rgba(242, 193, 78, .62);
+  --petal1: #ffe082;
+  --petal2: #5ef2e6;
+  --glow: #ffe484;
+  --good: #56ebba;
+  --bubble-bg: #1b1234;
+  --bubble-ink: #f8f1e2;
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(242, 193, 78, .09) 0%, transparent 50%),
+    radial-gradient(circle at 82% 76%, rgba(75, 227, 214, .09) 0%, transparent 48%),
+    radial-gradient(var(--dot) 1.1px, transparent 1.6px) 0 0 / 32px 32px,
+    linear-gradient(165deg, var(--bg1), var(--bg2)) fixed;
+}
+
+body[data-theme="autumn"] {
+  --bg1: #fdf5e8;
+  --bg2: #f0d3aa;
+  --dot: rgba(196, 61, 41, .16);
+  --ink: #421e14;
+  --accent: #c43a27;
+  --accent2: #d98718;
+  --accent-ink: #ffffff;
+  --beam-a: #c43a27;
+  --beam-b: #d98718;
+  --panel: rgba(255, 249, 240, .92);
+  --panel-ink: #421e14;
+  --chip: rgba(255, 252, 246, .85);
+  --hud-border: rgba(196, 58, 39, .38);
+  --slot: rgba(255, 250, 242, .46);
+  --slot-b: rgba(196, 58, 39, .52);
+  --slot-ink: rgba(168, 48, 30, .65);
+  --petal1: #e04832;
+  --petal2: #f0a02c;
+  --glow: #f2a829;
+  --good: #1f8f66;
+  --bubble-bg: #fffaf2;
+  --bubble-ink: #421e14;
+  color-scheme: light;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 214, 130, .36) 0%, transparent 50%),
+    radial-gradient(var(--dot) 1.2px, transparent 1.6px) 0 0 / 30px 30px,
+    linear-gradient(165deg, var(--bg1), var(--bg2)) fixed;
+}
+
+body[data-theme="abyss"] {
+  --bg1: #041224;
+  --bg2: #082a4a;
+  --dot: rgba(54, 226, 255, .14);
+  --ink: #e8f8ff;
+  --accent: #36e2ff;
+  --accent2: #ff6aa8;
+  --accent-ink: #031926;
+  --beam-a: #36e2ff;
+  --beam-b: #ff6aa8;
+  --panel: rgba(6, 23, 44, .89);
+  --panel-ink: #e8f8ff;
+  --chip: rgba(10, 38, 68, .80);
+  --hud-border: rgba(54, 226, 255, .42);
+  --slot: rgba(5, 22, 42, .50);
+  --slot-b: rgba(54, 226, 255, .50);
+  --slot-ink: rgba(92, 232, 255, .60);
+  --petal1: #78ecff;
+  --petal2: #ff94c4;
+  --glow: #6ef3ff;
+  --good: #48f0b8;
+  --bubble-bg: #08203a;
+  --bubble-ink: #e8f8ff;
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse 85% 42% at 50% 0%, rgba(54, 226, 255, .16) 0%, transparent 70%),
+    radial-gradient(var(--dot) 1.1px, transparent 1.6px) 0 0 / 30px 30px,
+    linear-gradient(175deg, var(--bg1), var(--bg2)) fixed;
+}
+
+body[data-theme="synthwave"] {
+  --bg1: #1c071c;
+  --bg2: #3b1037;
+  --dot: rgba(255, 72, 176, .15);
+  --ink: #ffeffb;
+  --accent: #ff52b3;
+  --accent2: #ff9e3d;
+  --accent-ink: #1e0316;
+  --beam-a: #ff52b3;
+  --beam-b: #ff9e3d;
+  --panel: rgba(32, 10, 34, .89);
+  --panel-ink: #ffeffb;
+  --chip: rgba(52, 16, 54, .80);
+  --hud-border: rgba(255, 82, 179, .46);
+  --slot: rgba(28, 8, 30, .50);
+  --slot-b: rgba(255, 82, 179, .50);
+  --slot-ink: rgba(255, 134, 200, .62);
+  --petal1: #ff70c4;
+  --petal2: #3de8f5;
+  --glow: #ffd15c;
+  --good: #3ef0c8;
+  --bubble-bg: #2a0c2e;
+  --bubble-ink: #ffeffb;
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse 90% 42% at 50% 96%, rgba(255, 158, 61, .20) 0%, rgba(255, 82, 179, .10) 45%, transparent 72%),
+    radial-gradient(var(--dot) 1.4px, transparent 1.8px) 0 0 / 26px 26px,
+    linear-gradient(180deg, var(--bg1) 0%, #2b0b2d 55%, var(--bg2) 100%) fixed;
+}
+
+body[data-theme="frost"] {
+  --bg1: #edf4f8;
+  --bg2: #c6dce8;
+  --dot: rgba(13, 126, 156, .16);
+  --ink: #142d3e;
+  --accent: #097490;
+  --accent2: #c93f5d;
+  --accent-ink: #ffffff;
+  --beam-a: #097490;
+  --beam-b: #c93f5d;
+  --panel: rgba(244, 250, 253, .92);
+  --panel-ink: #142d3e;
+  --chip: rgba(255, 255, 255, .86);
+  --hud-border: rgba(9, 116, 144, .38);
+  --slot: rgba(255, 255, 255, .48);
+  --slot-b: rgba(9, 116, 144, .52);
+  --slot-ink: rgba(9, 106, 134, .64);
+  --petal1: #ffffff;
+  --petal2: #79cae0;
+  --glow: #38bce0;
+  --good: #189970;
+  --bubble-bg: #ffffff;
+  --bubble-ink: #142d3e;
+  color-scheme: light;
+  background:
+    radial-gradient(ellipse 80% 48% at 50% 6%, rgba(255, 255, 255, .55) 0%, transparent 68%),
+    radial-gradient(var(--dot) 1.2px, transparent 1.6px) 0 0 / 28px 28px,
+    linear-gradient(165deg, var(--bg1), var(--bg2)) fixed;
+}
+
+body[data-theme="rainy"] {
+  --bg1: #131820;
+  --bg2: #222b38;
+  --dot: rgba(122, 198, 240, .13);
+  --ink: #edf3fa;
+  --accent: #6ec3f0;
+  --accent2: #f2b94b;
+  --accent-ink: #0c1722;
+  --beam-a: #6ec3f0;
+  --beam-b: #f2b94b;
+  --panel: rgba(22, 28, 38, .90);
+  --panel-ink: #edf3fa;
+  --chip: rgba(34, 43, 56, .82);
+  --hud-border: rgba(110, 195, 240, .40);
+  --slot: rgba(18, 24, 33, .52);
+  --slot-b: rgba(110, 195, 240, .48);
+  --slot-ink: rgba(136, 206, 242, .60);
+  --petal1: #a6dcff;
+  --petal2: #f2c66d;
+  --glow: #ffd978;
+  --good: #56dfa8;
+  --bubble-bg: #1b2330;
+  --bubble-ink: #edf3fa;
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(242, 185, 75, .10) 0%, transparent 44%),
+    radial-gradient(circle at 20% 80%, rgba(110, 195, 240, .10) 0%, transparent 48%),
+    linear-gradient(170deg, var(--bg1), var(--bg2)) fixed;
+}

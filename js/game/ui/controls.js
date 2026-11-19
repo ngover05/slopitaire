@@ -9,7 +9,7 @@ function bindUiSounds() {
     if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
     const t = e.target;
     if (!t || t.nodeType !== 1) return;
-    if (!t.disabled && t.matches('.btn, .cast-opt, .diff-card, .seg button, .front-opt, .back-opt, .chip.is-auto, .skin-tab, .skin-card, .skins-mood-btn, .skins-open-chip, .gacha-tab, .gacha-filter, .gacha-card, .sc-preview-btn')) {
+    if (!t.disabled && t.matches('.btn, .cast-opt, .diff-card, .seg button, .theme-opt, .front-opt, .back-opt, .chip.is-auto, .skin-tab, .skin-card, .skins-mood-btn, .skins-open-chip, .gacha-tab, .gacha-filter, .gacha-card, .sc-preview-btn')) {
       Sound.sfx.hover?.();
     } else if (!drag && t.classList.contains('card') && t.classList.contains('up')) {
       Sound.sfx.cardHover?.();

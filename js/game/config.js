@@ -1,4 +1,4 @@
-/* Slopitaire — static game definitions: difficulties, variants, stat keys and pile counts. */
+/* Slopitaire — static game definitions: difficulties, variants, themes, stat keys and pile counts. */
 'use strict';
 
 const DIFF = {
@@ -93,3 +93,22 @@ const PILE_COUNTS = {
   pyramid: { found: 1, tab: 0, cell: 0, pyr: 28 },
   tripeaks: { found: 0, tab: 0, cell: 0, pyr: 28 },
 };
+
+const THEME_DEFS = {
+  prism: { icon: '◈', name: 'Prism Core', tone: 'dark', scene: 'circuit', particles: 'diamond', tagline: 'Cyber circuit core with mint-emerald traces & amber pulses', swatch: ['#0a131a', '#122330', '#2ce8a2', '#ffb638'] },
+  night: { icon: '🌌', name: 'Astral Violet', tone: 'dark', scene: 'circuit', particles: 'petal', tagline: 'Deep indigo starlight with violet traces & coral warmth', swatch: ['#121329', '#1c1e3c', '#9d8cff', '#ff8e6e'] },
+  sakura: { icon: '🌸', name: 'Neo Blossom', tone: 'light', scene: 'circuit', particles: 'petal', tagline: 'Pastel spring sakura blush with drifting blossom petals', swatch: ['#fff1f5', '#ffdbe5', '#ff5c8a', '#2ec4b6'] },
+  ramune: { icon: '⚡', name: 'Cobalt Surge', tone: 'light', scene: 'circuit', particles: 'petal', tagline: 'Fizzy summer sky cobalt with bright citrus-gold highlights', swatch: ['#eef5ff', '#cde0ff', '#2979ff', '#ffab00'] },
+  matcha: { icon: '🌿', name: 'Jade Circuit', tone: 'light', scene: 'circuit', particles: 'petal', tagline: 'Crisp ceremonial matcha green with warm coral accents', swatch: ['#f0fbf5', '#c8eedb', '#1fb879', '#ff7f50'] },
+  cafe: { icon: '☕', name: 'Velvet Café', tone: 'dark', scene: 'cafe', particles: 'steam', tagline: 'Cozy twilight kissaten with caramel Edison glow & rising steam', swatch: ['#1a110c', '#2c1d14', '#e8a554', '#d97556'] },
+  fantasy: { icon: '✦', name: 'Arcane Sanctum', tone: 'dark', scene: 'fantasy', particles: 'mana', tagline: 'Moonlit mage observatory with gilded runes & rising mana motes', swatch: ['#110c21', '#22163e', '#f2c14e', '#4be3d6'] },
+  autumn: { icon: '🍁', name: 'Maple Shrine', tone: 'light', scene: 'autumn', particles: 'maple', tagline: 'Golden-hour Kyoto shrine with washi warmth & crimson maples', swatch: ['#fdf5e8', '#f0d3aa', '#c43a27', '#d98718'] },
+  abyss: { icon: '🪼', name: 'Coral Abyss', tone: 'dark', scene: 'abyss', particles: 'bubble', tagline: 'Bioluminescent deep sea with drifting jellyfish & ocean bubbles', swatch: ['#041224', '#082a4a', '#36e2ff', '#ff6aa8'] },
+  synthwave: { icon: '🌇', name: 'Neon Horizon', tone: 'dark', scene: 'synthwave', particles: 'spark', tagline: 'Retro 80s twilight sunset with striped sun & chrome horizon grid', swatch: ['#1c071c', '#3b1037', '#ff52b3', '#ff9e3d'] },
+  frost: { icon: '❄️', name: 'Winter Glade', tone: 'light', scene: 'frost', particles: 'snow', tagline: 'Crisp alpine frost with ice-fern corners & drifting snowfall', swatch: ['#edf4f8', '#c6dce8', '#097490', '#c93f5d'] },
+  rainy: { icon: '🌧️', name: 'Midnight Rain', tone: 'dark', scene: 'rainy', particles: 'rain', tagline: 'Lofi rainy window with warm streetlamp bokeh & puddle ripples', swatch: ['#131820', '#222b38', '#6ec3f0', '#f2b94b'] },
+};
+Object.values(THEME_DEFS).forEach((t) => { t.label = `${t.icon} ${t.name}`; });
+const THEME_KEYS = Object.keys(THEME_DEFS);
+const THEMES = THEME_KEYS.map((k) => [k, THEME_DEFS[k].label]);
+const themeTone = (k) => THEME_DEFS[k]?.tone || 'dark';

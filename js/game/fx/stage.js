@@ -1,17 +1,25 @@
-/* Slopitaire — the dynamic Prism stage backdrop (#bgCanvas) and the combo timer loop. */
+/* Slopitaire — the dynamic stage backdrop (#bgCanvas) and the combo timer loop. */
 'use strict';
 
 const StageBG = (() => {
   const cv = $('#bgCanvas'), cx = cv ? cv.getContext('2d') : null;
   const reduceMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const PALETTES = {
-    prism:  { a: [44, 232, 162],  b: [255, 182, 56],  acc: [255, 225, 105], dark: true },
-    night:  { a: [157, 140, 255], b: [255, 142, 110], acc: [196, 181, 255], dark: true },
-    sakura: { a: [255, 92, 138],  b: [46, 196, 182],  acc: [255, 143, 177], dark: false },
-    ramune: { a: [41, 121, 255],  b: [255, 171, 0],   acc: [92, 164, 255],  dark: false },
-    matcha: { a: [31, 184, 121],  b: [255, 127, 80],  acc: [78, 214, 154],  dark: false },
+    prism:     { a: [44, 232, 162],  b: [255, 182, 56],  acc: [255, 225, 105], dark: true },
+    night:     { a: [157, 140, 255], b: [255, 142, 110], acc: [196, 181, 255], dark: true },
+    sakura:    { a: [255, 92, 138],  b: [46, 196, 182],  acc: [255, 143, 177], dark: false },
+    ramune:    { a: [41, 121, 255],  b: [255, 171, 0],   acc: [92, 164, 255],  dark: false },
+    matcha:    { a: [31, 184, 121],  b: [255, 127, 80],  acc: [78, 214, 154],  dark: false },
+    cafe:      { a: [232, 165, 84],  b: [217, 117, 86],  acc: [255, 216, 138], dark: true },
+    fantasy:   { a: [242, 193, 78],  b: [75, 227, 214],  acc: [190, 148, 255], dark: true },
+    autumn:    { a: [217, 135, 24],  b: [196, 58, 39],   acc: [242, 168, 41],  dark: false },
+    abyss:     { a: [54, 226, 255],  b: [255, 106, 168], acc: [110, 243, 255], dark: true },
+    synthwave: { a: [255, 82, 179],  b: [255, 158, 61],  acc: [61, 232, 245],  dark: true },
+    frost:     { a: [9, 116, 144],   b: [201, 63, 93],   acc: [121, 202, 224], dark: false },
+    rainy:     { a: [110, 195, 240], b: [242, 185, 75],  acc: [166, 220, 255], dark: true },
   };
-  let pal = { a: [44, 232, 162], b: [255, 182, 56], acc: [255, 225, 105], dark: true };
+  const initBase = PALETTES[typeof settings !== 'undefined' ? settings.theme : 'prism'] || PALETTES.prism;
+  let pal = { a: initBase.a, b: initBase.b, acc: initBase.acc, hi: initBase.acc, dark: initBase.dark };
   let W = 0, H = 0, dpr = 1, raf = null, lastWall = Date.now(), hiddenAt = 0, resizeRaf = 0;
   // The backdrop drifts slowly, so it is redrawn at ~30 fps instead of every display refresh (60–144 Hz):
   // each redraw composites several full-screen layers. The combo timer still updates every frame.
@@ -19,10 +27,10 @@ const StageBG = (() => {
   const STAGE_FRAME_MS = 1000 / 30, STAGE_FRAME_MS_LITE = 1000 / 20;
   const frameMs = () => (perfLite() ? STAGE_FRAME_MS_LITE : STAGE_FRAME_MS);
   let stageAccMs = STAGE_FRAME_MS;
-  let timeSec = 0, pulseBoost = 0, pulseRGB = [44, 232, 162];
-  // Calm ambient backdrop: a faint, static circuit-board pattern with a few lights gliding along its traces and two
-  // slowly drifting colour glows. Nothing is tied to the music's beat or scrolls toward the player.
-  let traces = [], traceLayer = null;
+  let timeSec = 0, pulseBoost = 0, pulseRGB = initBase.a;
+  // Calm ambient backdrop: circuit-board traces for classic themes or a bespoke StageScenes renderer for themed worlds.
+  let traces = [], staticLayer = null, tracesKey = '';
+  let curScene = 'circuit', sceneState = null, sceneKey = '';
   let glowA = null, glowB = null, glowPulse = null, glowPulseKey = '';
   const haloCache = new Map();
   const lights = [];
@@ -58,6 +66,7 @@ const StageBG = (() => {
     haloFor(pal.a);
     haloFor(pal.b);
     haloFor(pal.acc);
+    if (pal.hi) haloFor(pal.hi);
   }
 
   function parseRGB(str, fallback) {
@@ -72,6 +81,13 @@ const StageBG = (() => {
     return fallback;
   }
   const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
+  const sceneApi = { rgba, haloFor };
+  const drawApi = { rgba, haloFor, glowA: null, glowB: null, dt: 0, t: 0, tier: 0, aMul: 1, isStatic: false, lite: false };
+
+  function sceneName() {
+    const raw = (typeof THEME_DEFS !== 'undefined' && THEME_DEFS[settings.theme]?.scene) || 'circuit';
+    return (raw !== 'circuit' && typeof StageScenes !== 'undefined' && StageScenes[raw]) ? raw : 'circuit';
+  }
 
   function refreshTheme() {
     const base = PALETTES[settings.theme] || PALETTES.prism;
@@ -81,9 +97,10 @@ const StageBG = (() => {
     const acc = parseRGB(cs.getPropertyValue('--accent'), base.acc);
     const bg = parseRGB(cs.getPropertyValue('--bg1') || cs.getPropertyValue('--bg2') || cs.getPropertyValue('--bg'), null);
     const dark = bg ? (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]) / 255 < 0.45 : base.dark;
-    pal = { a, b, acc, dark };
+    pal = { a, b, acc, hi: base.acc, dark };
     buildGlows();
-    paintTraces();
+    rebuildStatic(false);
+    stageAccMs = STAGE_FRAME_MS;
     if (!shouldAnimate()) renderStatic();
     ensureLoop();
   }
@@ -121,13 +138,18 @@ const StageBG = (() => {
     }
     traces = out;
   }
-  function paintTraces() {
-    if (!cv || !W || !H) return;
-    traceLayer = traceLayer || document.createElement('canvas');
-    traceLayer.width = Math.max(1, Math.floor(W * dpr)); traceLayer.height = Math.max(1, Math.floor(H * dpr));
-    const t = traceLayer.getContext('2d');
+  function prepStaticLayer() {
+    staticLayer = staticLayer || document.createElement('canvas');
+    staticLayer.width = Math.max(1, Math.floor(W * dpr));
+    staticLayer.height = Math.max(1, Math.floor(H * dpr));
+    const t = staticLayer.getContext('2d');
     t.setTransform(dpr, 0, 0, dpr, 0, 0);
     t.clearRect(0, 0, W, H);
+    return t;
+  }
+  function paintTraces() {
+    if (!cv || !W || !H) return;
+    const t = prepStaticLayer();
     t.lineCap = 'round'; t.lineJoin = 'round';
     const k = pal.dark ? 1 : 0.75;
     for (const tr of traces) {
@@ -141,6 +163,24 @@ const StageBG = (() => {
         t.beginPath(); t.arc(end[0], end[1], 3.2, 0, Math.PI * 2); t.stroke();
       }
     }
+  }
+  function rebuildStatic(forceInit) {
+    if (!cv || !W || !H) return;
+    const name = sceneName(), lite = perfLite();
+    curScene = name;
+    if (name === 'circuit') {
+      sceneState = null; sceneKey = '';
+      const tk = `${W}x${H}`;
+      if (forceInit || tracesKey !== tk || !traces.length) { buildTraces(); lights.length = 0; tracesKey = tk; }
+      paintTraces();
+      return;
+    }
+    const sc = StageScenes[name], sk = `${name}:${W}x${H}:${lite ? 1 : 0}`;
+    if (forceInit || sceneKey !== sk || !sceneState) {
+      sceneState = sc.init(W, H, lite);
+      sceneKey = sk;
+    }
+    sc.paintStatic(prepStaticLayer(), W, H, pal, sceneState, sceneApi);
   }
   function pointOn(tr, dist) {
     let d = Math.max(0, Math.min(tr.total, dist));
@@ -165,7 +205,7 @@ const StageBG = (() => {
     W = innerWidth; H = innerHeight;
     cv.width = Math.max(1, Math.floor(W * dpr));
     cv.height = Math.max(1, Math.floor(H * dpr));
-    buildTraces(); lights.length = 0; paintTraces();
+    rebuildStatic(true);
     stageAccMs = STAGE_FRAME_MS;  // resizing cleared the canvas: redraw on the next frame
     if (!shouldAnimate()) renderStatic();
   }
@@ -177,7 +217,7 @@ const StageBG = (() => {
     return !!(G && G.chain > 0 && !G.won && !G.lost && !document.hidden);
   }
 
-  // a game event (card home, combo milestone, ...): a soft glow plus a light or two sent along the traces
+  // a game event (card home, combo milestone, ...): a soft glow plus a reactive scene pulse
   function pulse(colorHex, power = 0.6) {
     const rgb = colorHex ? parseRGB(colorHex, pal.a) : (Math.random() < 0.5 ? pal.a : pal.b);
     pulseBoost = Math.min(1, Math.max(pulseBoost, power * 0.7));
@@ -187,7 +227,14 @@ const StageBG = (() => {
       glowPulseKey = key;
       glowPulse = makeRadialCanvas(256, rgb);
     }
-    if (shouldAnimate()) { spawnLight(rgb); if (power >= 0.8) spawnLight(rgb); }
+    haloFor(rgb);
+    if (!shouldAnimate()) return;
+    if (curScene === 'circuit') {
+      spawnLight(rgb);
+      if (power >= 0.8) spawnLight(rgb);
+    } else if (sceneState && typeof StageScenes !== 'undefined' && StageScenes[curScene]?.pulse) {
+      StageScenes[curScene].pulse(sceneState, rgb, power, W, H, perfLite());
+    }
   }
 
   function tickCombo(now, dtMs) {
@@ -239,33 +286,45 @@ const StageBG = (() => {
     }
     cx.globalAlpha = 1;
 
-    // 2) the static circuit pattern
-    if (traceLayer) { cx.globalAlpha = settings.bgFx ? 1 : 0.6; cx.drawImage(traceLayer, 0, 0, W, H); cx.globalAlpha = 1; }
+    // 2) the static backdrop layer (circuit pattern or scene background)
+    if (staticLayer) { cx.globalAlpha = settings.bgFx ? 1 : 0.6; cx.drawImage(staticLayer, 0, 0, W, H); cx.globalAlpha = 1; }
 
-    // 3) lights gliding along traces; a few more of them as the combo climbs
-    if (settings.bgFx && !isStatic) {
-      const want = perfLite() ? 3 + tier : 6 + tier * 2;
-      if (lights.length < want && Math.random() < dt * 1.2) spawnLight();
-      for (let i = lights.length - 1; i >= 0; i--) {
-        const L = lights[i];
-        L.d += dt * L.speed;
-        if (L.d >= L.tr.total) { lights.splice(i, 1); continue; }
-        const fade = Math.min(1, L.d / 30, (L.tr.total - L.d) / 30);
-        const at = (dd) => pointOn(L.tr, L.rev ? L.tr.total - dd : dd);
-        for (let k = 3; k >= 1; k--) {                                 // short fading tail
-          const dd = L.d - k * 7;
-          if (dd < 0) continue;
-          const [x, y] = at(dd);
-          cx.fillStyle = rgba(L.rgb, (0.16 / k) * fade * aMul);
-          cx.beginPath(); cx.arc(x, y, 1.8, 0, Math.PI * 2); cx.fill();
+    // 3) animated scene elements; subtle boost as the combo climbs
+    if (curScene === 'circuit') {
+      if (settings.bgFx && !isStatic) {
+        const want = perfLite() ? 3 + tier : 6 + tier * 2;
+        if (lights.length < want && Math.random() < dt * 1.2) spawnLight();
+        for (let i = lights.length - 1; i >= 0; i--) {
+          const L = lights[i];
+          L.d += dt * L.speed;
+          if (L.d >= L.tr.total) { lights.splice(i, 1); continue; }
+          const fade = Math.min(1, L.d / 30, (L.tr.total - L.d) / 30);
+          const at = (dd) => pointOn(L.tr, L.rev ? L.tr.total - dd : dd);
+          for (let k = 3; k >= 1; k--) {                                 // short fading tail
+            const dd = L.d - k * 7;
+            if (dd < 0) continue;
+            const [x, y] = at(dd);
+            cx.fillStyle = rgba(L.rgb, (0.16 / k) * fade * aMul);
+            cx.beginPath(); cx.arc(x, y, 1.8, 0, Math.PI * 2); cx.fill();
+          }
+          const [hx, hy] = at(L.d);
+          cx.globalAlpha = Math.max(0, Math.min(1, 0.3 * fade * aMul));
+          cx.drawImage(haloFor(L.rgb), hx - 11, hy - 11, 22, 22);
+          cx.globalAlpha = 1;
+          cx.fillStyle = rgba(L.rgb, 0.75 * fade * aMul);
+          cx.beginPath(); cx.arc(hx, hy, 2.2, 0, Math.PI * 2); cx.fill();
         }
-        const [hx, hy] = at(L.d);
-        cx.globalAlpha = Math.max(0, Math.min(1, 0.3 * fade * aMul));
-        cx.drawImage(haloFor(L.rgb), hx - 11, hy - 11, 22, 22);
-        cx.globalAlpha = 1;
-        cx.fillStyle = rgba(L.rgb, 0.75 * fade * aMul);
-        cx.beginPath(); cx.arc(hx, hy, 2.2, 0, Math.PI * 2); cx.fill();
       }
+    } else if (settings.bgFx && sceneState && typeof StageScenes !== 'undefined' && StageScenes[curScene]) {
+      drawApi.glowA = glowA;
+      drawApi.glowB = glowB;
+      drawApi.dt = isStatic ? 0 : dt;
+      drawApi.t = timeSec;
+      drawApi.tier = tier;
+      drawApi.aMul = aMul;
+      drawApi.isStatic = !!isStatic;
+      drawApi.lite = perfLite();
+      StageScenes[curScene].draw(cx, W, H, pal, sceneState, drawApi);
     }
     cx.restore();
   }

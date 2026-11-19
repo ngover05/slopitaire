@@ -17,9 +17,7 @@
     3px 3px 0 color-mix(in srgb, var(--beam-b) 80%, #000),
     0 0 22px color-mix(in srgb, var(--beam-a) 42%, transparent);
 }
-body[data-theme="sakura"] .title,
-body[data-theme="ramune"] .title,
-body[data-theme="matcha"] .title {
+body[data-theme-tone="light"] .title {
   color: var(--accent);
   text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 3px 4px 0 color-mix(in srgb, var(--accent) 45%, #fff);
 }
@@ -28,9 +26,7 @@ body[data-theme="matcha"] .title {
   font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase;
   margin: 2px 0 9px; color: var(--beam-a); opacity: .92;
 }
-body[data-theme="sakura"] .tagline,
-body[data-theme="ramune"] .tagline,
-body[data-theme="matcha"] .tagline { color: var(--ink); opacity: .8; }
+body[data-theme-tone="light"] .tagline { color: var(--ink); opacity: .8; }
 
 .diff-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .diff-card {

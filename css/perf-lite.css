@@ -44,5 +44,5 @@ body.perf-lite .combo-hud.danger .combo-fill {
   to { opacity: .42; }
 }
 
-/* 4) petals: fewer of them (js/game/fx/petals.js) and no glow, so each one is a plain composited layer */
-body.perf-lite .petal i { box-shadow: none; }
+/* 4) petals: fewer of them (js/game/fx/petals.js) and no glow/blur, so each one is a plain composited layer */
+body.perf-lite .petal i { box-shadow: none; filter: none !important; }

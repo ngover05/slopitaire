@@ -1,5 +1,5 @@
-/* Slopitaire — dynamic circuit stage canvas, scanlines & petals */
-/* ---------- dynamic circuit stage canvas, scanlines & petals ---------- */
+/* Slopitaire — dynamic stage backdrop canvas, scanlines & ambient particles */
+/* ---------- dynamic stage backdrop canvas, scanlines & ambient particles ---------- */
 .bg-canvas {
   position: fixed; inset: 0; width: 100%; height: 100%;
   z-index: 0; pointer-events: none; display: block;
@@ -17,9 +17,7 @@
     radial-gradient(circle at 50% 48%, transparent 58%, rgba(4, 10, 16, .55) 100%);
   transition: box-shadow .35s ease, opacity .35s ease;
 }
-body[data-theme="sakura"] .scanlines,
-body[data-theme="ramune"] .scanlines,
-body[data-theme="matcha"] .scanlines {
+body[data-theme-tone="light"] .scanlines {
   opacity: .1;
   background:
     repeating-linear-gradient(
@@ -30,6 +28,41 @@ body[data-theme="matcha"] .scanlines {
       rgba(16, 32, 48, .13) 3px
     ),
     radial-gradient(circle at 50% 48%, transparent 65%, rgba(12, 24, 36, .14) 100%);
+}
+body[data-theme="synthwave"] .scanlines {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, .26) 2px,
+      rgba(0, 0, 0, .26) 3px
+    ),
+    radial-gradient(circle at 50% 48%, transparent 58%, rgba(18, 4, 22, .62) 100%);
+}
+body[data-theme="cafe"] .scanlines {
+  opacity: .34;
+  background: radial-gradient(circle at 50% 46%, transparent 52%, rgba(12, 6, 3, .62) 100%);
+}
+body[data-theme="fantasy"] .scanlines {
+  opacity: .32;
+  background: radial-gradient(circle at 50% 46%, transparent 52%, rgba(8, 4, 18, .62) 100%);
+}
+body[data-theme="abyss"] .scanlines {
+  opacity: .36;
+  background: radial-gradient(ellipse at 50% 35%, transparent 48%, rgba(1, 8, 18, .68) 100%);
+}
+body[data-theme="rainy"] .scanlines {
+  opacity: .34;
+  background: radial-gradient(circle at 50% 46%, transparent 50%, rgba(6, 10, 16, .64) 100%);
+}
+body[data-theme="autumn"] .scanlines {
+  opacity: .22;
+  background: radial-gradient(circle at 50% 48%, transparent 58%, rgba(122, 54, 18, .22) 100%);
+}
+body[data-theme="frost"] .scanlines {
+  opacity: .32;
+  background: radial-gradient(circle at 50% 48%, transparent 58%, rgba(185, 224, 240, .42) 100%);
 }
 body[data-combo-tier="3"] .scanlines {
   box-shadow: inset 0 0 42px color-mix(in srgb, var(--beam-b) 24%, transparent), inset 0 0 22px color-mix(in srgb, var(--beam-a) 20%, transparent);
@@ -47,10 +80,83 @@ body[data-combo-tier="4"] .scanlines {
   box-shadow: 0 0 8px color-mix(in srgb, var(--petal1) 42%, transparent);
   animation: sway 3s ease-in-out infinite alternate;
 }
-body[data-theme="prism"] .petal i {
+body[data-theme="prism"] .petal i,
+.petals[data-particles="diamond"] .petal i {
   border-radius: 2px;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
   opacity: .68;
 }
+.petals[data-particles="steam"] .petal,
+.petals[data-particles="mana"] .petal,
+.petals[data-particles="bubble"] .petal,
+.petals[data-particles="spark"] .petal {
+  top: auto; bottom: -8vh;
+  animation-name: riseFade;
+}
+.petals[data-particles="steam"] .petal i {
+  width: calc(10px * var(--s, 1)); height: calc(34px * var(--s, 1));
+  border-radius: 50%;
+  background: linear-gradient(to top, transparent, var(--petal1) 45%, var(--petal2));
+  box-shadow: none; opacity: .34; filter: blur(2px);
+  animation: steamSway 3.8s ease-in-out infinite alternate;
+}
+.petals[data-particles="mana"] .petal i {
+  width: calc(11px * var(--s, 1)); height: calc(11px * var(--s, 1));
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  background: linear-gradient(135deg, var(--petal1), var(--petal2));
+  opacity: .82;
+  animation: manaTwinkle 2.4s ease-in-out infinite alternate;
+}
+.petals[data-particles="maple"] .petal i {
+  width: calc(14px * var(--s, 1)); height: calc(14px * var(--s, 1));
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 63% 32%, 98% 28%, 74% 55%, 86% 88%, 50% 72%, 14% 88%, 26% 55%, 2% 28%, 37% 32%);
+  opacity: .84;
+  animation: leafTumble 3.2s ease-in-out infinite alternate;
+}
+.petals[data-particles="bubble"] .petal i {
+  width: calc(13px * var(--s, 1)); height: calc(13px * var(--s, 1));
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, .78) 0%, rgba(255, 255, 255, .12) 34%, color-mix(in srgb, var(--petal1) 24%, transparent) 100%);
+  border: 1.2px solid color-mix(in srgb, var(--petal1) 70%, #fff);
+  opacity: .72;
+  animation: bubbleWobble 2.8s ease-in-out infinite alternate;
+}
+.petals[data-particles="spark"] .petal i {
+  width: calc(9px * var(--s, 1)); height: calc(9px * var(--s, 1));
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  opacity: .76;
+  animation: manaTwinkle 2s ease-in-out infinite alternate;
+}
+.petals[data-particles="snow"] .petal i {
+  width: calc(10px * var(--s, 1)); height: calc(10px * var(--s, 1));
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 35%, var(--petal2) 100%);
+  border: 1px solid color-mix(in srgb, var(--petal2) 60%, transparent);
+  opacity: .88;
+  animation: snowSway 3.6s ease-in-out infinite alternate;
+}
+.petals[data-particles="rain"] .petal i {
+  width: 1.5px; height: calc(22px * var(--s, 1));
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, var(--petal1));
+  box-shadow: none; opacity: .42;
+  transform: rotate(10deg);
+  animation: none;
+}
+
 @keyframes fall { to { transform: translate3d(var(--drift, 8vw), 112vh, 0); } }
 @keyframes sway { from { transform: rotate(-30deg) translateX(-12px); } to { transform: rotate(50deg) translateX(14px); } }
+@keyframes riseFade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift, 0vw), -114vh, 0); }
+}
+@keyframes steamSway { from { transform: translateX(-8px) skewX(-6deg) scaleY(.94); } to { transform: translateX(8px) skewX(6deg) scaleY(1.08); } }
+@keyframes manaTwinkle { from { transform: scale(.75) rotate(-15deg); opacity: .42; } to { transform: scale(1.15) rotate(25deg); opacity: .92; } }
+@keyframes leafTumble { from { transform: rotate(-55deg) translateX(-14px); } to { transform: rotate(65deg) translateX(16px); } }
+@keyframes bubbleWobble { from { transform: translateX(-8px) scale(1.04, .96); } to { transform: translateX(8px) scale(.96, 1.04); } }
+@keyframes snowSway { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
